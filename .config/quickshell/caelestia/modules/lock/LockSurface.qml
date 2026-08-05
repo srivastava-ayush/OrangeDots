@@ -61,8 +61,8 @@ WlSessionLockSurface {
                 type: Anim.StandardLarge
             }
             Anim {
-                target: background
-                property: "opacity"
+                target: bgBlur
+                property: "blur"
                 to: 0
                 type: Anim.StandardLarge
             }
@@ -163,6 +163,8 @@ WlSessionLockSurface {
 
         layer.enabled: true
         layer.effect: MultiEffect {
+            id: bgBlur
+
             autoPaddingEnabled: false
             blurEnabled: true
             blur: 1
