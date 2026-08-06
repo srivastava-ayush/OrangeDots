@@ -2,9 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Effects
+import Quickshell
 import Quickshell.Wayland
 import Caelestia.Config
 import qs.components
+import qs.components.effects
 import qs.components.images
 import qs.services
 
@@ -221,6 +223,37 @@ WlSessionLockSurface {
                 shadowEnabled: true
                 blurMax: 15
                 shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
+            }
+
+            Item {
+                id: pfpMask
+
+                anchors.fill: parent
+                layer.enabled: true
+                visible: false
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: lockBg.radius
+                }
+            }
+
+            CachingImage {
+                anchors.fill: parent
+                path: `${Quickshell.shellDir}/assets/pfp.jpg`
+                fillMode: Image.PreserveAspectCrop
+
+                layer.enabled: true
+                layer.effect: Mask {
+                    maskSource: pfpMask
+                }
+            }
+
+            StyledRect {
+                anchors.fill: parent
+                color: "black"
+                opacity: 0.92345k
+                radius: lockBg.radius
             }
         }
 

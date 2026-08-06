@@ -15,9 +15,24 @@ GridLayout {
     columnSpacing: Tokens.spacing.medium
 
     Rect {
+        Layout.row: 0
+        Layout.columnSpan: 2
+        Layout.preferredWidth: Tokens.sizes.dashboard.weatherWidth
+        Layout.fillHeight: true
+
+        radius: Tokens.rounding.extraLarge * 1.5
+
+        Pacman {
+            id: pacman
+        }
+    }
+
+    Rect {
+        Layout.row: 0
         Layout.column: 2
         Layout.columnSpan: 3
         Layout.preferredWidth: Tokens.sizes.dashboard.userWidth
+        Layout.preferredHeight: 96 + Tokens.padding.large * 2
         Layout.fillHeight: true
 
         radius: Tokens.rounding.extraLarge
@@ -27,19 +42,6 @@ GridLayout {
 
             screenState: root.screenState
             facePicker: root.facePicker
-        }
-    }
-
-    Rect {
-        Layout.row: 0
-        Layout.columnSpan: 2
-        Layout.preferredWidth: Tokens.sizes.dashboard.weatherWidth
-        Layout.preferredHeight: weather.implicitHeight
-
-        radius: Tokens.rounding.extraLarge * 1.5
-
-        SmallWeather {
-            id: weather
         }
     }
 

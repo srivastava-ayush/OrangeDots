@@ -24,14 +24,6 @@ ColumnLayout {
         centerScale: root.centerScale
     }
 
-    StyledText {
-        Layout.alignment: Qt.AlignHCenter
-
-        text: Time.format("dddd • d MMM").toUpperCase()
-        color: Colours.palette.m3onSurface
-        font: Tokens.font.title.builders.medium.weight(Font.DemiBold).build()
-    }
-
     ProfilePic {
         Layout.alignment: Qt.AlignHCenter
         Layout.topMargin: Tokens.spacing.extraExtraLarge * root.centerScale
@@ -44,10 +36,5 @@ ColumnLayout {
         centerScale: Math.max(0.8, root.centerScale)
         centerWidth: root.centerWidth
         lock: root.lock
-    }
-
-    StateMessage {
-        Layout.fillWidth: true
-        pam: root.lock.pam
     }
 }

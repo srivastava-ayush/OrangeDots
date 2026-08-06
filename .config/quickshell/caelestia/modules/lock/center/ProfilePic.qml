@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import Quickshell
 import M3Shapes
 import Caelestia.Config
 import qs.components
@@ -46,7 +47,7 @@ Item {
         id: pfp
 
         anchors.fill: shape
-        path: `${Paths.home}/.face`
+        path: `${Quickshell.shellDir}/assets/pfp.jpg`
 
         layer.enabled: true
         layer.effect: Mask {
