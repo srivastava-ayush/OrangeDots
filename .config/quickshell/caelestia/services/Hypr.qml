@@ -79,6 +79,15 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.focus({ workspace = "${openSpecials[nextIndex].name}" })` : `workspace ${openSpecials[nextIndex].name}`);
     }
 
+    function spotify(): void {
+        const running = toplevels.values.some(t => t.class?.toLowerCase() === "spotify");
+
+        if (!running)
+            Quickshell.execDetached(["spotify"]);
+
+        dispatch(usingLua ? 'hl.dsp.workspace.toggle_special("magic")' : "togglespecialworkspace magic");
+    }
+
     function monitorNames(): list<string> {
         return monitors.values.map(e => e.name);
     }
@@ -201,6 +210,10 @@ Singleton {
             extras.refreshDevices();
         }
 
+        function spotify(): void {
+            root.spotify();
+        }
+
         function cycleSpecialWorkspace(direction: string): void {
             root.cycleSpecialWorkspace(direction);
         }
@@ -219,6 +232,14 @@ Singleton {
         description: "Reload devices"
         onPressed: extras.refreshDevices()
         onReleased: extras.refreshDevices()
+    }
+
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "spotify"
+        description: "Toggle Spotify scratchpad"
+        onPressed: root.spotify()
     }
 
     HyprExtras {

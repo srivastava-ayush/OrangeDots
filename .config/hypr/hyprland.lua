@@ -296,9 +296,18 @@ for i = 1, 10 do
     hl.bind(mainMod .. " + SHIFT + " .. key,     hl.dsp.window.move({ workspace = i }))
 end
 
--- Example special workspace (scratchpad)
-hl.bind(mainMod .. " + S",         hl.dsp.workspace.toggle_special("magic"))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
+-- Spotify scratchpad (special workspace)
+hl.window_rule({
+    name  = "spotify-special",
+    match = { class = "^(Spotify|spotify)$" },
+
+    workspace = "special:magic",
+})
+
+-- SUPER + S toggles the Spotify scratchpad via the shell's global shortcut,
+-- launching Spotify if it isn't already running.
+
+hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"))
 
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))

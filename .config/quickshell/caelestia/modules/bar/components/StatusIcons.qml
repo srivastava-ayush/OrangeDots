@@ -57,6 +57,13 @@ StyledRect {
 
         spacing: 0
 
+        SpotifyButton {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.bottomMargin: Math.round(root.spacing / 2)
+
+            colour: root.colour
+        }
+
         Repeater {
             model: ScriptModel {
                 id: model
@@ -175,6 +182,32 @@ StyledRect {
             Anim {
                 type: Anim.SlowEffects
             }
+        }
+    }
+
+    component SpotifyButton: Item {
+        id: spotify
+
+        property color colour: Colours.palette.m3secondary
+
+        readonly property bool running: Hypr.toplevels.values.some(t => t.class?.toLowerCase() === "spotify")
+
+        implicitWidth: icon.implicitWidth
+        implicitHeight: icon.implicitHeight
+
+        StyledText {
+            id: icon
+
+            text: "\uF1BC"
+            color: spotify.running ? spotify.colour : Colours.palette.m3outline
+            font: Tokens.font.icon.size(Tokens.font.icon.medium.pointSize).weight(Font.Normal).family("CaskaydiaCove Nerd Font").fill(1).build()
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: Hypr.spotify()
         }
     }
 }

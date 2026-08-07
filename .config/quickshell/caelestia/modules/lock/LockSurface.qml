@@ -252,7 +252,7 @@ WlSessionLockSurface {
             StyledRect {
                 anchors.fill: parent
                 color: "black"
-                opacity: 0.92345k
+                opacity: 0.95
                 radius: lockBg.radius
             }
         }
