@@ -277,7 +277,6 @@ hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("caelestia shell drawers toggle dashb
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
 local closeWindowBind = hl.bind(mainMod .. " + C", hl.dsp.window.close())
 -- closeWindowBind:set_enabled(false)
-hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
@@ -290,6 +289,18 @@ hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+
+-- Move windows with mainMod + SHIFT + arrow keys
+hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "left" }))
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
+hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "up" }))
+hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }))
+
+-- Resize windows with mainMod + SHIFT + ALT + arrow keys (hold to resize)
+hl.bind(mainMod .. " + SHIFT + ALT + left",  hl.dsp.window.resize({ x = -20, y = 0, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + ALT + right", hl.dsp.window.resize({ x = 20, y = 0, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + ALT + up",    hl.dsp.window.resize({ x = 0, y = -20, relative = true }), { repeating = true })
+hl.bind(mainMod .. " + SHIFT + ALT + down",  hl.dsp.window.resize({ x = 0, y = 20, relative = true }), { repeating = true })
 
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
@@ -309,8 +320,9 @@ hl.window_rule({
 
 -- SUPER + S toggles the Spotify scratchpad via the shell's global shortcut,
 -- launching Spotify if it isn't already running.
-
-hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"))
+hl.bind(mainMod .. " + S",          hl.dsp.exec_cmd("caelestia shell hypr spotify"))
+hl.bind(mainMod .. " + SHIFT + S",  hl.dsp.window.move({ workspace = "special:magic" }))
+hl.bind(mainMod .. " + Z",          hl.dsp.workspace.toggle_special("scratch"))
 
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
@@ -327,6 +339,28 @@ hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_S
 hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
+
+-- Volume/brightness via mainMod + PageUp/PageDown
+hl.bind(mainMod .. " + page_up",   hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind(mainMod .. " + page_down", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind(mainMod .. " + ALT + page_up",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),            { locked = true, repeating = true })
+hl.bind(mainMod .. " + ALT + page_down", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),            { locked = true, repeating = true })
+
+-- Screenshot / screen recording
+hl.bind(mainMod .. " + caps_lock",     hl.dsp.exec_cmd("caelestia screenshot -r"))
+hl.bind(mainMod .. " + ALT + caps_lock", hl.dsp.exec_cmd("caelestia record -r -s"))
+
+-- Bluetooth / network / settings
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("blueman-manager"))
+hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("pavucontrol"))
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
+hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("caelestia shell nexus open"))
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia wallpaper -r"))
+
+-- Clipboard / emoji
+hl.bind("CTRL + ALT + V",        hl.dsp.exec_cmd("caelestia clipboard"))
+hl.bind("CTRL + ALT + SHIFT + V", hl.dsp.exec_cmd("cliphist wipe"))
+hl.bind(mainMod .. " + period",  hl.dsp.exec_cmd("caelestia emoji -p"))
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
