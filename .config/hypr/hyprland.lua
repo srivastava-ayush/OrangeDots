@@ -324,6 +324,27 @@ hl.bind(mainMod .. " + S",          hl.dsp.exec_cmd("caelestia shell hypr spotif
 hl.bind(mainMod .. " + SHIFT + S",  hl.dsp.window.move({ workspace = "special:magic" }))
 hl.bind(mainMod .. " + Z",          hl.dsp.workspace.toggle_special("scratch"))
 
+-- 3-finger swipe up toggles the Spotify scratchpad (launches it if not running)
+hl.gesture({
+    fingers = 3,
+    direction = "up",
+    action = function()
+        hl.exec_cmd("caelestia shell hypr spotify")
+    end,
+})
+
+-- 3-finger swipe down closes the Spotify scratchpad
+hl.gesture({
+    fingers = 3,
+    direction = "down",
+    action = function()
+        local ws = hl.get_active_special_workspace()
+        if ws ~= nil and ws.name == "special:magic" then
+            hl.dispatch(hl.dsp.workspace.toggle_special("magic"))
+        end
+    end,
+})
+
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up",   hl.dsp.focus({ workspace = "e-1" }))
