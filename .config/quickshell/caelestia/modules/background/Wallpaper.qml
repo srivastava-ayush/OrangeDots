@@ -14,24 +14,29 @@ Item {
     property string source: Wallpapers.current
     property CachingImage current
     property bool completed
+    property bool nextSlideLeft: true
 
     onSourceChanged: {
         if (!source)
             current = null;
         else
             current = imgComp.createObject(this, {
-                path: source
+                path: source,
+                slideFromLeft: root.nextSlideLeft
             });
+        root.nextSlideLeft = !root.nextSlideLeft;
     }
 
     Component.onCompleted: {
         if (source)
             Qt.callLater(() => {
                 current = imgComp.createObject(this, {
-                    path: source
+                    path: source,
+                    slideFromLeft: root.nextSlideLeft
                 });
                 completed = true;
             });
+        root.nextSlideLeft = !root.nextSlideLeft;
     }
 
     Loader {
@@ -106,27 +111,93 @@ Item {
         CachingImage {
             id: img
 
-            anchors.fill: parent
+            width: parent.width
+            height: parent.height
 
             opacity: 0
 
+            property bool slideFromLeft: true
+            readonly property int animDuration: Tokens.anim.durations.expressiveSlowSpatial
+
             onStatusChanged: {
                 if (status === Image.Ready)
-                    anim.start();
+                    startAnim();
             }
 
-            Anim on opacity {
-                id: anim
+            function startAnim(): void {
+                if (slideFromLeft)
+                    slideLeft.start();
+                else
+                    slideRight.start();
+            }
 
-                type: Anim.SlowEffects
+            ParallelAnimation {
+                id: slideLeft
+
                 running: false
-                from: 0
-                to: 1
+
+                Anim {
+                    target: img
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    type: Anim.SlowSpatial
+                }
+
+                NumberAnimation {
+                    target: img
+                    property: "x"
+                    from: -width
+                    to: 0
+                    duration: Tokens.anim.durations.expressiveSlowSpatial
+                    easing: Tokens.anim.expressiveSlowSpatial
+                }
+
+                NumberAnimation {
+                    target: img
+                    property: "scale"
+                    from: 1.3
+                    to: 1
+                    duration: Tokens.anim.durations.expressiveSlowSpatial
+                    easing: Tokens.anim.expressiveSlowSpatial
+                }
+            }
+
+            ParallelAnimation {
+                id: slideRight
+
+                running: false
+
+                Anim {
+                    target: img
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    type: Anim.SlowSpatial
+                }
+
+                NumberAnimation {
+                    target: img
+                    property: "x"
+                    from: width
+                    to: 0
+                    duration: Tokens.anim.durations.expressiveSlowSpatial
+                    easing: Tokens.anim.expressiveSlowSpatial
+                }
+
+                NumberAnimation {
+                    target: img
+                    property: "scale"
+                    from: 1.3
+                    to: 1
+                    duration: Tokens.anim.durations.expressiveSlowSpatial
+                    easing: Tokens.anim.expressiveSlowSpatial
+                }
             }
 
             Timer {
                 running: root.current !== img && root.current?.status === Image.Ready
-                interval: anim.duration
+                interval: img.animDuration
                 onTriggered: img.destroy()
             }
         }
