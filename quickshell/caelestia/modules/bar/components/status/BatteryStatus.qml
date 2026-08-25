@@ -34,7 +34,7 @@ Item {
         visible: UPower.displayDevice.isLaptopBattery
         anchors.top: icon.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        text: Math.round(UPower.displayDevice.percentage * 100) + "%"
+        text: Math.round(UPower.displayDevice.percentage * 100)
         color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? colour : Colours.palette.m3error
         font: Tokens.font.mono.extraSmall
     }

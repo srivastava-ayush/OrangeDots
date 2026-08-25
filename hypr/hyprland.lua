@@ -25,6 +25,8 @@ local ide = "code"
 hl.on("hyprland.start", function()
     hl.exec_cmd("caelestia shell -d")
     hl.exec_cmd("hyprpm reload -n")
+    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,ssh,pkcs11")
+    hl.exec_cmd("kdeconnectd")
 end)
 
 

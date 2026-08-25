@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.Mpris
@@ -7,10 +9,19 @@ import qs.components
 import qs.components.controls
 import qs.services
 
-ColumnLayout {
+// Track info + controls; the shared card background comes from Media.qml
+StyledRect {
     id: root
 
     readonly property bool hasUnknownLength: (Players.active?.length ?? 0) > 2147483647
+    readonly property string loopLabel: {
+        const state = Players.active?.loopState;
+        if (state === MprisLoopState.Track)
+            return qsTr("Repeat · one");
+        if (state === MprisLoopState.Playlist)
+            return qsTr("Repeat · all");
+        return qsTr("Repeat · off");
+    }
 
     function lengthStr(length: int): string {
         if (length < 0)
@@ -25,170 +36,138 @@ ColumnLayout {
         return `${mins}:${secs}`;
     }
 
-    spacing: Tokens.spacing.extraSmall
-
-    Timer {
-        running: Players.active?.isPlaying ?? false
-        interval: GlobalConfig.dashboard.mediaUpdateInterval
-        triggeredOnStart: true
-        repeat: true
-        onTriggered: Players.active?.positionChanged()
-    }
-
-    StyledText {
-        Layout.fillWidth: true
-        text: Players.active?.trackTitle ?? ""
-        font: Tokens.font.title.large
-        elide: Text.ElideRight
-        animate: true
-    }
-
-    StyledText {
-        Layout.fillWidth: true
-        text: Players.active?.trackArtist || qsTr("Unknown artist")
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.title.medium
-        elide: Text.ElideRight
-        animate: true
-    }
-
-    StyledText {
-        Layout.fillWidth: true
-        text: Players.active?.trackAlbum || qsTr("Unknown album")
-        color: Colours.palette.m3secondary
-        font: Tokens.font.title.medium
-        elide: Text.ElideRight
-        animate: true
-    }
-
-    RowLayout {
-        Layout.topMargin: Tokens.spacing.extraLargeIncreased
-        Layout.fillWidth: true
-        spacing: Tokens.spacing.small
-
-        TextMetrics {
-            id: timeMetrics
-
-            text: Players.active ? root.lengthStr(Math.max(Players.active.position, root.hasUnknownLength ? 0 : Players.active.length)).replace(/[1-9]/g, "0") : "00:00"
-            font: Tokens.font.label.medium
-        }
-
-        StyledText {
-            id: positionLabel
-
-            Layout.preferredWidth: timeMetrics.width
-            text: root.lengthStr(Players.active?.position ?? -1)
-            color: Colours.palette.m3onSurfaceVariant
-            font: timeMetrics.font
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        StyledSlider {
-            id: positionSlider
-
-            Layout.fillWidth: true
-            value: Players.active ? Players.active.position / (Players.active.length || 1) : 0
-            enabled: (Players.active?.canSeek ?? false) && !root.hasUnknownLength
-            wavy: true
-            animateWave: Players.active?.isPlaying ?? false
-            waveFrequency: 5
-            waveDuration: 2000
-            interactionOnMove: false
-            onInteraction: value => {
-                const active = Players.active;
-                if (active?.canSeek && active?.positionSupported)
-                    active.position = value * active.length;
-            }
-
-            Binding {
-                target: positionLabel
-                property: "text"
-                value: root.lengthStr(positionSlider.pos * (Players.active?.length ?? 0))
-                when: positionSlider.dragging
-            }
-        }
-
-        StyledText {
-            Layout.preferredWidth: timeMetrics.width
-            text: root.hasUnknownLength ? "--:--" : root.lengthStr(Players.active?.length ?? -1)
-            color: Colours.palette.m3onSurfaceVariant
-            font: timeMetrics.font
-            horizontalAlignment: Text.AlignHCenter
-        }
-    }
-
-    ButtonRow {
-        Layout.topMargin: Tokens.spacing.largeIncreased
-        Layout.fillWidth: true
+    ColumnLayout {
+        anchors.fill: parent
         spacing: Tokens.spacing.extraSmall
 
-        IconButton {
-            type: IconButton.Tonal
-            icon: "shuffle"
-            isRound: true
-            shapeMorph: true
-            checked: Players.active?.shuffle ?? false
-            font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
-            disabled: !Players.active?.shuffleSupported
-            onClicked: Players.active.shuffle = !Players.active?.shuffle
-            implicitWidth: Math.round(implicitHeight * 0.9)
+        Timer {
+            running: Players.active?.isPlaying ?? false
+            interval: GlobalConfig.dashboard.mediaUpdateInterval
+            triggeredOnStart: true
+            repeat: true
+            onTriggered: Players.active?.positionChanged()
         }
 
-        IconButton {
-            id: previousBtn
-
-            type: IconButton.Tonal
-            icon: "skip_previous"
-            isRound: true
-            shapeMorph: true
-            font: Tokens.font.icon.large
-            disabled: !Players.active?.canGoPrevious
-            onClicked: Players.active?.previous()
+        StyledText {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.spacing.small
+            text: Players.active?.trackTitle ?? ""
+            font: Tokens.font.title.large
+            elide: Text.ElideRight
+            animate: true
         }
 
-        IconButton {
-            id: playPauseBtn
+    StyledText {
+        Layout.fillWidth: true
+        text: `${Players.active?.trackArtist || qsTr("Unknown artist")} • ${Players.active?.trackAlbum || qsTr("Unknown album")}`
+        color: Colours.palette.m3onSurfaceVariant
+        font: Tokens.font.body.large
+        elide: Text.ElideRight
+        animate: true
+    }
 
-            icon: Players.active?.isPlaying ? "pause" : "play_arrow"
-            isRound: true
-            shapeMorph: true
-            fillWidth: true
-            checked: Players.active?.isPlaying ?? false
-            font: Tokens.font.icon.large
-            disabled: !Players.active?.canTogglePlaying
-            onClicked: Players.active?.togglePlaying()
+        // Push the controls to the bottom of the card
+        Item {
+            Layout.fillHeight: true
         }
 
-        IconButton {
-            id: nextBtn
+        RowLayout {
+            Layout.topMargin: Tokens.spacing.extraLargeIncreased
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
 
-            type: IconButton.Tonal
-            icon: "skip_next"
-            isRound: true
-            shapeMorph: true
-            font: Tokens.font.icon.large
-            disabled: !Players.active?.canGoNext
-            onClicked: Players.active?.next()
-        }
+            TextMetrics {
+                id: timeMetrics
 
-        IconButton {
-            type: IconButton.Tonal
-            icon: Players.active?.loopState === MprisLoopState.Track ? "repeat_one" : "repeat"
-            isRound: true
-            shapeMorph: true
-            checked: Players.active?.loopState === MprisLoopState.Track || Players.active?.loopState === MprisLoopState.Playlist
-            font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
-            disabled: !Players.active?.loopSupported
-            onClicked: {
-                const state = Players.active.loopState;
-                if (state === MprisLoopState.None)
-                    Players.active.loopState = MprisLoopState.Track;
-                else if (state === MprisLoopState.Track)
-                    Players.active.loopState = MprisLoopState.Playlist;
-                else
-                    Players.active.loopState = MprisLoopState.None;
+                text: Players.active ? root.lengthStr(Math.max(Players.active.position, root.hasUnknownLength ? 0 : Players.active.length)).replace(/[1-9]/g, "0") : "00:00"
+                font: Tokens.font.mono.builders.small.weight(Font.Medium).build()
             }
-            implicitWidth: Math.round(implicitHeight * 0.9)
+
+            StyledText {
+                id: positionLabel
+
+                Layout.preferredWidth: timeMetrics.width
+                text: root.lengthStr(Players.active?.position ?? -1)
+                color: Colours.palette.m3onSurfaceVariant
+                font: timeMetrics.font
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            StyledSlider {
+                id: positionSlider
+
+                Layout.fillWidth: true
+                value: Players.active ? Players.active.position / (Players.active.length || 1) : 0
+                enabled: (Players.active?.canSeek ?? false) && !root.hasUnknownLength
+                wavy: true
+                animateWave: Players.active?.isPlaying ?? false
+                waveFrequency: 5
+                waveDuration: 2000
+                interactionOnMove: false
+                onInteraction: value => {
+                    const active = Players.active;
+                    if (active?.canSeek && active?.positionSupported)
+                        active.position = value * active.length;
+                }
+
+                Binding {
+                    target: positionLabel
+                    property: "text"
+                    value: root.lengthStr(positionSlider.pos * (Players.active?.length ?? 0))
+                    when: positionSlider.dragging
+                }
+            }
+
+            StyledText {
+                Layout.preferredWidth: timeMetrics.width
+                text: root.hasUnknownLength ? "--:--" : root.lengthStr(Players.active?.length ?? -1)
+                color: Colours.palette.m3onSurfaceVariant
+                font: timeMetrics.font
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
+        RowLayout {
+            Layout.topMargin: Tokens.spacing.medium
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
+
+            IconButton {
+                type: IconButton.Tonal
+                icon: Players.active?.loopState === MprisLoopState.Track ? "repeat_one" : "repeat"
+                isRound: true
+                shapeMorph: true
+                checked: Players.active?.loopState === MprisLoopState.Track || Players.active?.loopState === MprisLoopState.Playlist
+                font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
+                disabled: !Players.active?.loopSupported
+                onClicked: {
+                    const state = Players.active.loopState;
+                    if (state === MprisLoopState.None)
+                        Players.active.loopState = MprisLoopState.Track;
+                    else if (state === MprisLoopState.Track)
+                        Players.active.loopState = MprisLoopState.Playlist;
+                    else
+                        Players.active.loopState = MprisLoopState.None;
+                }
+                implicitWidth: Math.round(implicitHeight * 0.9)
+            }
+
+            StyledText {
+                text: root.loopLabel
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.builders.medium.weight(Font.Medium).build()
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            // Engraved branding, iPod style
+            StyledText {
+                text: qsTr("ORANGEPOD")
+                color: Colours.palette.m3outline
+                font: Tokens.font.mono.builders.small.weight(Font.Medium).capitalisation(Font.AllUppercase).letterSpacing(1.5).build()
+            }
         }
     }
 }

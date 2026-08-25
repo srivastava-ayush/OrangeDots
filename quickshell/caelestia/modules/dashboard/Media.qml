@@ -14,19 +14,10 @@ Item {
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
     implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
 
-    BackgroundShapes {
-        anchors.fill: parent
-    }
-
     RowLayout {
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.extraLarge
-
-        CoverVisualiser {
-            Layout.fillHeight: true
-            implicitWidth: Tokens.sizes.dashboard.mediaSectionWidth
-        }
 
         Item {
             Layout.fillWidth: true
@@ -136,8 +127,29 @@ Item {
                 sourceComponent: RowLayout {
                     spacing: Tokens.spacing.extraLarge
 
-                    Details {
+                    // One card for the click wheel + track info
+                    StyledRect {
                         Layout.fillWidth: true
+                        Layout.fillHeight: true
+
+                        color: Colours.tPalette.m3surfaceContainer
+                        radius: Tokens.rounding.extraLarge
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: Tokens.padding.largeIncreased
+                            spacing: Tokens.spacing.extraLarge
+
+                            ClickWheel {
+                                Layout.fillHeight: true
+                                Layout.preferredWidth: Math.min(height, Tokens.sizes.dashboard.mediaSectionWidth)
+                            }
+
+                            Details {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                            }
+                        }
                     }
 
                     LyricsAndSelector {
