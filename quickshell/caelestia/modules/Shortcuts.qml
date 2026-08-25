@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Caelestia
+import Caelestia.Config
 import qs.components.misc
 import qs.services
 import qs.modules.nexus
@@ -85,7 +86,7 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade"].includes(drawer))
                     return;
                 const screenState = ShellState.forActive();
                 screenState[drawer] = !screenState[drawer];
@@ -104,6 +105,25 @@ Scope {
             if (typeof screenState[drawer] !== "boolean")
                 return "unknown";
             return screenState[drawer] ? "1" : "0";
+        }
+
+        function setTab(tab: string): void {
+            // Mirrors the enabled-filtered tab order of modules/dashboard/Content.qml
+            const tabs = [
+                ["dashboard", Config.dashboard.showDashboard],
+                ["media", Config.dashboard.showMedia],
+                ["performance", Config.dashboard.showPerformance]
+            ];
+            const index = tabs.filter(t => t[1]).findIndex(t => t[0] === tab);
+            if (index === -1) {
+                console.warn(lc, `Dashboard tab "${tab}" does not exist`);
+                return;
+            }
+            if (root.hasFullscreen)
+                return;
+            const screenState = ShellState.forActive();
+            screenState.dashboard = true;
+            screenState.dashboardTab = index;
         }
 
         target: "drawers"

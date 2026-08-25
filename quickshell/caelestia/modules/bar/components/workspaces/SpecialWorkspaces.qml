@@ -226,10 +226,17 @@ Item {
                 return;
 
             const ws = view.itemAt(event.x, event.y) as SpecialWsDelegate;
-            if (ws?.modelData)
-                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${ws.modelData.name.slice(8)}")` : `togglespecialworkspace ${ws.modelData.name.slice(8)}`);
-            else
+            if (!ws?.modelData) {
                 Hypr.dispatch(Hypr.usingLua ? 'hl.dsp.workspace.toggle_special("special")' : "togglespecialworkspace special");
+                return;
+            }
+
+            const name = ws.modelData.name;
+
+            if (root.activeSpecial === name)
+                return;
+
+            Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${name}" })` : `workspace ${name}`);
         }
     }
 

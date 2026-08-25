@@ -10,6 +10,9 @@ PersistentProperties {
     property bool launcher
     property bool dashboard
 
+    // Notification shade (drag down from the top-right corner)
+    property bool notifShade
+
     // Dashboard state
     property int dashboardTab
     property date dashboardDate: new Date()

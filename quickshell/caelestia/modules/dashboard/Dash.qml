@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import "dash"
-import "notifications"
 import "utilities/cards"
 import QtQuick
 import QtQuick.Layouts
@@ -23,7 +22,17 @@ Item {
     required property ScreenState screenState
     required property FileDialog facePicker
 
-    readonly property Props props: Props {}
+    // Shared UI state for the recorder card and its recording list
+    readonly property var props: dashProps
+
+    PersistentProperties {
+        id: dashProps
+
+        property bool recordingListExpanded
+        property string recordingConfirmDelete
+
+        reloadableId: "dashboard-recording"
+    }
 
     // Floor for the top row so the user card keeps a sane height; the row
     // grows beyond it when the keep-awake/recorder cards need more room.

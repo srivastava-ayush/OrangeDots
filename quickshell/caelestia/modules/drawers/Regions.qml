@@ -51,6 +51,13 @@ Region {
         height: panel.height + root.borderThickness
     }
 
+    // Follows the wrapper's y (slides above the screen when closed) so the
+    // region only grabs input while the shade is actually on screen.
+    R {
+        panel: root.panels.notifShade
+        height: panel.height + root.borderThickness
+    }
+
     R {
         panel: root.panels.popoutsWrapper
         width: panel.width * (1 - root.panels.popoutsWrapper.offsetScale)

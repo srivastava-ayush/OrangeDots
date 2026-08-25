@@ -62,6 +62,7 @@ StyledWindow {
         screenState.launcher = false;
         screenState.session = false;
         screenState.dashboard = false;
+        screenState.notifShade = false;
         panels.popouts.close();
     }
 
@@ -119,6 +120,11 @@ StyledWindow {
                 return true;
             if (!conf.dashboard.showOnHover && s.dashboard && conf.dashboard.enabled)
                 return true;
+            // Grab focus only when the shade wasn't opened by hover, so a
+            // stray corner hover can't steal keyboard input; clicking anywhere
+            // else still dismisses it.
+            if (s.notifShade && interactionWrapper.shadeShortcutActive)
+                return true;
             if (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
                 return true;
             return false;
@@ -128,6 +134,7 @@ StyledWindow {
             root.screenState.launcher = false;
             root.screenState.session = false;
             root.screenState.dashboard = false;
+            root.screenState.notifShade = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -135,7 +142,9 @@ StyledWindow {
 
     StyledRect {
         anchors.fill: parent
-        opacity: (root.screenState.session && Config.session.enabled) || panels.popouts.detachedMode !== "" ? 0.5 : 0
+        // Light scrim, and only for deliberately opened shades (drag/IPC):
+        // incidental corner hovers shouldn't dim the whole screen
+        opacity: root.screenState.notifShade && interactionWrapper.shadeShortcutActive ? 0.3 : (root.screenState.session && Config.session.enabled) || panels.popouts.detachedMode !== "" ? 0.5 : 0
         color: Colours.palette.m3scrim
 
         Behavior on opacity {
@@ -212,6 +221,12 @@ StyledWindow {
         }
 
         PanelBg {
+            id: notifShadeBg
+
+            panel: panels.notifShade
+        }
+
+        PanelBg {
             id: popoutBg
 
             // Extra width to prevent vertical movement deformation partially detaching panel from bar
@@ -261,6 +276,9 @@ StyledWindow {
             }
             notifications.transform: Matrix4x4 {
                 matrix: notifsBg.deformMatrix
+            }
+            notifShade.transform: Matrix4x4 {
+                matrix: notifShadeBg.deformMatrix
             }
             popouts.transform: Matrix4x4 {
                 matrix: popoutBg.deformMatrix

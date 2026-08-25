@@ -28,7 +28,9 @@ Item {
         anchors.top: parent.top
         anchors.topMargin: Tokens.sizes.dashboard.tabIndicatorSpacing
 
-        currentIndex: root.screenState.dashboardTab
+        // Clamp so a stale persisted index (e.g. after tabs are removed) can't
+        // point past the end; writing back normalizes the stored value.
+        currentIndex: Math.max(0, Math.min(root.screenState.dashboardTab, bar.count - 1))
         onCurrentIndexChanged: root.screenState.dashboardTab = currentIndex
 
         implicitHeight: contentHeight
