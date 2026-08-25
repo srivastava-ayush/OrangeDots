@@ -23,6 +23,7 @@ CustomMouseArea {
     property bool osdShortcutActive
     property bool shadeShortcutActive
     property bool utilityShortcutActive
+    property bool launcherShortcutActive
 
     // Width of the top corner zones (left and right) that toggle the notification shade.
     readonly property int shadeCornerWidth: 200
@@ -112,6 +113,10 @@ CustomMouseArea {
             if (!dashboardShortcutActive)
                 screenState.dashboard = false;
 
+            // Only hide the launcher if not opened by keyboard/drag/IPC
+            if (!launcherShortcutActive)
+                screenState.launcher = false;
+
             // Only hide if not opened by drag/shortcut
             if (!shadeShortcutActive)
                 screenState.notifShade = false;
@@ -177,10 +182,17 @@ CustomMouseArea {
                 screenState.session = false;
         }
 
-        // Show launcher on hover, or show/hide on drag if hover is disabled
+        // Show/hide launcher on hover, or show/hide on drag if hover is disabled
+        const showLauncher = inBottomPanel(panels.launcher, x, y) && !inUtilitySidebarCorner(x, y) && !inUtilitySidebarPanel(x, y);
+
         if (Config.launcher.showOnHover) {
-            if (!screenState.launcher && inBottomPanel(panels.launcher, x, y) && !inUtilitySidebarCorner(x, y) && !inUtilitySidebarPanel(x, y))
-                screenState.launcher = true;
+            // Always update visibility based on hover if not in shortcut mode
+            if (!launcherShortcutActive) {
+                screenState.launcher = showLauncher;
+            } else if (showLauncher) {
+                // If hovering over the launcher zone while in shortcut mode, transition to hover control
+                launcherShortcutActive = false;
+            }
         } else if (pressed && !inUtilitySidebarCorner(dragStart.x, dragStart.y) && !inUtilitySidebarPanel(x, y) && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
             if (dragY < -Config.launcher.dragThreshold)
                 screenState.launcher = true;
@@ -258,6 +270,19 @@ CustomMouseArea {
     // Monitor individual visibility changes
     Connections {
         function onLauncherChanged() {
+            if (root.screenState.launcher) {
+                // Launcher became visible without the pointer in its zone
+                // (keybind, drag or IPC), so keep it open until hovered,
+                // dismissed with a click elsewhere or escape
+                const inLauncherZone = root.inBottomPanel(root.panels.launcher, root.mouseX, root.mouseY);
+                if (!inLauncherZone) {
+                    root.launcherShortcutActive = true;
+                }
+            } else {
+                // Launcher hidden, clear shortcut flag
+                root.launcherShortcutActive = false;
+            }
+
             // If launcher is hidden, clear shortcut flags for dashboard and OSD
             if (!root.screenState.launcher) {
                 root.dashboardShortcutActive = false;
