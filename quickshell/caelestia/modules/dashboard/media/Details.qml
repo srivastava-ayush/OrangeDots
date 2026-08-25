@@ -57,14 +57,14 @@ StyledRect {
             animate: true
         }
 
-    StyledText {
-        Layout.fillWidth: true
-        text: `${Players.active?.trackArtist || qsTr("Unknown artist")} • ${Players.active?.trackAlbum || qsTr("Unknown album")}`
-        color: Colours.palette.m3onSurfaceVariant
-        font: Tokens.font.body.large
-        elide: Text.ElideRight
-        animate: true
-    }
+        StyledText {
+            Layout.fillWidth: true
+            text: `${Players.active?.trackArtist || qsTr("Unknown artist")} • ${Players.active?.trackAlbum || qsTr("Unknown album")}`
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.body.large
+            elide: Text.ElideRight
+            animate: true
+        }
 
         // Push the controls to the bottom of the card
         Item {

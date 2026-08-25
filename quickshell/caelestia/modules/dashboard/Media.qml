@@ -129,15 +129,21 @@ Item {
 
                     // One card for the click wheel + track info
                     StyledRect {
+                        id: mediaCard
+
                         Layout.fillWidth: true
                         Layout.fillHeight: true
 
                         color: Colours.tPalette.m3surfaceContainer
                         radius: Tokens.rounding.extraLarge
+                        clip: true // keep the eq strip inside the rounded corners
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: Tokens.padding.largeIncreased
+                            anchors.leftMargin: Tokens.padding.largeIncreased
+                            anchors.rightMargin: Tokens.padding.largeIncreased
+                            anchors.topMargin: Tokens.padding.largeIncreased
+                            anchors.bottomMargin: Tokens.padding.largeIncreased + mediaCard.eqHeight + Tokens.spacing.medium
                             spacing: Tokens.spacing.extraLarge
 
                             ClickWheel {
@@ -150,6 +156,16 @@ Item {
                                 Layout.fillHeight: true
                             }
                         }
+
+                        EqBars {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: mediaCard.eqHeight
+                        }
+
+                        // reserved strip height for the eq
+                        readonly property int eqHeight: 40
                     }
 
                     LyricsAndSelector {
