@@ -16,7 +16,7 @@ hl.monitor({
 
 local terminal    = "kitty"
 local fileManager = "thunar"
-
+local ide = "code"
 
 -------------------
 ---- AUTOSTART ----
@@ -285,6 +285,7 @@ hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle
 
 -- Apps / window management
 hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(ide))
 hl.bind(mainMod .. " + C", hl.dsp.window.close())
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
@@ -330,11 +331,15 @@ hl.window_rule({
     workspace = "special:magic",
 })
 
--- SUPER + S toggles the Spotify scratchpad via the shell's global shortcut,
--- launching Spotify if it isn't already running.
-hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd("caelestia shell hypr spotify"))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic" }))
-hl.bind(mainMod .. " + Z",         hl.dsp.workspace.toggle_special("scratch"))
+-- SUPER + S toggles the Spotify scratchpad (launches Spotify if not running).
+-- SUPER + SHIFT + <key> tosses the focused window into that scratchpad
+-- without following it (follow = false).
+hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd("~/.config/hypr/spotify-toggle.sh"))
+hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic", follow = false }))
+
+-- Miscellaneous scratchpad
+hl.bind(mainMod .. " + Z",         hl.dsp.workspace.toggle_special("misc"))
+hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.window.move({ workspace = "special:misc", follow = false }))
 
 -- Alternative: 3-finger swipe up/down to toggle the Spotify scratchpad
 -- (launches it if not running / closes it if open). Disabled by default
@@ -342,7 +347,7 @@ hl.bind(mainMod .. " + Z",         hl.dsp.workspace.toggle_special("scratch"))
 -- hl.gesture({
 --     fingers   = 3,
 --     direction = "up",
---     action    = function() hl.exec_cmd("caelestia shell hypr spotify") end,
+--     action    = function() hl.exec_cmd("~/.config/hypr/spotify-toggle.sh") end,
 -- })
 -- hl.gesture({
 --     fingers   = 3,
