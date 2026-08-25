@@ -86,7 +86,7 @@ Scope {
     IpcHandler {
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade", "utilitySidebar"].includes(drawer))
                     return;
                 const screenState = ShellState.forActive();
                 screenState[drawer] = !screenState[drawer];

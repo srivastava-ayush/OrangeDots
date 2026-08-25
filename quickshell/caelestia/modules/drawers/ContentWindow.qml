@@ -63,13 +63,16 @@ StyledWindow {
         screenState.session = false;
         screenState.dashboard = false;
         screenState.notifShade = false;
+        screenState.utilitySidebar = false;
         panels.popouts.close();
     }
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // OnDemand lets the notes field take keyboard focus on click without
+    // stealing it when the sidebar is merely hovered open
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.utilitySidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -125,6 +128,9 @@ StyledWindow {
             // else still dismisses it.
             if (s.notifShade && interactionWrapper.shadeShortcutActive)
                 return true;
+            // Same for the sidebar, which hosts the notes text field
+            if (s.utilitySidebar && interactionWrapper.utilityShortcutActive)
+                return true;
             if (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
                 return true;
             return false;
@@ -135,6 +141,7 @@ StyledWindow {
             root.screenState.session = false;
             root.screenState.dashboard = false;
             root.screenState.notifShade = false;
+            root.screenState.utilitySidebar = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -227,6 +234,12 @@ StyledWindow {
         }
 
         PanelBg {
+            id: utilitySidebarBg
+
+            panel: panels.utilitySidebar
+        }
+
+        PanelBg {
             id: popoutBg
 
             // Extra width to prevent vertical movement deformation partially detaching panel from bar
@@ -279,6 +292,9 @@ StyledWindow {
             }
             notifShade.transform: Matrix4x4 {
                 matrix: notifShadeBg.deformMatrix
+            }
+            utilitySidebar.transform: Matrix4x4 {
+                matrix: utilitySidebarBg.deformMatrix
             }
             popouts.transform: Matrix4x4 {
                 matrix: popoutBg.deformMatrix

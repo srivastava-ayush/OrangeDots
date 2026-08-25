@@ -12,6 +12,7 @@ Scope {
         Notifs;
         Players;
         Brightness;
+        GoogleCalendar;
 
         if (GlobalConfig.utilities.vpn.enabled)
             VPN;

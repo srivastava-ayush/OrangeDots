@@ -22,9 +22,13 @@ CustomMouseArea {
     property bool dashboardShortcutActive
     property bool osdShortcutActive
     property bool shadeShortcutActive
+    property bool utilityShortcutActive
 
     // Width of the top corner zones (left and right) that toggle the notification shade.
     readonly property int shadeCornerWidth: 200
+
+    // Width of the bottom-right corner zone that toggles the utility sidebar.
+    readonly property int sidebarCornerWidth: 200
 
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
         const panelY = root.borderThickness + panel.y;
@@ -72,6 +76,18 @@ CustomMouseArea {
         return p.visible && x >= bar.clampedWidth + p.x && x <= bar.clampedWidth + p.x + p.width && y >= root.borderThickness + p.y && y <= root.borderThickness + p.y + p.height;
     }
 
+    // Bottom-right corner strip that toggles the utility sidebar.
+    function inUtilitySidebarCorner(x: real, y: real): bool {
+        return x > width - root.sidebarCornerWidth && y > height - Math.max(Config.border.minThickness, Config.border.thickness) - Config.notifs.expandThreshold;
+    }
+
+    // Body of the utility sidebar itself, so hovering into the open sidebar
+    // keeps it open. Only matches while it is actually slid on screen.
+    function inUtilitySidebarPanel(x: real, y: real): bool {
+        const p = root.panels.utilitySidebar;
+        return p.visible && x >= bar.clampedWidth + p.x && x <= bar.clampedWidth + p.x + p.width && y >= root.borderThickness + p.y && y <= root.borderThickness + p.y + p.height;
+    }
+
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
@@ -99,6 +115,10 @@ CustomMouseArea {
             // Only hide if not opened by drag/shortcut
             if (!shadeShortcutActive)
                 screenState.notifShade = false;
+
+            // Keep the sidebar while the user is typing in its notes field
+            if (!utilityShortcutActive && !root.panels.utilitySidebar.notesActive)
+                screenState.utilitySidebar = false;
 
             if (!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) {
                 popouts.hasCurrent = false;
@@ -150,7 +170,7 @@ CustomMouseArea {
         }
 
         // Show/hide session on drag
-        if (pressed && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
+        if (pressed && !inUtilitySidebarCorner(dragStart.x, dragStart.y) && !inUtilitySidebarPanel(x, y) && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
             if (dragX < -Config.session.dragThreshold)
                 screenState.session = true;
             else if (dragX > Config.session.dragThreshold)
@@ -159,9 +179,9 @@ CustomMouseArea {
 
         // Show launcher on hover, or show/hide on drag if hover is disabled
         if (Config.launcher.showOnHover) {
-            if (!screenState.launcher && inBottomPanel(panels.launcher, x, y))
+            if (!screenState.launcher && inBottomPanel(panels.launcher, x, y) && !inUtilitySidebarCorner(x, y) && !inUtilitySidebarPanel(x, y))
                 screenState.launcher = true;
-        } else if (pressed && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
+        } else if (pressed && !inUtilitySidebarCorner(dragStart.x, dragStart.y) && !inUtilitySidebarPanel(x, y) && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
             if (dragY < -Config.launcher.dragThreshold)
                 screenState.launcher = true;
             else if (dragY > Config.launcher.dragThreshold)
@@ -204,6 +224,26 @@ CustomMouseArea {
                 screenState.notifShade = true;
             else if (dragY < -Config.notifs.expandThreshold)
                 screenState.notifShade = false;
+        }
+
+        // Show/hide utility sidebar on hover of the bottom-right corner or the sidebar itself
+        // (stays open while the notes field holds keyboard focus)
+        const showSidebar = inUtilitySidebarCorner(x, y) || inUtilitySidebarPanel(x, y) || root.panels.utilitySidebar.notesActive;
+
+        // Always update visibility based on hover if not in shortcut mode
+        if (!utilityShortcutActive) {
+            screenState.utilitySidebar = showSidebar;
+        } else if (showSidebar) {
+            // If hovering over the sidebar zone while in shortcut mode, transition to hover control
+            utilityShortcutActive = false;
+        }
+
+        // Show/hide utility sidebar on vertical drag from the bottom-right corner
+        if (pressed && inUtilitySidebarCorner(dragStart.x, dragStart.y)) {
+            if (dragY < -Config.notifs.expandThreshold)
+                screenState.utilitySidebar = true;
+            else if (dragY > Config.notifs.expandThreshold)
+                screenState.utilitySidebar = false;
         }
 
         // Show popouts on hover
@@ -274,6 +314,20 @@ CustomMouseArea {
             } else {
                 // Shade hidden, clear shortcut flag
                 root.shadeShortcutActive = false;
+            }
+        }
+
+        function onUtilitySidebarChanged() {
+            if (root.screenState.utilitySidebar) {
+                // Sidebar became visible without the pointer in a hover zone
+                // (drag or IPC), so keep it open until hovered or dismissed
+                const inSidebarZone = root.inUtilitySidebarCorner(root.mouseX, root.mouseY) || root.inUtilitySidebarPanel(root.mouseX, root.mouseY);
+                if (!inSidebarZone) {
+                    root.utilityShortcutActive = true;
+                }
+            } else {
+                // Sidebar hidden, clear shortcut flag
+                root.utilityShortcutActive = false;
             }
         }
 

@@ -58,6 +58,12 @@ Region {
         height: panel.height + root.borderThickness
     }
 
+    // Same for the utility sidebar, which slides up from below the screen.
+    R {
+        panel: root.panels.utilitySidebar
+        height: panel.height + root.borderThickness
+    }
+
     R {
         panel: root.panels.popoutsWrapper
         width: panel.width * (1 - root.panels.popoutsWrapper.offsetScale)
