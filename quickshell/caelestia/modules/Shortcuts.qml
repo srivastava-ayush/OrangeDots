@@ -13,6 +13,17 @@ Scope {
     property bool launcherInterrupted
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
 
+    function openLauncherAt(query: string, attempts: int): void {
+        const screenState = ShellState.forActive();
+        screenState.launcher = true;
+
+        const search = ShellState.componentsForActive()?.find("launcherSearch");
+        if (search)
+            search.text = query;
+        else if (attempts > 0)
+            Qt.callLater(() => root.openLauncherAt(query, attempts - 1));
+    }
+
     // qmllint disable unresolved-type
     CustomShortcut {
         // qmllint enable unresolved-type
@@ -135,6 +146,16 @@ Scope {
         }
 
         target: "nexus"
+    }
+
+    IpcHandler {
+        function pick(): void {
+            if (root.hasFullscreen)
+                return;
+            root.openLauncherAt(`${GlobalConfig.launcher.actionPrefix}wallpaper `, 10);
+        }
+
+        target: "wallpapers"
     }
 
     IpcHandler {

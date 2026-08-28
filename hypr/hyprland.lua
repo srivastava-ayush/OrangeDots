@@ -215,8 +215,8 @@ hl.config({
 
 
 ---------------
----- INPUT ----
----------------
+---- INPUT ----- "Windows" key as the main modifier
+--------------->
 
 hl.config({
     input = {
@@ -231,8 +231,8 @@ hl.config({
         sensitivity = 0, -- -1.0 to 1.0, 0 means no modification
 
         touchpad = {
-            natural_scroll = false,
-            scroll_factor  = 1, -- lower = smaller scroll distance per swipe (default 1.0)
+            natural_scroll = true,
+            scroll_factor  = .5, -- lower = smaller scroll distance per swipe (default 1.0)
         },
     },
 })
@@ -245,19 +245,18 @@ hl.gesture({
     action    = "workspace",
     scale     = 1.5, -- >1 = shorter swipe distance needed to trigger the switch
 })
-
 -- niri-style 3-finger swipe left/right to move focus between windows/columns.
 -- Works great with the scrolling layout on workspace 1 (moves focus a column
 -- at a time), and falls back to normal directional focus on other layouts.
 hl.gesture({
     fingers   = 3,
     direction = "left",
-    action    = function() hl.dispatch(hl.dsp.focus({ direction = "left" })) end,
+    action    = function() hl.dispatch(hl.dsp.focus({ direction = "right" })) end,
 })
 hl.gesture({
     fingers   = 3,
     direction = "right",
-    action    = function() hl.dispatch(hl.dsp.focus({ direction = "right" })) end,
+    action    = function() hl.dispatch(hl.dsp.focus({ direction = "left" })) end,
 })
 
 -- Example per-device config
@@ -272,7 +271,7 @@ hl.device({
 ---- KEYBINDINGS ----
 ---------------------
 
-local mainMod = "SUPER" -- "Windows" key as the main modifier
+local mainMod = "SUPER" 
 
 -- Overview / shell toggles
 hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
@@ -408,7 +407,7 @@ hl.bind(mainMod .. " + B",   hl.dsp.exec_cmd("blueman-manager"))
 hl.bind(mainMod .. " + M",   hl.dsp.exec_cmd("pavucontrol"))
 hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
 hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus open"))
-hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia wallpaper -r"))
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 
 -- Clipboard / emoji
 hl.bind("CTRL + ALT + V",         hl.dsp.exec_cmd("caelestia clipboard"))

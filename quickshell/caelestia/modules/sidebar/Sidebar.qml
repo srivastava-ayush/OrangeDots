@@ -75,6 +75,13 @@ StyledRect {
                     fontStyle: Tokens.font.icon.medium
                 }
             }
+
+            IconButton {
+                icon: "refresh"
+                type: IconButton.Text
+                visible: GoogleCalendar.urlConfigured
+                onClicked: GoogleCalendar.refresh()
+            }
         }
 
         Item {
