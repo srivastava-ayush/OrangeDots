@@ -29,7 +29,7 @@ Item {
     readonly property real bandWidth: Math.max(30, Math.round(bodySize * 0.16))
     readonly property real platterSize: bodySize - bandWidth * 2 - Tokens.spacing.small - 4
     readonly property real platterRadius: platterSize / 2
-    readonly property real coverSize: platterSize - Tokens.padding.largeIncreased * 2
+    readonly property real coverSize: platterSize - Tokens.spacing.small
     readonly property real arcRadius: (bodySize / 2 + platterRadius + Tokens.spacing.small) / 2 + 2
     readonly property real highlightWidth: bandWidth - Tokens.padding.small * 2
 
@@ -169,10 +169,20 @@ Item {
 
         // Spinning album art, iPod-vinyl style
         CoverArt {
+            id: coverArt
+
             anchors.centerIn: parent
             shape.shape: MaterialShape.Cookie9Sided
             implicitWidth: root.coverSize
             implicitHeight: root.coverSize
+
+            RotationAnimation on rotation {
+                from: coverArt.rotation
+                to: coverArt.rotation + 360
+                duration: 5000 // 33⅓ RPM — real turntable speed (60s / 120.33 rpm ≈ 1.8s per revolution)
+                loops: Animation.Infinite
+                running: Players.active?.isPlaying ?? false
+            }
         }
 
         component WheelIcon: MaterialIcon {

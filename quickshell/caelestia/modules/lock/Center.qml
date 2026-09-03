@@ -18,22 +18,27 @@ ColumnLayout {
 
     spacing: Tokens.spacing.largeIncreased
 
-    ProfilePic {
-        Layout.alignment: Qt.AlignHCenter
-        Layout.topMargin: Tokens.spacing.extraExtraLarge * root.centerScale
-        centerWidth: root.centerWidth
-    }
-
     Clock {
         Layout.alignment: Qt.AlignHCenter
         centerScale: root.centerScale
     }
 
-    PasswordInput {
+    RowLayout {
         Layout.alignment: Qt.AlignHCenter
-        centerScale: Math.max(0.8, root.centerScale)
-        centerWidth: root.centerWidth
-        lock: root.lock
+        spacing: Tokens.spacing.medium
+
+        ProfilePic {
+            centerWidth: root.centerWidth
+            size: passwordInput.implicitHeight
+        }
+
+        PasswordInput {
+            id: passwordInput
+            Layout.alignment: Qt.AlignVCenter
+            centerWidth: root.centerWidth
+            centerScale: Math.max(0.8, root.centerScale)
+            lock: root.lock
+        }
     }
 
     StateMessage {

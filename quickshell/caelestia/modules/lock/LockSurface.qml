@@ -60,12 +60,6 @@ WlSessionLockSurface {
                 to: 1
                 type: Anim.StandardLarge
             }
-            Anim {
-                target: background
-                property: "opacity"
-                to: 0
-                type: Anim.StandardLarge
-            }
             SequentialAnimation {
                 PauseAnimation {
                     duration: Tokens.anim.durations.small
@@ -109,7 +103,7 @@ WlSessionLockSurface {
                     property: "rotation"
                     to: 360
                     duration: Tokens.anim.durations.expressiveFastSpatial
-                    easing: Tokens.anim.standardAccel
+                    easing: Tokens.anim.standardDecel
                 }
             }
             ParallelAnimation {
@@ -210,16 +204,8 @@ WlSessionLockSurface {
             id: lockBg
 
             anchors.fill: parent
-            color: Colours.palette.m3surface
+            color: "transparent"
             radius: parent.radius
-            opacity: Colours.transparency.enabled ? Colours.transparency.base : 1
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                blurMax: 15
-                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.7)
-            }
         }
 
         MaterialIcon {

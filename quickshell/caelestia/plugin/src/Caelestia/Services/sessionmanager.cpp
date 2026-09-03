@@ -25,6 +25,11 @@ constexpr const char* SESSION_IFACE = "org.freedesktop.login1.Session";
 
 SessionManager::SessionManager(QObject* parent)
     : QObject(parent) {
+    m_sleepDelayTimer = new QTimer(this);
+    m_sleepDelayTimer->setSingleShot(true);
+    m_sleepDelayTimer->setInterval(1000);
+    connect(m_sleepDelayTimer, &QTimer::timeout, this, &SessionManager::executePendingSleep);
+
     auto bus = getSystemBus();
     if (!bus)
         return;
@@ -91,23 +96,27 @@ void SessionManager::logout() {
 }
 
 void SessionManager::suspend() {
-    callManager("Suspend");
+    using Qt::StringLiterals::operator""_s;
+    emit lockRequested();
+    m_pendingSleepAction = u"Suspend"_s;
+    m_sleepDelayTimer->start();
 }
 
 void SessionManager::suspendThenHibernate() {
+    using Qt::StringLiterals::operator""_s;
     if (queryHibernateAvailable()) {
-        callManager("SuspendThenHibernate");
+        m_pendingSleepAction = u"SuspendThenHibernate"_s;
     } else {
-        // Fall back to suspend when no hibernate
         qCInfo(lcSessionManager) << "SuspendThenHibernate unavailable, falling back to suspend";
-        callManager("Suspend");
+        m_pendingSleepAction = u"Suspend"_s;
     }
+    emit lockRequested();
+    m_sleepDelayTimer->start();
 }
 
 void SessionManager::hibernate() {
-    if (queryHibernateAvailable()) {
-        callManager("Hibernate");
-    } else {
+    using Qt::StringLiterals::operator""_s;
+    if (!queryHibernateAvailable()) {
         qCWarning(lcSessionManager) << "Hibernate unavailable, ignoring hibernate request";
 
         auto* const engine = qmlEngine(this);
@@ -118,7 +127,11 @@ void SessionManager::hibernate() {
             return;
         toaster->toast(
             tr("Hibernate failed"), tr("Enable hibernation to use this feature."), "warning", Toast::Type::Warning);
+        return;
     }
+    emit lockRequested();
+    m_pendingSleepAction = u"Hibernate"_s;
+    m_sleepDelayTimer->start();
 }
 
 void SessionManager::poweroff() {
@@ -199,6 +212,14 @@ void SessionManager::handleLockRequested() {
 
 void SessionManager::handleUnlockRequested() {
     emit unlockRequested();
+}
+
+void SessionManager::executePendingSleep() {
+    if (m_pendingSleepAction.isEmpty())
+        return;
+
+    callManager(m_pendingSleepAction);
+    m_pendingSleepAction.clear();
 }
 
 } // namespace caelestia::services

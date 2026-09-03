@@ -3,10 +3,11 @@
 ------------------
 
 hl.monitor({
-    output   = "",
-    mode     = "preferred",
+     output = "",
+    mode = "1920x1080@144",
     position = "auto",
-    scale    = "1.2",
+    scale    = "1",
+   
 })
 
 
@@ -343,8 +344,11 @@ end
 hl.window_rule({
     name  = "spotify-special",
     match = { class = "^(Spotify|spotify)$" },
-
-    workspace = "special:magic",
+   
+   
+   
+   opacity = .765,
+       workspace = "special:magic",
 })
 
 -- SUPER + S toggles the Spotify scratchpad (launches Spotify if not running).
@@ -479,17 +483,114 @@ plugin = {
         blur             = false,
     },
 }
+-- if hl.plugin.hyprglass then
+--     local hg = hl.plugin.hyprglass
 
--- Tide Island shortcuts: begin (managed by Tide Island Config App).
--- Empty shortcuts are disabled and intentionally omitted.
-hl.bind("SUPER + ALT + TAB", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call overview toggle"))
-hl.bind("SUPER + ALT + right", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide swipeRight"))
-hl.bind("SUPER + ALT + left", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide swipeLeft"))
-hl.bind("SUPER + ALT + down", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide showClock"))
-hl.bind("SUPER + ALT + S", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide togglePlayer"))
-hl.bind("SUPER + ALT + space", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide toggleControlCenter"))
-hl.bind("SUPER + ALT + N", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide toggleNotificationCenter"))
-hl.bind("SUPER + ALT + W", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide toggleWallpaperPicker"))
-hl.bind("SUPER + slash", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call tide toggleApplicationLauncher"))
--- hl.bind("SUPER + F", hl.dsp.exec_cmd("/usr/bin/quickshell ipc --any-display -p /usr/share/tide-island call island toggle"))
--- Tide Island shortcuts: end.
+--     -- Global configuration
+--     hg.config({
+--         enabled = true,
+--         default_theme = "dark",
+--         default_preset = "liquid",
+
+--         tint_color = 0x11111bcc,
+
+--         brightness = 0.9,
+
+--         dark = {
+--             brightness = 0.82,
+--             contrast = 0.95,
+--             saturation = 0.85,
+--             vibrancy = 0.18,
+--             adaptive_dim = 0.3,
+--         },
+
+--         layers = {
+--             enabled = true,
+--         },
+--     })
+
+--     -- Liquid Glass preset
+--     hg.preset("liquid", {
+--     glass_opacity = 0.78,
+
+--     blur_strength = 2.5,
+--     blur_iterations = 4,
+
+--     refraction_strength = 0.85,
+--     chromatic_aberration = 0.35,
+
+--     fresnel_strength = 0.75,
+--     specular_strength = 0.85,
+
+--     edge_thickness = 0.06,
+--     lens_distortion = 0.48,
+-- })
+
+
+--     -- Quickshell
+--     hg.layer("quickshell", {
+--         preset = "liquid",
+--         mask_threshold = 1,
+--     })
+-- end
+
+-- local hg = hl.plugin.hyprglass
+
+-- hg.preset("kitty_liquid", {
+--     inherits = "glass",
+
+--     -- Base glass
+--     glass_opacity   = 0.78,
+--     blur_strength   = 2.2,   -- unbounded scale, fine as-is (radius = value*12px)
+--     blur_iterations = 3,     -- valid range 1-5
+
+--     -- Edge refraction (max out for strong bending)
+--     refraction_strength = 1.0,  -- was 5.0, capped at 1.0 anyway
+
+--     -- Center dome: keep LOW so the terminal text stays undistorted
+--     lens_distortion = 0.15,     -- was 8.75 (clamped to 1.0) — that was over-warping your text
+
+--     -- Chrome edge dispersion (max)
+--     chromatic_aberration = 1.0, -- was 3.4, capped at 1.0
+
+--     -- Bright chrome rim
+--     fresnel_strength  = 1.0,    -- was 2.9, capped at 1.0
+--     specular_strength = 1.0,    -- was 2.85, capped at 1.0
+
+--     -- Thick, obvious chrome band at max allowed width
+--     edge_thickness = 0.15,      -- was 0.3, capped at 0.15
+
+--     dark = {
+--         brightness = 0.85,
+--         contrast = 1.0,
+--         saturation = 0.9,
+--         tint_color = 0x11111bcc,
+--     },
+-- })
+
+-- hl.window_rule({
+--     name = "kitty_liquid",
+--     opacity = 0.4,
+--     match = {
+--         class = "^(kitty)$",
+--     },
+--     tag = "+hyprglass_preset_kitty_liquid",
+-- })
+
+
+
+-- hl.window_rule({
+--     name = "spotify",
+--     match = {
+--         class = "^(Spotify)$",
+--     }
+-- })
+
+-- hl.window_rule({
+--     name = "spotify",
+--     opacity = 0.75,
+--     match = {
+--         class = "^(org.kde.kdeconnect.daemon)$",
+--     }
+--     size
+-- })

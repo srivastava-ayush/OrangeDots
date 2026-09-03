@@ -5,6 +5,7 @@
 #include <qqmlintegration.h>
 #include <qstring.h>
 #include <qstringlist.h>
+#include <qtimer.h>
 #include <qvariant.h>
 
 #include <optional>
@@ -38,6 +39,7 @@ private slots:
     void handlePrepareForSleep(bool sleep);
     void handleLockRequested();
     void handleUnlockRequested();
+    void executePendingSleep();
 
 private:
     [[nodiscard]] std::optional<QDBusConnection> getSystemBus() const;
@@ -47,6 +49,8 @@ private:
     void callSession(const QString& method);
 
     QString m_sessionPath;
+    QTimer* m_sleepDelayTimer;
+    QString m_pendingSleepAction;
 };
 
 } // namespace caelestia::services

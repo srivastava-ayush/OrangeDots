@@ -13,19 +13,17 @@ Item {
     id: root
 
     required property int centerWidth
+    property int size: Math.round(centerWidth * 0.5)
     readonly property color bgColour: Colours.tPalette.m3surfaceContainerHighest
 
-    implicitWidth: Math.round(centerWidth * 1.2)
-    implicitHeight: {
-        shape.height; // Force update when shape height changes
-        return shape.pathBounds().height;
-    }
+    implicitWidth: size
+    implicitHeight: size
 
     MaterialShape {
         id: shape
 
         anchors.centerIn: parent
-        implicitSize: root.implicitWidth
+        implicitSize: size
 
         shape: MaterialShape.ClamShell
         color: Qt.alpha(root.bgColour, 1)
@@ -38,7 +36,7 @@ Item {
 
         text: "person"
         color: Colours.palette.m3onSurfaceVariant
-        fontStyle: Tokens.font.icon.size(root.centerWidth / 4).build()
+        fontStyle: Tokens.font.icon.size(Math.max(4, size / 2)).build()
         visible: pfp.status !== Image.Ready
     }
 
