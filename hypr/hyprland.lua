@@ -1,13 +1,12 @@
-------------------
+
 ---- MONITORS ----
 ------------------
 
 hl.monitor({
-     output = "",
-    mode = "1920x1080@144",
+    output   = "",
+    mode     = "1920x1080@144",
     position = "auto",
     scale    = "1",
-   
 })
 
 
@@ -17,7 +16,7 @@ hl.monitor({
 
 local terminal    = "kitty"
 local fileManager = "thunar"
-local ide = "code"
+local ide         = "code"
 
 -------------------
 ---- AUTOSTART ----
@@ -28,6 +27,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpm reload -n")
     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,ssh,pkcs11")
     hl.exec_cmd("kdeconnectd")
+    hl.exec_cmd("wl-paste --watch cliphist store")
+    hl.exec_cmd("wl-paste --type image --watch cliphist store")
 end)
 
 
@@ -40,29 +41,9 @@ hl.env("HYPRCURSOR_SIZE", "24")
 
 
 -----------------------
------ PERMISSIONS -----
------------------------
-
--- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Permissions/
--- Note: permission changes here require a Hyprland restart; they are not
--- applied on-the-fly for security reasons.
-
--- hl.config({
---     ecosystem = {
---         enforce_permissions = true,
---     },
--- })
-
--- hl.permission("/usr/(bin|local/bin)/grim", "screencopy", "allow")
--- hl.permission("/usr/(lib|libexec|lib64)/xdg-desktop-portal-hyprland", "screencopy", "allow")
--- hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")
-
-
------------------------
 ---- LOOK AND FEEL ----
 -----------------------
 
--- See https://wiki.hypr.land/Configuring/Basics/Variables/
 hl.config({
     general = {
         gaps_in  = 5,
@@ -70,16 +51,8 @@ hl.config({
 
         border_size = 1,
 
-        -- col = {
-        --     active_border   = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
-        --     inactive_border = "rgba(595959aa)",
-        -- },
-
-        -- Resize windows by clicking and dragging on borders/gaps
         resize_on_border = false,
-
-        -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Tearing/ before enabling
-        allow_tearing = false,
+        allow_tearing    = false,
 
         layout = "dwindle",
     },
@@ -102,7 +75,7 @@ hl.config({
             enabled  = true,
             size     = 3,
             passes   = 4,
-            vibrancy = 0.1696,
+            vibrancy = 0.15,
         },
     },
 
@@ -113,72 +86,50 @@ hl.config({
 
 hl.curve("Out", {
     type = "bezier",
-    points = {
-        { 0.16, 1.00 },
-        { 0.30, 1.00 },
-    },
+    points = { { 0.16, 1.00 }, { 0.30, 1.00 } },
 })
 
 hl.curve("Snap", {
     type = "bezier",
-    points = {
-        { 0.25, 0.90 },
-        { 0.35, 1.00 },
-    },
+    points = { { 0.20, 0.95 }, { 0.10, 1.00 } },
 })
 
 hl.curve("Spring", {
     type = "bezier",
-    points = {
-        { 0.25, 1.30 },
-        { 0.35, 1.00 },
-    },
+    points = { { 0.15, 1.10 }, { 0.30, 1.00 } }, -- overshoot toned down from 1.30 -> 1.10
+})
+
+hl.curve("Overshot", {
+    type = "bezier",
+    points = { { 0.05, 0.90 }, { 0.10, 1.05 } }, -- gentle premium "settle" curve, great for windowsIn
 })
 
 hl.curve("Linear", {
     type = "bezier",
-    points = {
-        { 0.00, 0.00 },
-        { 1.00, 1.00 },
-    },
+    points = { { 0.00, 0.00 }, { 1.00, 1.00 } },
 })
 
-hl.animation({ leaf = "windowsIn",   enabled = true, speed = 4,   bezier = "Spring", style = "popin 85%" })
-hl.animation({ leaf = "windowsOut",  enabled = true, speed = 2,   bezier = "Out",    style = "popin 90%" })
-hl.animation({ leaf = "windowsMove", enabled = true, speed = 4,   bezier = "Spring" })
+-- Windows: faster in/out reads as more "responsive", move stays smooth
+hl.animation({ leaf = "windowsIn",   enabled = true, speed = 3,   bezier = "Overshot", style = "popin 90%" })
+hl.animation({ leaf = "windowsOut",  enabled = true, speed = 2.2, bezier = "Out",      style = "popin 90%" })
+hl.animation({ leaf = "windowsMove", enabled = true, speed = 3.5, bezier = "Spring" })
 
-hl.animation({ leaf = "layersIn",  enabled = true, speed = 3, bezier = "Spring", style = "slidefade" })
-hl.animation({ leaf = "layersOut", enabled = true, speed = 2, bezier = "Out",    style = "slidefade" })
+-- Layers (rofi/wlogout/notifications) — quick in, slightly quicker out
+hl.animation({ leaf = "layersIn",  enabled = true, speed = 2.8, bezier = "Overshot", style = "slidefade" })
+hl.animation({ leaf = "layersOut", enabled = true, speed = 1.8, bezier = "Out",      style = "slidefade" })
 
-hl.animation({ leaf = "border", enabled = true, speed = 5, bezier = "Linear" })
+-- Border: keep linear for hue/color interpolation, it avoids weird color "pulsing"
+hl.animation({ leaf = "border", enabled = true, speed = 4, bezier = "Linear" })
 
-hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 5, bezier = "Spring", style = "slidefadevert" })
-hl.animation({ leaf = "workspacesOut", enabled = true, speed = 5, bezier = "Out",    style = "slidefadevert" })
+-- Workspaces: this is where "premium" is most felt — keep it fast and directional
+hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 3.5, bezier = "Overshot", style = "slidefadevert" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 3.2, bezier = "Out",      style = "slidefadevert" })
 
-hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4.5, bezier = "Spring", style = "slidefadevert" })
-
--- "Smart gaps" / "no gaps when only" — see
--- https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
--- Uncomment all of the following if you want that behavior.
--- hl.workspace_rule({ workspace = "w[tv1]", gaps_out = 0, gaps_in = 0 })
--- hl.workspace_rule({ workspace = "f[1]",   gaps_out = 0, gaps_in = 0 })
--- hl.window_rule({
---     name  = "no-gaps-wtv1",
---     match = { float = false, workspace = "w[tv1]" },
---     border_size = 0,
---     rounding    = 0,
--- })
--- hl.window_rule({
---     name  = "no-gaps-f1",
---     match = { float = false, workspace = "f[1]" },
---     border_size = 0,
---     rounding    = 0,
--- })
-
+hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3.5, bezier = "Overshot", style = "slidefadevert" })
 -- See https://wiki.hypr.land/Configuring/Layouts/Dwindle-Layout/
 hl.config({
     dwindle = {
-        preserve_split = true, -- you probably want this
+        preserve_split = true,
     },
 })
 
@@ -193,7 +144,7 @@ hl.config({
 hl.config({
     scrolling = {
         fullscreen_on_one_column = true,
-        explicit_column_widths = "0.333, 0.5, 0.667, 1.0",
+        explicit_column_widths   = "0.333, 0.5, 0.667, 1.0",
     },
 })
 
@@ -209,15 +160,15 @@ end
 
 hl.config({
     misc = {
-        force_default_wallpaper = 0,    -- 0 or 1; disables the anime mascot wallpapers
+        force_default_wallpaper = 0,    -- disables the anime mascot wallpapers
         disable_hyprland_logo   = true, -- disables the random Hyprland logo / anime girl background
     },
 })
 
 
----------------
----- INPUT ----- "Windows" key as the main modifier
---------------->
+--------------------
+---- INPUT ----------- "Windows" key as the main modifier
+--------------------
 
 hl.config({
     input = {
@@ -228,8 +179,7 @@ hl.config({
         kb_rules   = "",
 
         follow_mouse = 1,
-
-        sensitivity = 0, -- -1.0 to 1.0, 0 means no modification
+        sensitivity  = 0, -- -1.0 to 1.0, 0 means no modification
 
         touchpad = {
             natural_scroll = true,
@@ -246,6 +196,7 @@ hl.gesture({
     action    = "workspace",
     scale     = 1.5, -- >1 = shorter swipe distance needed to trigger the switch
 })
+
 -- niri-style 3-finger swipe left/right to move focus between windows/columns.
 -- Works great with the scrolling layout on workspace 1 (moves focus a column
 -- at a time), and falls back to normal directional focus on other layouts.
@@ -260,6 +211,12 @@ hl.gesture({
     action    = function() hl.dispatch(hl.dsp.focus({ direction = "left" })) end,
 })
 
+hl.gesture({
+    fingers   = 4,
+    direction = "vertical",
+    action    = function() hl.dispatch(hl.plugin.scrolloverview.overview("toggle all")) end,
+})
+
 -- Example per-device config
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Devices/
 hl.device({
@@ -272,7 +229,7 @@ hl.device({
 ---- KEYBINDINGS ----
 ---------------------
 
-local mainMod = "SUPER" 
+local mainMod = "SUPER"
 
 -- Overview / shell toggles
 hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
@@ -281,10 +238,10 @@ hl.bind(
     hl.dsp.exec_cmd([[sh -c 'if pgrep -x qs >/dev/null; then pkill -x qs; else caelestia shell -d; fi']])
 )
 
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("caelestia shell lock lock"))
+hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
-
+hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab performance"), { release = false })
 -- Dashboard: tap SUPER+ALT to toggle it (either Alt key; release-triggered,
 -- same trick as the SUPER+SUPER_L launcher bind so it won't fire after a
 -- chord like SUPER+ALT+2). Held down, ALT acts as a chord mod, so
@@ -297,7 +254,7 @@ hl.bind(mainMod .. " + ALT_R", dashToggle, { release = true })
 
 local dashTabs = { "dashboard", "media", "performance", "notifications" }
 for i, tab in ipairs(dashTabs) do
-    hl.bind(mainMod .. " + ALT + " .. i, hl.dsp.exec_cmd("caelestia shell drawers setTab " .. tab))
+    hl.bind(mainMod .. " + ALT + " .. i, hl.dsp.exec_cmd("caelestia shell drawers setTab" .. tab),{ release = true})
 end
 
 -- Apps / window management
@@ -309,22 +266,35 @@ hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.layout("colresize +conf"))
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
-hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
-hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit")) -- dwindle only
+-- hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
+local swapDirection = "right"
+
+hl.bind(
+    mainMod .. " + J",
+    function()
+        hl.dispatch(hl.dsp.window.swap({ direction = swapDirection }))
+
+        if swapDirection == "right" then
+            swapDirection = "left"
+        else
+            swapDirection = "right"
+        end
+    end
+)
 hl.bind(mainMod .. " + R", hl.dsp.layout("expel"))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("brave"))
 
--- Move focus with mainMod + arrow keys
-hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
-hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
-hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
-hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+-- Move focus with mainMod + arrow keys (hold to repeat)
+hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }),  { repeating = true })
+hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }), { repeating = true })
+hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }),    { repeating = true })
+hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }),  { repeating = true })
 
 -- Move windows with mainMod + SHIFT + arrow keys
-hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "left" }))
-hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
-hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "up" }))
-hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }))
+hl.bind(mainMod .. " + SHIFT + left",  hl.dsp.window.move({ direction = "left" }),{ repeating = true})
+hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }),{ repeating = true})
+hl.bind(mainMod .. " + SHIFT + up",    hl.dsp.window.move({ direction = "up" }),{ repeating = true})
+hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }),{ repeating = true})
 
 -- Resize windows with mainMod + SHIFT + ALT + arrow keys (hold to resize)
 hl.bind(mainMod .. " + SHIFT + ALT + left",  hl.dsp.window.resize({ x = -20, y = 0,   relative = true }), { repeating = true })
@@ -344,15 +314,13 @@ end
 hl.window_rule({
     name  = "spotify-special",
     match = { class = "^(Spotify|spotify)$" },
-   
-   
-   
-   opacity = .765,
-       workspace = "special:magic",
+
+    opacity   = .765,
+    workspace = "special:magic",
 })
 
 -- SUPER + S toggles the Spotify scratchpad (launches Spotify if not running).
--- SUPER + SHIFT + <key> tosses the focused window into that scratchpad
+-- SUPER + SHIFT + S tosses the focused window into that scratchpad
 -- without following it (follow = false).
 hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd("~/.config/hypr/spotify-toggle.sh"))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic", follow = false }))
@@ -360,25 +328,6 @@ hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:mag
 -- Miscellaneous scratchpad
 hl.bind(mainMod .. " + Z",         hl.dsp.workspace.toggle_special("misc"))
 hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.window.move({ workspace = "special:misc", follow = false }))
-
--- Alternative: 3-finger swipe up/down to toggle the Spotify scratchpad
--- (launches it if not running / closes it if open). Disabled by default
--- in favor of the SUPER + S / Z binds above.
--- hl.gesture({
---     fingers   = 3,
---     direction = "up",
---     action    = function() hl.exec_cmd("~/.config/hypr/spotify-toggle.sh") end,
--- })
--- hl.gesture({
---     fingers   = 3,
---     direction = "down",
---     action    = function()
---         local ws = hl.get_active_special_workspace()
---         if ws ~= nil and ws.name == "special:magic" then
---             hl.dispatch(hl.dsp.workspace.toggle_special("magic"))
---         end
---     end,
--- })
 
 -- Scroll through existing workspaces with mainMod + scroll
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
@@ -389,12 +338,12 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),   { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
 
 -- Laptop multimedia keys for volume and LCD brightness
-hl.bind("XF86AudioRaiseVolume",   hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume",   hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
-hl.bind("XF86AudioMute",          hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
-hl.bind("XF86AudioMicMute",       hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessUp",    hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume",  hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume",  hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind("XF86AudioMute",         hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, repeating = true })
+hl.bind("XF86AudioMicMute",      hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
 
 -- Volume/brightness via mainMod + PageUp/PageDown
 hl.bind(mainMod .. " + page_up",         hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
@@ -424,24 +373,15 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
-hl.gesture({
-    fingers   = 4,
-    direction = "vertical",
-    action    = function() hl.dispatch(hl.plugin.scrolloverview.overview("toggle all")) end,
-})
+
 --------------------------------
 ---- WINDOWS AND WORKSPACES ----
 --------------------------------
 
--- See https://wiki.hypr.land/Configuring/Basics/Window-Rules/
--- and https://wiki.hypr.land/Configuring/Basics/Workspace-Rules/
-
--- Ignore maximize requests from all apps. You'll probably like this.
--- (rule is active; call suppressMaximizeRule:set_enabled(false) to disable it)
+-- Ignore maximize requests from all apps.
 local suppressMaximizeRule = hl.window_rule({
     name  = "suppress-maximize-events",
     match = { class = ".*" },
-    -- suppress_event = "maximize",
 })
 
 -- Fix some dragging issues with XWayland
@@ -483,114 +423,3 @@ plugin = {
         blur             = false,
     },
 }
--- if hl.plugin.hyprglass then
---     local hg = hl.plugin.hyprglass
-
---     -- Global configuration
---     hg.config({
---         enabled = true,
---         default_theme = "dark",
---         default_preset = "liquid",
-
---         tint_color = 0x11111bcc,
-
---         brightness = 0.9,
-
---         dark = {
---             brightness = 0.82,
---             contrast = 0.95,
---             saturation = 0.85,
---             vibrancy = 0.18,
---             adaptive_dim = 0.3,
---         },
-
---         layers = {
---             enabled = true,
---         },
---     })
-
---     -- Liquid Glass preset
---     hg.preset("liquid", {
---     glass_opacity = 0.78,
-
---     blur_strength = 2.5,
---     blur_iterations = 4,
-
---     refraction_strength = 0.85,
---     chromatic_aberration = 0.35,
-
---     fresnel_strength = 0.75,
---     specular_strength = 0.85,
-
---     edge_thickness = 0.06,
---     lens_distortion = 0.48,
--- })
-
-
---     -- Quickshell
---     hg.layer("quickshell", {
---         preset = "liquid",
---         mask_threshold = 1,
---     })
--- end
-
--- local hg = hl.plugin.hyprglass
-
--- hg.preset("kitty_liquid", {
---     inherits = "glass",
-
---     -- Base glass
---     glass_opacity   = 0.78,
---     blur_strength   = 2.2,   -- unbounded scale, fine as-is (radius = value*12px)
---     blur_iterations = 3,     -- valid range 1-5
-
---     -- Edge refraction (max out for strong bending)
---     refraction_strength = 1.0,  -- was 5.0, capped at 1.0 anyway
-
---     -- Center dome: keep LOW so the terminal text stays undistorted
---     lens_distortion = 0.15,     -- was 8.75 (clamped to 1.0) — that was over-warping your text
-
---     -- Chrome edge dispersion (max)
---     chromatic_aberration = 1.0, -- was 3.4, capped at 1.0
-
---     -- Bright chrome rim
---     fresnel_strength  = 1.0,    -- was 2.9, capped at 1.0
---     specular_strength = 1.0,    -- was 2.85, capped at 1.0
-
---     -- Thick, obvious chrome band at max allowed width
---     edge_thickness = 0.15,      -- was 0.3, capped at 0.15
-
---     dark = {
---         brightness = 0.85,
---         contrast = 1.0,
---         saturation = 0.9,
---         tint_color = 0x11111bcc,
---     },
--- })
-
--- hl.window_rule({
---     name = "kitty_liquid",
---     opacity = 0.4,
---     match = {
---         class = "^(kitty)$",
---     },
---     tag = "+hyprglass_preset_kitty_liquid",
--- })
-
-
-
--- hl.window_rule({
---     name = "spotify",
---     match = {
---         class = "^(Spotify)$",
---     }
--- })
-
--- hl.window_rule({
---     name = "spotify",
---     opacity = 0.75,
---     match = {
---         class = "^(org.kde.kdeconnect.daemon)$",
---     }
---     size
--- })
