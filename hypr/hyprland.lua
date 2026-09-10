@@ -429,7 +429,7 @@ if hl.plugin.hyprglass then
     local hg = hl.plugin.hyprglass
 
     hg.config({
-        enabled = true,
+        enabled = false,
         default_theme = "dark",
         default_preset = "glass",
         layers = { enabled = true },
@@ -465,4 +465,14 @@ if hl.plugin.hyprglass then
     hg.layer("caelestia-border-exclusion", { exclude = true })
     hg.layer("quickshell", { exclude = true })
     hg.layer("caelestia-drawers", { exclude = true })
+
+        -- Toggle HyprGlass
+    local glass_enabled = false
+
+    hl.bind("SUPER + G", function()
+        glass_enabled = not glass_enabled
+        hg.config({
+            enabled = glass_enabled,
+        })
+    end)
 end
