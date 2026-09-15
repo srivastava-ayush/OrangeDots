@@ -140,7 +140,7 @@ hl.config({
     },
 })
 
--- See https://wiki.hypr.land/Configuring/Layouts/Scrolling-Layout/
+-- See https://wiki.hypr.land/Configuring/Layouts/Scrolling-opayout/
 hl.config({
     scrolling = {
         fullscreen_on_one_column = true,
@@ -233,11 +233,14 @@ local mainMod = "SUPER"
 
 -- Overview / shell toggles
 hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+-- hl.bind(
+--     mainMod .. " + Delete",
+--     hl.dsp.exec_cmd([[sh -c 'if pgrep -x qs >/dev/null; then pkill -x qs; else caelestia shell -d; fi']])
+-- )
 hl.bind(
     mainMod .. " + Delete",
-    hl.dsp.exec_cmd([[sh -c 'if pgrep -x qs >/dev/null; then pkill -x qs; else caelestia shell -d; fi']])
+    hl.dsp.exec_cmd([[sh -c '/home/ayush/OrangeDots/toggle-shells.sh']])
 )
-
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
@@ -281,7 +284,7 @@ hl.bind(
         end
     end
 )
-hl.bind(mainMod .. " + R", hl.dsp.layout("expel"))
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("/home/ayush/OrangeDots/refresh-rate-toggle.sh"))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("brave"))
 
 -- Move focus with mainMod + arrow keys (hold to repeat)
@@ -414,12 +417,12 @@ hl.window_rule({
 -------------------
 
 plugin = {
-    scrolloverview = {
-        gesture_distance = 300,
-        scale            = 0.5,
-        workspace_gap    = 100,
+   scrolloverview = {
+       gesture_distance = 300,
+       scale            = 0.5,
+       workspace_gap    = 100,
         layout           = "vertical",
-        wallpaper        = 0,
+       wallpaper        = 0,
         blur             = false,
     },
 }

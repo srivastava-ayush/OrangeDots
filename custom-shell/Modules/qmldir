@@ -1,0 +1,11 @@
+module qs.Modules
+AppMenu 1.0 AppMenu.qml
+Battery 1.0 Battery.qml
+Clock 1.0 Clock.qml
+ControlCenter 1.0 ControlCenter.qml
+ControlCenterToggle 1.0 ControlCenterToggle.qml
+PowerButton 1.0 PowerButton.qml
+SliderControl 1.0 SliderControl.qml
+ToggleTile 1.0 ToggleTile.qml
+Tray 1.0 Tray.qml
+Workspaces 1.0 Workspaces.qml
