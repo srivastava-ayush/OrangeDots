@@ -8,6 +8,7 @@ Rectangle {
     property string iconActive: ""
     property color accent: "#0a84ff"
     property bool active: false
+    property bool toggleOnClick: true
     signal clicked()
 
     Layout.fillWidth: true
@@ -16,6 +17,14 @@ Rectangle {
     color: active ? root.accent : "#1affffff"
 
     Behavior on color { ColorAnimation { duration: 150 } }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: 14
+        color: "transparent"
+        border.color: active ? "#40ffffff" : "transparent"
+        border.width: 1
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -41,6 +50,10 @@ Rectangle {
 
     MouseArea {
         anchors.fill: parent
-        onClicked: { root.active = !root.active; root.clicked() }
+        onClicked: {
+            if (root.toggleOnClick)
+                root.active = !root.active
+            root.clicked()
+        }
     }
 }

@@ -4,6 +4,8 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Io
+import Quickshell.Networking
+import Quickshell.Bluetooth
 
 PanelWindow {
     id: root
@@ -12,12 +14,15 @@ PanelWindow {
     property color fgColor: "white"
     property color accent: "#0a84ff"
 
+    property string expanded: ""          // "wifi" | "bluetooth" | ""
+
     visible: false
     color: "transparent"
 
     anchors { top: true; right: true }
     margins { top: 36; right: 8 }
     implicitWidth: 340
+    implicitHeight: content.implicitHeight + 32
 
     WlrLayershell.layer: WlrLayershell.Overlay
     WlrLayershell.namespace: "macos-bar-cc"
@@ -27,7 +32,10 @@ PanelWindow {
         id: grab
         windows: [root]
         active: root.visible
-        onCleared: root.visible = false
+        onCleared: {
+            root.visible = false
+            root.expanded = ""
+        }
     }
 
     // macOS-style control center card
@@ -66,34 +74,71 @@ PanelWindow {
                     label: "Wi-Fi"
                     icon: "\uf1eb"
                     accent: root.accent
-                    active: true
-                    onClicked: Quickshell.execDetached(["nmcli", "radio", "wifi", active ? "off" : "on"])
+                    active: Networking.wifiEnabled
+                    toggleOnClick: false
+                    onClicked: root.expanded = root.expanded === "wifi" ? "" : "wifi"
                 }
                 ToggleTile {
                     label: "Bluetooth"
                     icon: "\uf293"
                     accent: root.accent
-                    active: false
-                    onClicked: Quickshell.execDetached(["bluetoothctl", "power", active ? "off" : "on"])
+                    active: Bluetooth.defaultAdapter ? Bluetooth.defaultAdapter.enabled : false
+                    toggleOnClick: false
+                    onClicked: root.expanded = root.expanded === "bluetooth" ? "" : "bluetooth"
                 }
                 ToggleTile {
                     label: "Focus"
-                    icon: "\uf0f3"
-                    iconActive: "\uf0f3"
+                    icon: "\uf186"
                     accent: root.accent
                     active: false
                     onClicked: Quickshell.execDetached(["makoctl", "mode", "-t", "do-not-disturb"])
                 }
                 ToggleTile {
                     label: "Night Light"
-                    icon: "\uf186"
+                    icon: "\uf185"
                     accent: root.accent
                     active: false
                     onClicked: Quickshell.execDetached(["hyprctl", "hyprsunset", "toggle"])
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#26ffffff" }
+            // ---- expandable sub-panel (Wi-Fi / Bluetooth) ----
+            Item {
+                id: expansion
+                Layout.fillWidth: true
+                implicitHeight: loader.item ? loader.item.implicitHeight : 0
+                height: loader.item ? loader.item.implicitHeight : 0
+                clip: true
+
+                Loader {
+                    id: loader
+                    anchors.fill: parent
+                    active: root.expanded !== ""
+                    sourceComponent: root.expanded === "wifi" ? wifiPanel : btPanel
+                }
+
+                Component {
+                    id: wifiPanel
+                    NetworkPanel {
+                        fgColor: root.fgColor
+                        accent: root.accent
+                    }
+                }
+                Component {
+                    id: btPanel
+                    BluetoothPanel {
+                        fgColor: root.fgColor
+                        accent: root.accent
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: "#26ffffff"
+                visible: root.expanded === ""
+            }
 
             // ---- Sound ----
             RowLayout {

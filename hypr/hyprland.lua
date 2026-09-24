@@ -431,11 +431,25 @@ plugin = {
 if hl.plugin.hyprglass then
     local hg = hl.plugin.hyprglass
 
+    -- HyprGlass state lives in a file so the SUPER+G toggle survives config
+    -- reloads and layer glass applies deterministically at load time.
+    local glassStateFile = "/tmp/hyprglass-state"
+
+    local function isGlassOn()
+        local f = io.open(glassStateFile, "r")
+        if not f then return false end
+        local v = f:read("*l")
+        f:close()
+        return v == "on"
+    end
+
+    local glass_on = isGlassOn()
+
     hg.config({
-        enabled = false,
+        enabled = glass_on,
         default_theme = "dark",
         default_preset = "glass",
-        layers = { enabled = true },
+        layers = { enabled = glass_on },
     })
 
     hg.preset("apple", {
@@ -464,18 +478,25 @@ if hl.plugin.hyprglass then
             adaptive_boost = 0.4
         }
     })
+    hg.preset("shell-glass", {
+        inherits = "apple",
+        glass_opacity = 0.65,
+    })
     hg.layer("caelestia-background", { exclude = true })
     hg.layer("caelestia-border-exclusion", { exclude = true })
     hg.layer("quickshell", { exclude = true })
-    hg.layer("caelestia-drawers", { exclude = true })
+    hg.layer("caelestia-drawers", {
+        preset = "shell-glass",
+        mask_mode = "alpha",
+        mask_threshold = 0.25,
+        live_resample = true,
+    })
 
         -- Toggle HyprGlass
-    local glass_enabled = false
-
     hl.bind("SUPER + G", function()
-        glass_enabled = not glass_enabled
-        hg.config({
-            enabled = glass_enabled,
-        })
+        glass_on = not glass_on
+        local val = glass_on and "on" or "off"
+        hl.dispatch(hl.dsp.exec_cmd("sh -c 'echo " .. val .. " > /tmp/hyprglass-state'"))
+        hl.dispatch(hl.dsp.exec_cmd("hyprctl reload"))
     end)
 end
