@@ -232,15 +232,7 @@ hl.device({
 local mainMod = "SUPER"
 
 -- Overview / shell toggles
-hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
--- hl.bind(
---     mainMod .. " + Delete",
---     hl.dsp.exec_cmd([[sh -c 'if pgrep -x qs >/dev/null; then pkill -x qs; else caelestia shell -d; fi']])
--- )
-hl.bind(
-    mainMod .. " + Delete",
-    hl.dsp.exec_cmd([[sh -c '/home/ayush/OrangeDots/toggle-shells.sh']])
-)
+-- hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })

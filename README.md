@@ -12,25 +12,25 @@ Fully self-contained - one `git clone` gets you everything, shell included.
 | Path | What it is |
 |---|---|
 | `hypr/hyprland.lua` | Main Hyprland config (Lua-based) |
-| `hypr/hyprland.conf` | Entry config, sources generated keybinds |
 | `hypr/scheme/current.lua` | Active Material 3 colour scheme |
+| `hypr/spotify-toggle.sh` | Spotify scratchpad toggle |
 | `quickshell/caelestia/` | Custom Quickshell shell (vendored OrangeShell fork) |
-| `quickshell/toggle-shell.sh` | Switch between Caelestia shell and dynamicIsland shell |
 
 ## Features
 
 - Quickshell-powered bar, dashboard, launcher, lock screen and notification system (Caelestia base)
 - Lua-driven Hyprland configuration
 - Material 3 colour schemes
-- Shell switcher: swap between the full Caelestia shell and a minimal dynamic-island layout on the fly
 
 ## Dependencies
 
 Arch package names:
 
 ```
-hyprland hypridle hyprpaper hyprlang quickshell-git swww cava kitty thunar
+hyprland quickshell-git cava kitty thunar
 ```
+
+Note: no `hyprpaper`/`hypridle`/`swww` needed — wallpapers and the lock screen are handled by the Caelestia shell.
 
 Plus the [Caelestia shell requirements](https://github.com/caelestia-dots/shell#dependencies):
 
@@ -52,17 +52,9 @@ ln -s "$PWD/quickshell" ~/.config/quickshell
 
 Then start Hyprland - `caelestia shell -d` launches automatically.
 
-### Toggle shells
-
-```bash
-./quickshell/toggle-shell.sh
-```
-
-Switches between Caelestia (`qs`) and the custom dynamicIsland shell, restarting wallpaper/idle daemons as needed.
-
 ## Notes
 
-- `hypr/hyprland.conf` expects generated binds at `~/.config/tide-island/hyprland-shortcuts.conf`
+- Everything is configured in `hypr/hyprland.lua` (Lua, not `.conf` syntax)
 - The shell under `quickshell/caelestia/` is GPL-3.0 licensed (see its `LICENSE`); my modifications are in-repo
 
 ## License
