@@ -25,7 +25,7 @@ CustomMouseArea {
     property bool utilityShortcutActive
     property bool launcherShortcutActive
 
-    // Width of the top corner zones (left and right) that toggle the notification shade.
+    // Width of the top-right corner zone that toggles the notification shade.
     readonly property int shadeCornerWidth: 200
 
     // Width of the bottom-right corner zone that toggles the utility sidebar.
@@ -59,15 +59,16 @@ CustomMouseArea {
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Top corner strips (top-right, and top-left just right of the bar): close
-    // enough to the edge to feel like a phone's status-bar swipe/hover, deep
-    // enough (expandThreshold) to be usable on touch. Hovering or dragging
-    // vertically within either toggles the notification shade.
+    // Top-right corner strip that toggles the notification shade: close enough
+    // to the edge to feel like a phone's status-bar swipe/hover, deep enough
+    // (expandThreshold) to be usable on touch. The shade panel itself is
+    // anchored to the right edge (see drawers/Panels.qml), so this is the only
+    // corner that triggers it. Hovering or dragging vertically here toggles the
+    // notification shade.
     function inNotifShadeCorner(x: real, y: real): bool {
         const inStrip = y < Math.max(Config.border.minThickness, Config.border.thickness) + Config.notifs.expandThreshold;
         const inRight = x > width - root.shadeCornerWidth;
-        const inLeft = x > bar.clampedWidth && x < bar.clampedWidth + root.shadeCornerWidth;
-        return inStrip && (inRight || inLeft);
+        return inStrip && inRight;
     }
 
     // Body of the shade panel itself, so hovering into the open shade keeps it
