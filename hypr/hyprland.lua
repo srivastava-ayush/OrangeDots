@@ -17,7 +17,7 @@ hl.monitor({
 local terminal    = "kitty"
 local fileManager = "thunar"
 local ide         = "code"
-
+local browser     = "helium-browser"
 -------------------
 ---- AUTOSTART ----
 -------------------
@@ -232,7 +232,7 @@ hl.device({
 local mainMod = "SUPER"
 
 -- Overview / shell toggles
--- hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
@@ -246,6 +246,11 @@ hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab
 local dashToggle = hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard")
 hl.bind(mainMod .. " + ALT_L", dashToggle, { release = true })
 hl.bind(mainMod .. " + ALT_R", dashToggle, { release = true })
+
+-- Tap SUPER+SHIFT to toggle the left-side taskbar's Always visible setting.
+local barToggle = hl.dsp.exec_cmd("caelestia shell drawers toggleBarPersistent")
+hl.bind(mainMod .. " + SHIFT_L", barToggle, { release = true })
+hl.bind(mainMod .. " + SHIFT_R", barToggle, { release = true })
 
 local dashTabs = { "dashboard", "media", "performance", "notifications" }
 for i, tab in ipairs(dashTabs) do
@@ -277,7 +282,7 @@ hl.bind(
     end
 )
 hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("/home/ayush/OrangeDots/refresh-rate-toggle.sh"))
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("brave"))
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(browser))
 
 -- Move focus with mainMod + arrow keys (hold to repeat)
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }),  { repeating = true })

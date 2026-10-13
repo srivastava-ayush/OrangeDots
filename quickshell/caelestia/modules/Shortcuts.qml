@@ -95,6 +95,12 @@ Scope {
     }
 
     IpcHandler {
+        function toggleBarPersistent(): void {
+            GlobalConfig.bar.persistent = !GlobalConfig.bar.persistent;
+            if (!GlobalConfig.bar.persistent)
+                ShellState.forActive().bar = false;
+        }
+
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade", "utilitySidebar"].includes(drawer))
