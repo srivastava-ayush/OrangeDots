@@ -1,14 +1,50 @@
 pragma ComponentBehavior: Bound
 
+import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.components.controls
 import qs.modules.nexus.common
 
 PageBase {
     id: root
 
+    readonly property var barEntries: GlobalConfig.bar.entries.values
+    readonly property int activeWindowIndex: barEntries.findIndex(e => e.id === "activeWindow")
+    readonly property int clockIndex: barEntries.findIndex(e => e.id === "clock")
+    readonly property list<MenuItem> centerItems: [
+        MenuItem {
+            text: qsTr("Active window")
+        },
+        MenuItem {
+            text: qsTr("Time and date")
+        }
+    ]
+
     title: qsTr("Taskbar")
     isSubPage: true
+
+    function setCenterClock(showClock: bool): void {
+        const entries = GlobalConfig.bar.entries;
+        let activeWindow = activeWindowIndex;
+        const clock = clockIndex;
+        if (clock < 0)
+            return;
+
+        if (activeWindow < 0 && !showClock) {
+            const statusIcons = barEntries.findIndex(e => e.id === "statusIcons");
+            entries.insert({ id: "activeWindow", enabled: true }, statusIcons < 0 ? -1 : statusIcons);
+            activeWindow = entries.values.findIndex(e => e.id === "activeWindow");
+        }
+        if (activeWindow < 0 || (clock < activeWindow) === showClock)
+            return;
+
+        // Swap the entries while preserving the order of everything between them.
+        const first = Math.min(activeWindow, clock);
+        const second = Math.max(activeWindow, clock);
+        entries.move(second, first);
+        entries.move(first + 1, second);
+    }
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -33,8 +69,12 @@ PageBase {
         ToggleRow {
             text: qsTr("Show on hover")
             subtext: qsTr("Reveal the bar when the cursor reaches the screen edge")
-            checked: Config.bar.showOnHover
-            onToggled: GlobalConfig.bar.showOnHover = checked
+            checked: Config.bar.showOnHover && !Config.bar.persistent
+            onToggled: {
+                GlobalConfig.bar.showOnHover = checked;
+                if (checked)
+                    GlobalConfig.bar.persistent = false;
+            }
         }
 
         StepperRow {
@@ -61,6 +101,21 @@ PageBase {
         // Components
         SectionHeader {
             text: qsTr("Components")
+        }
+
+        SelectRow {
+            first: true
+            last: true
+            label: qsTr("Center of taskbar")
+            subtext: qsTr("Choose what appears between the two spacers")
+            menuItems: root.centerItems
+            active: root.centerItems[root.clockIndex !== -1 && root.clockIndex < root.activeWindowIndex ? 1 : 0]
+            onSelected: item => {
+                const showClock = root.centerItems.indexOf(item) === 1;
+                root.setCenterClock(showClock);
+                if (showClock)
+                    GlobalConfig.bar.clock.showDate = true;
+            }
         }
 
         NavRow {

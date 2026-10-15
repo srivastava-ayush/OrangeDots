@@ -87,6 +87,7 @@ StyledRect {
         Item {
             id: bodyArea
 
+            visible: Config.sidebar.showAgenda
             Layout.fillWidth: true
             // Natural size follows the content, but yields space down to the
             // minimum when the panel hits its height cap - the list scrolls
@@ -214,6 +215,7 @@ StyledRect {
         ColumnLayout {
             id: notes
 
+            visible: Config.sidebar.showNotes
             Layout.fillWidth: true
             spacing: Tokens.spacing.extraSmall
 

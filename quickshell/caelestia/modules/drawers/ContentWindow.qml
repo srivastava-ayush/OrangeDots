@@ -126,10 +126,10 @@ StyledWindow {
             // Grab focus only when the shade wasn't opened by hover, so a
             // stray corner hover can't steal keyboard input; clicking anywhere
             // else still dismisses it.
-            if (s.notifShade && interactionWrapper.shadeShortcutActive)
+            if (s.notifShade && conf.notifs.shadeEnabled && interactionWrapper.shadeShortcutActive)
                 return true;
             // Same for the sidebar, which hosts the notes text field
-            if (s.utilitySidebar && interactionWrapper.utilityShortcutActive)
+            if (s.utilitySidebar && conf.sidebar.enabled && interactionWrapper.utilityShortcutActive)
                 return true;
             if (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
                 return true;

@@ -36,10 +36,17 @@ PageBase {
         }
 
         NavRow {
-            icon: "dock_to_right"
-            text: qsTr("Sidebar")
+            icon: "event_note"
+            text: qsTr("Calendar & notes")
             subtext: Config.sidebar.enabled ? qsTr("Enabled") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(4)
+        }
+
+        NavRow {
+            icon: "notifications"
+            text: qsTr("Notification shade")
+            subtext: Config.notifs.shadeEnabled ? qsTr("Enabled") : qsTr("Disabled")
+            onClicked: root.nState.openSubPage(11)
         }
 
         NavRow {

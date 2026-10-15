@@ -6,3 +6,6 @@ if pgrep -f '(^|/)qs -c caelestia -n( -d)?$' >/dev/null; then
 else
     caelestia shell -d
 fi
+
+
+

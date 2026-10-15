@@ -10,6 +10,9 @@ class NotifsConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
 
+    CONFIG_PROPERTY(bool, shadeEnabled, true)
+    CONFIG_PROPERTY(bool, shadeShowOnHover, true)
+    CONFIG_PROPERTY(int, shadeCornerWidth, 200)
     CONFIG_GLOBAL_PROPERTY(bool, expire, true)
     CONFIG_GLOBAL_PROPERTY(QString, fullscreen, QStringLiteral("on"))
     CONFIG_GLOBAL_PROPERTY(int, defaultExpireTimeout, 5000)

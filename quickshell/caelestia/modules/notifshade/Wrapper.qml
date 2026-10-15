@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia.Config
 import qs.components
 
 // Slides the shade in/out from above the top edge, mirroring the dashboard
@@ -11,7 +12,7 @@ Item {
 
     required property ScreenState screenState
 
-    readonly property bool shouldBeActive: screenState.notifShade
+    readonly property bool shouldBeActive: Config.notifs.shadeEnabled && screenState.notifShade
     property real offsetScale: shouldBeActive ? 0 : 1
 
     visible: offsetScale < 1

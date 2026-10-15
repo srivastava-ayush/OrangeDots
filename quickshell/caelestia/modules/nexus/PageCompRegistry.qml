@@ -117,7 +117,7 @@ QtObject {
                     LauncherPanel {}
                 }
                 Component {
-                    SidebarPanel {}
+                    CalendarNotesPanel {}
                 }
                 Component {
                     UtilitiesPanel {}
@@ -138,6 +138,9 @@ QtObject {
                 }
                 Component {
                     BarClock {}
+                }
+                Component {
+                    NotificationShadePanel {}
                 }
             }
         },

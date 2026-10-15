@@ -25,12 +25,6 @@ CustomMouseArea {
     property bool utilityShortcutActive
     property bool launcherShortcutActive
 
-    // Width of the top-right corner zone that toggles the notification shade.
-    readonly property int shadeCornerWidth: 200
-
-    // Width of the bottom-right corner zone that toggles the utility sidebar.
-    readonly property int sidebarCornerWidth: 200
-
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
         const panelY = root.borderThickness + panel.y;
         return y >= panelY - Config.border.rounding && y <= panelY + panel.height + Config.border.rounding;
@@ -67,8 +61,8 @@ CustomMouseArea {
     // notification shade.
     function inNotifShadeCorner(x: real, y: real): bool {
         const inStrip = y < Math.max(Config.border.minThickness, Config.border.thickness) + Config.notifs.expandThreshold;
-        const inRight = x > width - root.shadeCornerWidth;
-        return inStrip && inRight;
+        const inRight = x > width - Config.notifs.shadeCornerWidth;
+        return Config.notifs.shadeEnabled && inStrip && inRight;
     }
 
     // Body of the shade panel itself, so hovering into the open shade keeps it
@@ -80,7 +74,7 @@ CustomMouseArea {
 
     // Bottom-right corner strip that toggles the utility sidebar.
     function inUtilitySidebarCorner(x: real, y: real): bool {
-        return x > width - root.sidebarCornerWidth && y > height - Math.max(Config.border.minThickness, Config.border.thickness) - Config.notifs.expandThreshold;
+        return Config.sidebar.enabled && x > width - Config.sidebar.minHoverThreshold && y > height - Math.max(Config.border.minThickness, Config.border.thickness) - Config.notifs.expandThreshold;
     }
 
     // Body of the utility sidebar itself, so hovering into the open sidebar
@@ -131,14 +125,15 @@ CustomMouseArea {
                 bar.closeTray();
             }
 
-            if (Config.bar.showOnHover)
-                bar.isHovered = false;
+            bar.isHovered = false;
         }
     }
 
     onPositionChanged: event => {
-        if (popouts.isDetached)
+        if (popouts.isDetached) {
+            bar.isHovered = false;
             return;
+        }
 
         const x = event.x;
         const y = event.y;
@@ -150,9 +145,8 @@ CustomMouseArea {
             return;
         }
 
-        // Show bar in non-exclusive mode on hover
-        if (!screenState.bar && Config.bar.showOnHover && x < bar.clampedWidth)
-            bar.isHovered = true;
+        // Track both entering and leaving the bar while the pointer stays in this window.
+        bar.isHovered = Config.bar.showOnHover && !Config.bar.persistent && !screenState.bar && x < bar.clampedWidth;
 
         // Show/hide bar on drag
         if (pressed && dragStart.x < bar.clampedWidth) {
@@ -221,7 +215,7 @@ CustomMouseArea {
         }
 
         // Show/hide notification shade on hover of the top corner zones or the shade itself
-        const showShade = inNotifShadeCorner(x, y) || inNotifShadePanel(x, y);
+        const showShade = Config.notifs.shadeEnabled && ((Config.notifs.shadeShowOnHover && inNotifShadeCorner(x, y)) || inNotifShadePanel(x, y));
 
         // Always update visibility based on hover if not in shortcut mode
         if (!shadeShortcutActive) {
@@ -232,7 +226,7 @@ CustomMouseArea {
         }
 
         // Show/hide notification shade on vertical drag from the top corners
-        if (pressed && inNotifShadeCorner(dragStart.x, dragStart.y)) {
+        if (Config.notifs.shadeEnabled && pressed && inNotifShadeCorner(dragStart.x, dragStart.y)) {
             if (dragY > Config.notifs.expandThreshold)
                 screenState.notifShade = true;
             else if (dragY < -Config.notifs.expandThreshold)
@@ -241,7 +235,7 @@ CustomMouseArea {
 
         // Show/hide utility sidebar on hover of the bottom-right corner or the sidebar itself
         // (stays open while the notes field holds keyboard focus)
-        const showSidebar = inUtilitySidebarCorner(x, y) || inUtilitySidebarPanel(x, y) || root.panels.utilitySidebar.notesActive;
+        const showSidebar = Config.sidebar.enabled && ((Config.sidebar.showOnHover && inUtilitySidebarCorner(x, y)) || inUtilitySidebarPanel(x, y) || root.panels.utilitySidebar.notesActive);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!utilityShortcutActive) {
@@ -252,10 +246,10 @@ CustomMouseArea {
         }
 
         // Show/hide utility sidebar on vertical drag from the bottom-right corner
-        if (pressed && inUtilitySidebarCorner(dragStart.x, dragStart.y)) {
-            if (dragY < -Config.notifs.expandThreshold)
+        if (Config.sidebar.enabled && pressed && inUtilitySidebarCorner(dragStart.x, dragStart.y)) {
+            if (dragY < -Config.sidebar.dragThreshold)
                 screenState.utilitySidebar = true;
-            else if (dragY > Config.notifs.expandThreshold)
+            else if (dragY > Config.sidebar.dragThreshold)
                 screenState.utilitySidebar = false;
         }
 
@@ -265,6 +259,41 @@ CustomMouseArea {
         } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
             popouts.hasCurrent = false;
             bar.closeTray();
+        }
+    }
+
+    Connections {
+        target: Config.bar
+
+        function onPersistentChanged() {
+            root.bar.isHovered = false;
+            if (!Config.bar.persistent)
+                root.screenState.bar = false;
+        }
+
+        function onShowOnHoverChanged() {
+            if (Config.bar.showOnHover)
+                root.screenState.bar = false;
+            else
+                root.bar.isHovered = false;
+        }
+    }
+
+    Connections {
+        target: Config.sidebar
+
+        function onEnabledChanged() {
+            if (!Config.sidebar.enabled)
+                root.screenState.utilitySidebar = false;
+        }
+    }
+
+    Connections {
+        target: Config.notifs
+
+        function onShadeEnabledChanged() {
+            if (!Config.notifs.shadeEnabled)
+                root.screenState.notifShade = false;
         }
     }
 

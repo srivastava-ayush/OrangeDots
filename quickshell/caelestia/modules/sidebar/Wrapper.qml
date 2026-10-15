@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
+import Caelestia.Config
 import qs.components
 
 // Slides the utility sidebar in/out from below the bottom edge, mirroring the
@@ -12,7 +13,7 @@ Item {
 
     required property ScreenState screenState
 
-    readonly property bool shouldBeActive: screenState.utilitySidebar
+    readonly property bool shouldBeActive: Config.sidebar.enabled && screenState.utilitySidebar
     // True while the notes field holds keyboard focus, so the sidebar must
     // not auto-close mid-typing
     readonly property bool notesActive: (content.item as Sidebar)?.notesActive ?? false

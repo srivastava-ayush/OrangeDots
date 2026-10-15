@@ -14,6 +14,7 @@ Fully self-contained - one `git clone` gets you everything, shell included.
 | `hypr/hyprland.lua` | Main Hyprland config (Lua-based) |
 | `hypr/scheme/current.lua` | Active Material 3 colour scheme |
 | `hypr/spotify-toggle.sh` | Spotify scratchpad toggle |
+| `caelestia/` | First-install shell settings (copied to `~/.config/caelestia`) |
 | `quickshell/caelestia/` | Custom Quickshell shell (vendored OrangeShell fork) |
 
 ## Features
@@ -48,9 +49,15 @@ cd OrangeDots
 mkdir -p ~/.config
 ln -s "$PWD/hypr"      ~/.config/hypr
 ln -s "$PWD/quickshell" ~/.config/quickshell
+
+# seed Caelestia's saved settings without overwriting existing preferences
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/caelestia"
+cp -n caelestia/shell.json caelestia/shell-tokens.json "${XDG_CONFIG_HOME:-$HOME/.config}/caelestia/"
 ```
 
 Then start Hyprland - `caelestia shell -d` launches automatically.
+Nexus changes are saved in `~/.config/caelestia/`; copy those files back to
+`caelestia/` if you want to update the presets for the next fresh install.
 
 ## Notes
 

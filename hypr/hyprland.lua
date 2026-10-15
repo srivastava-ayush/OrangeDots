@@ -414,6 +414,11 @@ hl.window_rule({
 ---- PLUGINS ------
 -------------------
 
+-- Toggle Hypr3D's 3D view when the plugin is loaded.
+if hl.plugin.hypr3d then
+    hl.bind("SUPER + T", hl.plugin.hypr3d.toggle)
+end
+
 plugin = {
    scrolloverview = {
        gesture_distance = 300,
