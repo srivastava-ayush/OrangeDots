@@ -179,7 +179,7 @@ Singleton {
             if (matchIconConfig(name, iconConfig))
                 return iconConfig.icon;
 
-        if (name === "special")
+        if (name === "special" || name === "misc")
             return "star";
         if (name === "communication")
             return "forum";

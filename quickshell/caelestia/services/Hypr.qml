@@ -79,6 +79,15 @@ Singleton {
         dispatch(usingLua ? `hl.dsp.focus({ workspace = "${openSpecials[nextIndex].name}" })` : `workspace ${openSpecials[nextIndex].name}`);
     }
 
+    function openSpecialOrMisc(): void {
+        if (workspaces.values.some(w => w.name.startsWith("special:") && w.lastIpcObject.windows > 0)) {
+            cycleSpecialWorkspace("next");
+            return;
+        }
+
+        dispatch(usingLua ? 'hl.dsp.workspace.toggle_special("misc")' : "togglespecialworkspace misc");
+    }
+
     function monitorNames(): list<string> {
         return monitors.values.map(e => e.name);
     }

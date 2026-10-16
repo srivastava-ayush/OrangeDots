@@ -211,6 +211,7 @@ Item {
 
     MouseArea {
         property real startY
+        property bool firstClickWasActive
 
         anchors.fill: view
 
@@ -227,16 +228,26 @@ Item {
 
             const ws = view.itemAt(event.x, event.y) as SpecialWsDelegate;
             if (!ws?.modelData) {
-                Hypr.dispatch(Hypr.usingLua ? 'hl.dsp.workspace.toggle_special("special")' : "togglespecialworkspace special");
+                firstClickWasActive = false;
+                Hypr.openSpecialOrMisc();
                 return;
             }
 
             const name = ws.modelData.name;
 
-            if (root.activeSpecial === name)
+            firstClickWasActive = root.activeSpecial === name;
+            if (firstClickWasActive)
                 return;
 
             Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${name}" })` : `workspace ${name}`);
+        }
+
+        onDoubleClicked: event => {
+            const name = (view.itemAt(event.x, event.y) as SpecialWsDelegate)?.modelData?.name;
+            if (firstClickWasActive && name === root.activeSpecial) {
+                const special = name.slice("special:".length);
+                Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${special}")` : `togglespecialworkspace ${special}`);
+            }
         }
     }
 
