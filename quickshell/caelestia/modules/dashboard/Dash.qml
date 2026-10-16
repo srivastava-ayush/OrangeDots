@@ -36,7 +36,7 @@ Item {
 
     // Floor for the top row so the user card keeps a sane height; the row
     // grows beyond it when the keep-awake/recorder cards need more room.
-    readonly property int topRowHeight: 176
+    readonly property int topRowHeight: 280
 
     // Extra width beyond the content sum so the dash reads as a rectangle,
     // not a square. Tune this to taste.

@@ -29,152 +29,166 @@ Item {
         CAnim {}
     }
 
-    Item {
-        id: pfpContainer
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Tokens.spacing.extraSmall
 
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
-        height: Math.min(parent.height, 96)
-        implicitWidth: height
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.medium
 
-        MaterialShape {
-            id: shape
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 0
+                Layout.preferredHeight: (root.width - parent.spacing) / 2
 
-            anchors.centerIn: parent
-            implicitSize: parent.height
-            shape: MaterialShape.Pill
-            color: Qt.alpha(root.pfpFallbackColour, 1)
-            opacity: root.pfpFallbackColour.a
-            layer.enabled: true
+                Item {
+                    id: pfpContainer
 
-            MouseArea {
-                id: mouse
+                    anchors.fill: parent
 
-                containmentMask: QtObject {
-                    function contains(pt: point): bool {
-                        return shape.contains(pt);
-                    }
-                }
+                    MaterialShape {
+                        id: shape
 
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                    root.screenState.dashboard = false;
-                    root.facePicker.open();
-                }
-            }
-        }
+                        anchors.centerIn: parent
+                        implicitSize: parent.height
+                        shape: MaterialShape.Pill
+                        color: Qt.alpha(root.pfpFallbackColour, 1)
+                        opacity: root.pfpFallbackColour.a
+                        layer.enabled: true
 
-        Item {
-            anchors.fill: parent
-            layer.enabled: true
-            layer.effect: Mask {
-                maskSource: shape
-            }
+                        MouseArea {
+                            id: mouse
 
-            Loader {
-                anchors.centerIn: parent
-                asynchronous: true
-                active: pfp.status !== Image.Ready
+                            containmentMask: QtObject {
+                                function contains(pt: point): bool {
+                                    return shape.contains(pt);
+                                }
+                            }
 
-                sourceComponent: MaterialIcon {
-                    text: "person_add"
-                    color: Colours.palette.m3onSurfaceVariant
-                    fontStyle: Tokens.font.icon.extraLarge
-                    fill: 1
-                    grade: -2 // Ugh material symbols are such a pain with fill
-                }
-            }
-
-            CachingImage {
-                id: pfp
-
-                anchors.fill: parent
-                path: `${Paths.home}/.face`
-            }
-
-            StyledRect {
-                anchors.fill: parent
-                color: Qt.alpha(Colours.palette.m3scrim, pfp.status === Image.Ready ? 0.4 : 0)
-                opacity: mouse.containsMouse ? 1 : 0
-                layer.enabled: opacity < 1
-
-                Behavior on opacity {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
-                }
-
-                MaterialShape {
-                    anchors.centerIn: parent
-                    implicitSize: parent.height * 0.7
-                    shape: MaterialShape.Diamond
-                    color: Colours.palette.m3primary
-                    scale: mouse.pressed ? 0.9 : mouse.containsMouse ? 1 : 0.7
-
-                    Behavior on color {
-                        CAnim {}
-                    }
-
-                    Behavior on scale {
-                        Anim {
-                            type: Anim.FastSpatial
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.screenState.dashboard = false;
+                                root.facePicker.open();
+                            }
                         }
                     }
 
-                    MaterialIcon {
-                        anchors.centerIn: parent
-                        text: "person_edit"
-                        color: Colours.palette.m3onPrimary
-                        fontStyle: Tokens.font.icon.large
+                    Item {
+                        anchors.fill: parent
+                        layer.enabled: true
+                        layer.effect: Mask {
+                            maskSource: shape
+                        }
+
+                        Loader {
+                            anchors.centerIn: parent
+                            asynchronous: true
+                            active: pfp.status !== Image.Ready
+
+                            sourceComponent: MaterialIcon {
+                                text: "person_add"
+                                color: Colours.palette.m3onSurfaceVariant
+                                fontStyle: Tokens.font.icon.large
+                                fill: 1
+                                grade: -2 // Ugh material symbols are such a pain with fill
+                            }
+                        }
+
+                        CachingImage {
+                            id: pfp
+
+                            anchors.fill: parent
+                            path: `${Paths.home}/.face`
+                        }
+
+                        StyledRect {
+                            anchors.fill: parent
+                            color: Qt.alpha(Colours.palette.m3scrim, pfp.status === Image.Ready ? 0.4 : 0)
+                            opacity: mouse.containsMouse ? 1 : 0
+                            layer.enabled: opacity < 1
+
+                            Behavior on opacity {
+                                Anim {
+                                    type: Anim.DefaultEffects
+                                }
+                            }
+
+                            MaterialShape {
+                                anchors.centerIn: parent
+                                implicitSize: parent.height * 0.7
+                                shape: MaterialShape.Diamond
+                                color: Colours.palette.m3primary
+                                scale: mouse.pressed ? 0.9 : mouse.containsMouse ? 1 : 0.7
+
+                                Behavior on color {
+                                    CAnim {}
+                                }
+
+                                Behavior on scale {
+                                    Anim {
+                                        type: Anim.FastSpatial
+                                    }
+                                }
+
+                                MaterialIcon {
+                                    anchors.centerIn: parent
+                                    text: "person_edit"
+                                    color: Colours.palette.m3onPrimary
+                                    fontStyle: Tokens.font.icon.large
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
 
-    ColumnLayout {
-        anchors.left: pfpContainer.right
-        anchors.leftMargin: Tokens.spacing.largeIncreased
-        anchors.right: parent.right
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: Tokens.spacing.extraSmall
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.preferredWidth: 0
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
 
-        Row {
-            spacing: Tokens.spacing.extraSmall
+                Row {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: Tokens.spacing.extraSmall
 
-            StyledText {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Time.hourStr
-                font: Tokens.font.headline.builders.medium.weight(Font.Bold).build()
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Time.hourStr
+                        font: Tokens.font.headline.builders.large.weight(Font.Bold).build()
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ":"
+                        color: Colours.palette.m3primary
+                        font: Tokens.font.headline.builders.large.weight(Font.Bold).build()
+                    }
+
+                    StyledText {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Time.minuteStr
+                        font: Tokens.font.headline.builders.large.weight(Font.Bold).build()
+                    }
+                }
+
+                StyledText {
+                    Layout.fillWidth: true
+                    text: Time.format("ddd, MMM d")
+                    color: Colours.palette.m3onSurfaceVariant
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
+                }
             }
-
-            StyledText {
-                anchors.verticalCenter: parent.verticalCenter
-                text: ":"
-                color: Colours.palette.m3primary
-                font: Tokens.font.headline.builders.medium.weight(Font.Bold).build()
-            }
-
-            StyledText {
-                anchors.verticalCenter: parent.verticalCenter
-                text: Time.minuteStr
-                font: Tokens.font.headline.builders.medium.weight(Font.Bold).build()
-            }
-        }
-
-        StyledText {
-            Layout.fillWidth: true
-            text: Time.format("ddd, MMM d")
-            color: Colours.palette.m3onSurfaceVariant
-            elide: Text.ElideRight
         }
 
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: uptimeChip.implicitSize
-            Layout.topMargin: Tokens.spacing.small
+            Layout.topMargin: Tokens.spacing.extraSmall
 
             Row {
                 spacing: Tokens.spacing.small
@@ -214,7 +228,7 @@ Item {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.small
+            Layout.topMargin: Tokens.spacing.extraSmall
             spacing: Tokens.spacing.extraSmall
 
             PowerButton {
@@ -253,7 +267,7 @@ Item {
         icon: btn.iconText
         Layout.fillWidth: true
         type: IconButton.Tonal
-        font: Tokens.font.icon.small
+        font: Tokens.font.icon.medium
         padding: Tokens.padding.extraSmall
         onClicked: action()
     }

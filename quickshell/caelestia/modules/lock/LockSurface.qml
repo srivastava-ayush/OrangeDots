@@ -161,13 +161,19 @@ WlSessionLockSurface {
             blurEnabled: true
             blur: 1
             blurMax: 64
-            blurMultiplier: 1
+            blurMultiplier: 3
         }
 
         Loader {
             anchors.fill: parent
             sourceComponent: Config.lock.useWallpaper ? wallpaperBackground : screencopyBackground
         }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "#66000000"
+        opacity: background.opacity
     }
 
     Component {
