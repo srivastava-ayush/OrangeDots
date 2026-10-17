@@ -15,7 +15,7 @@ hl.monitor({
 ---------------------
 
 local terminal    = "kitty"
-local fileManager = "thunar"
+local fileManager = "yazi"
 local ide         = "code"
 local browser     = "helium-browser"
 -------------------
@@ -259,10 +259,21 @@ for i, tab in ipairs(dashTabs) do
 end
 
 -- Apps / window management
-hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
+--hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
+hl.bind(
+    mainMod .. " + Q",
+    hl.dsp.exec_cmd(
+        terminal .. " " .. os.getenv("HOME") .. "/.config/quickshell/caelestia/assets/wrap_term_launch.sh " .. os.getenv("SHELL")
+    )
+)
+hl.bind(
+    mainMod .. " + A",
+    hl.dsp.exec_cmd(
+        terminal .. " " .. os.getenv("HOME") .. "/.config/quickshell/caelestia/assets/wrap_term_launch.sh yazi"
+    )
+)
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(ide))
 hl.bind(mainMod .. " + C", hl.dsp.window.close())
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + F", hl.dsp.layout("colresize +conf"))
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
