@@ -313,6 +313,38 @@ StyledWindow {
 
             fullscreen: root.hasFullscreen
         }
+
+        // Hover-only target above the bar, so it still works when the bar handles pointer input.
+        Item {
+            id: overviewCorner
+
+            anchors.top: parent.top
+            anchors.left: parent.left
+            width: 16
+            height: 16
+            visible: !root.hasFullscreen
+
+            HoverHandler {
+                id: overviewHover
+
+                onHoveredChanged: {
+                    if (hovered)
+                        overviewTimer.start();
+                    else
+                        overviewTimer.stop();
+                }
+            }
+
+            Timer {
+                id: overviewTimer
+
+                interval: 0
+                onTriggered: {
+                    if (overviewHover.hovered)
+                        Hypr.dispatch('hl.plugin.scrolloverview.overview("toggle all")');
+                }
+            }
+        }
     }
 
     ShellState.ComponentRef {
