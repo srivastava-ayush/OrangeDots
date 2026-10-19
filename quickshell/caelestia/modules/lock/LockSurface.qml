@@ -17,6 +17,9 @@ WlSessionLockSurface {
 
     readonly property alias unlocking: unlockAnim.running
 
+    signal revealContent
+    signal settleContent
+
     contentItem.Config.screen: screen.name
     contentItem.Tokens.screen: screen.name
 
@@ -27,7 +30,8 @@ WlSessionLockSurface {
             return;
 
         initAnim.stop();
-        background.opacity = 1;
+        dimOverlay.opacity = 1;
+        blurredBackground.opacity = 1;
         lockContent.scale = 1;
         lockContent.rotation = 360;
         lockContent.implicitWidth = (screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio;
@@ -37,6 +41,7 @@ WlSessionLockSurface {
         lockIcon.opacity = 0;
         content.opacity = 1;
         content.scale = 1;
+        settleContent();
     }
 
     Connections {
@@ -115,11 +120,19 @@ WlSessionLockSurface {
 
         running: true
 
-        Anim {
-            target: background
-            property: "opacity"
-            to: 1
-            type: Anim.StandardLarge
+        SequentialAnimation {
+            Anim {
+                target: dimOverlay
+                property: "opacity"
+                to: 1
+                duration: 350 * Tokens.anim.durations.scale
+            }
+            Anim {
+                target: blurredBackground
+                property: "opacity"
+                to: 1
+                duration: 500 * Tokens.anim.durations.scale
+            }
         }
         SequentialAnimation {
             ParallelAnimation {
@@ -136,6 +149,9 @@ WlSessionLockSurface {
                     duration: Tokens.anim.durations.expressiveFastSpatial
                     easing: Tokens.anim.standardDecel
                 }
+            }
+            ScriptAction {
+                script: root.revealContent()
             }
             ParallelAnimation {
                 Anim {
@@ -184,16 +200,6 @@ WlSessionLockSurface {
         id: background
 
         anchors.fill: parent
-        opacity: 0
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            autoPaddingEnabled: false
-            blurEnabled: true
-            blur: 1
-            blurMax: 64
-            blurMultiplier: 3
-        }
 
         Loader {
             anchors.fill: parent
@@ -201,10 +207,25 @@ WlSessionLockSurface {
         }
     }
 
+    MultiEffect {
+        id: blurredBackground
+
+        anchors.fill: parent
+        source: background
+        opacity: 0
+        autoPaddingEnabled: false
+        blurEnabled: true
+        blur: 1
+        blurMax: 64
+        blurMultiplier: 3
+    }
+
     Rectangle {
+        id: dimOverlay
+
         anchors.fill: parent
         color: "#66000000"
-        opacity: background.opacity
+        opacity: 0
     }
 
     Component {

@@ -18,14 +18,57 @@ ColumnLayout {
 
     spacing: Tokens.spacing.largeIncreased
 
+    Connections {
+        function onRevealContent(): void {
+            curtainAnim.start();
+        }
+
+        function onSettleContent(): void {
+            curtainAnim.stop();
+            clockSlide.y = 0;
+            passwordSlide.y = 0;
+        }
+
+        target: root.lock
+    }
+
+    ParallelAnimation {
+        id: curtainAnim
+
+        Anim {
+            target: clockSlide
+            property: "y"
+            to: 0
+            type: Anim.SlowSpatial
+        }
+        Anim {
+            target: passwordSlide
+            property: "y"
+            to: 0
+            type: Anim.SlowSpatial
+        }
+    }
+
     Clock {
         Layout.alignment: Qt.AlignHCenter
         centerScale: root.centerScale
+
+        transform: Translate {
+            id: clockSlide
+
+            y: -(root.lock.screen?.height ?? 1440) * 0.75
+        }
     }
 
     RowLayout {
         Layout.alignment: Qt.AlignHCenter
         spacing: Tokens.spacing.medium
+
+        transform: Translate {
+            id: passwordSlide
+
+            y: (root.lock.screen?.height ?? 1440) * 0.75
+        }
 
         ProfilePic {
             centerWidth: root.centerWidth
