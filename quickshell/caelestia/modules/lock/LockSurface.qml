@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Effects
 import Quickshell.Wayland
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.components.images
 import qs.services
@@ -21,12 +22,42 @@ WlSessionLockSurface {
 
     color: "transparent"
 
+    function finishEntrance(): void {
+        if (!lock.locked || unlockAnim.running)
+            return;
+
+        initAnim.stop();
+        background.opacity = 1;
+        lockContent.scale = 1;
+        lockContent.rotation = 360;
+        lockContent.implicitWidth = (screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio;
+        lockContent.implicitHeight = (screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult;
+        lockBg.radius = lockContent.Tokens.rounding.extraLarge * 1.5;
+        lockIcon.rotation = 360;
+        lockIcon.opacity = 0;
+        content.opacity = 1;
+        content.scale = 1;
+    }
+
     Connections {
         function onUnlock(): void {
             unlockAnim.start();
         }
 
         target: root.lock
+    }
+
+    Connections {
+        function onAboutToSleep(): void {
+            root.finishEntrance();
+        }
+
+        function onResumed(): void {
+            // Let the compositor restore the surface before applying its final geometry.
+            Qt.callLater(root.finishEntrance);
+        }
+
+        target: SessionManager
     }
 
     SequentialAnimation {

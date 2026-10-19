@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import M3Shapes
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
@@ -28,6 +29,14 @@ StyledRect {
     onActiveFocusChanged: {
         if (!activeFocus)
             forceActiveFocus();
+    }
+
+    Connections {
+        function onResumed(): void {
+            Qt.callLater(root.forceActiveFocus);
+        }
+
+        target: SessionManager
     }
 
     Keys.onPressed: event => {
