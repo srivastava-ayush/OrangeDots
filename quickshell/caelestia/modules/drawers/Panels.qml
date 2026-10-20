@@ -74,6 +74,7 @@ Item {
         id: notifShade
 
         screenState: root.screenState
+        popupPanel: notifications
 
         anchors.top: parent.top
         anchors.right: parent.right

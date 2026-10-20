@@ -78,18 +78,23 @@ Item {
                         }
                     }
 
-                    IconTextButton {
-                        icon: "refresh"
-                        text: qsTr("Scan")
-                        onClicked: {
-                            Quickshell.execDetached(["kdeconnect-cli", "--refresh"]);
-                            KdeConnect.refresh();
+                    RowLayout {
+                        Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                        spacing: Tokens.spacing.extraSmall
+
+                        IconTextButton {
+                            icon: "refresh"
+                            text: qsTr("Scan")
+                            onClicked: {
+                                Quickshell.execDetached(["kdeconnect-cli", "--refresh"]);
+                                KdeConnect.refresh();
+                            }
                         }
-                    }
-                    IconTextButton {
-                        icon: "open_in_new"
-                        text: qsTr("KDE Connect")
-                        onClicked: Quickshell.execDetached(KdeConnect.selectedId ? ["kdeconnect-app", "--device", KdeConnect.selectedId] : ["kdeconnect-app"])
+                        IconTextButton {
+                            icon: "open_in_new"
+                            text: qsTr("KDE Connect")
+                            onClicked: Quickshell.execDetached(KdeConnect.selectedId ? ["kdeconnect-app", "--device", KdeConnect.selectedId] : ["kdeconnect-app"])
+                        }
                     }
                 }
             }

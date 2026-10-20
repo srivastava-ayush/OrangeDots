@@ -32,6 +32,8 @@ Singleton {
     function shouldShowPopup(): bool {
         if (props.dnd)
             return false;
+        if (ShellState.forActive()?.notifShade)
+            return false;
         if (GlobalConfig.notifs.fullscreen === "off" && hasFullscreen())
             return false;
         return true;
