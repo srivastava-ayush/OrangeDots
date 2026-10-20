@@ -14,6 +14,7 @@ Item {
 
     required property ScreenState screenState
     required property FileDialog facePicker
+    required property FileDialog phoneFilePicker
 
     readonly property var dashboardTabs: {
         const allTabs = [
@@ -35,6 +36,12 @@ Item {
                 iconName: "speed",
                 text: qsTr("Performance"),
                 enabled: Config.dashboard.showPerformance
+            },
+            {
+                component: phoneComponent,
+                iconName: "smartphone",
+                text: qsTr("Phone"),
+                enabled: true
             }
         ];
         return allTabs.filter(tab => tab.enabled);
@@ -170,6 +177,14 @@ Item {
                 Performance {}
             }
 
+            Component {
+                id: phoneComponent
+
+                Phone {
+                    filePicker: root.phoneFilePicker
+                }
+            }
+
             Behavior on contentX {
                 Anim {}
             }
@@ -184,4 +199,3 @@ Item {
         Anim {}
     }
 }
-

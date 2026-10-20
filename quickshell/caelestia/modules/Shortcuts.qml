@@ -127,9 +127,10 @@ Scope {
         function setTab(tab: string): void {
             // Mirrors the enabled-filtered tab order of modules/dashboard/Content.qml
             const tabs = [
-                ["dashboard", Config.dashboard.showDashboard],
                 ["media", Config.dashboard.showMedia],
-                ["performance", Config.dashboard.showPerformance]
+                ["dashboard", Config.dashboard.showDashboard],
+                ["performance", Config.dashboard.showPerformance],
+                ["phone", true]
             ];
             const index = tabs.filter(t => t[1]).findIndex(t => t[0] === tab);
             if (index === -1) {

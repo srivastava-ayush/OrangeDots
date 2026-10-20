@@ -6,6 +6,7 @@ import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.components.filedialog
+import qs.services
 import qs.utils
 
 Item {
@@ -22,6 +23,10 @@ Item {
             else
                 Quickshell.execDetached(["notify-send", "-a", "caelestia-shell", "-u", "critical", "Unable to change profile picture", `Failed to change profile picture to ${Paths.shortenHome(path)}`]);
         }
+    }
+    readonly property FileDialog phoneFilePicker: FileDialog {
+        title: qsTr("Send a file to your phone")
+        onAccepted: path => KdeConnect.action(["--share", path])
     }
 
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 0
@@ -49,6 +54,7 @@ Item {
         sourceComponent: Content {
             screenState: root.screenState
             facePicker: root.facePicker
+            phoneFilePicker: root.phoneFilePicker
         }
     }
 }

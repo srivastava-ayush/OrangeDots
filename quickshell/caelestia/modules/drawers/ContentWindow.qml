@@ -72,7 +72,7 @@ StyledWindow {
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // OnDemand lets the notes field take keyboard focus on click without
     // stealing it when the sidebar is merely hovered open
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.utilitySidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.utilitySidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -320,9 +320,9 @@ StyledWindow {
 
             anchors.top: parent.top
             anchors.left: parent.left
-            width: 16
-            height: 16
-            visible: !root.hasFullscreen
+            width: HotCorner.width
+            height: HotCorner.width
+            visible: HotCorner.enabled && !root.hasFullscreen
 
             HoverHandler {
                 id: overviewHover
@@ -338,9 +338,9 @@ StyledWindow {
             Timer {
                 id: overviewTimer
 
-                interval: 0
+                interval: HotCorner.interval
                 onTriggered: {
-                    if (overviewHover.hovered)
+                    if (HotCorner.enabled && !root.hasFullscreen && overviewHover.hovered)
                         Hypr.dispatch('hl.plugin.scrolloverview.overview("toggle all")');
                 }
             }

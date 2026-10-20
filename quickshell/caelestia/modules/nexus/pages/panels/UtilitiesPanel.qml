@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.services
 import qs.modules.nexus.common
 
 PageBase {
@@ -140,6 +141,39 @@ PageBase {
             disabled: !Config.utilities.cards.quickToggles
             checked: root.isToggleOn("vpn")
             onToggled: root.setToggleOn("vpn", checked)
+        }
+
+        SectionHeader {
+            text: qsTr("Top-left hot corner")
+        }
+
+        ToggleRow {
+            first: true
+            text: qsTr("Enable overview hot corner")
+            subtext: qsTr("Hover in the top-left corner to open the overview")
+            checked: HotCorner.enabled
+            onToggled: HotCorner.enabled = checked
+        }
+
+        StepperRow {
+            label: qsTr("Corner width")
+            subtext: qsTr("Width and height of the activation area in pixels")
+            value: HotCorner.width
+            from: 8
+            to: 128
+            stepSize: 4
+            onMoved: v => HotCorner.width = v
+        }
+
+        StepperRow {
+            last: true
+            label: qsTr("Hover interval (ms)")
+            subtext: qsTr("Time to wait before opening the overview")
+            value: HotCorner.interval
+            from: 0
+            to: 2000
+            stepSize: 50
+            onMoved: v => HotCorner.interval = v
         }
     }
 }
