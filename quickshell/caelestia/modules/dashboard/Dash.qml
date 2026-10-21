@@ -36,7 +36,7 @@ Item {
 
     // Floor for the top row so the user card keeps a sane height; the row
     // grows beyond it when the keep-awake/recorder cards need more room.
-    readonly property int topRowHeight: 280
+    readonly property int topRowHeight: 352
 
     // Extra width beyond the content sum so the dash reads as a rectangle,
     // not a square. Tune this to taste.
@@ -76,16 +76,25 @@ Item {
                 Layout.alignment: Qt.AlignTop
                 spacing: Tokens.spacing.medium
 
-                Loader {
+                RowLayout {
                     Layout.fillWidth: true
-                    active: Config.utilities.cards.keepAwake
-                    visible: active
+                    spacing: Tokens.spacing.medium
 
-                    sourceComponent: IdleInhibit {}
-                }
+                    Loader {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 0
+                        active: Config.utilities.cards.keepAwake
+                        visible: active
 
-                BlackoutCard {
-                    Layout.fillWidth: true
+                        sourceComponent: IdleInhibit {}
+                    }
+
+                    BlackoutCard {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 0
+                    }
                 }
 
                 Loader {

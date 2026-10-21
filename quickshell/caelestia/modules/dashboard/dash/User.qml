@@ -2,6 +2,8 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import M3Shapes
 import Caelestia.Config
 import Caelestia.Services
@@ -20,6 +22,32 @@ Item {
     required property FileDialog facePicker
 
     property color pfpFallbackColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+    property int availableUpdates: -1
+    property int pendingUpdates: 0
+
+    Component.onCompleted: updateCheck.running = true
+
+    Process {
+        id: updateCheck
+
+        // checkupdates uses a temporary sync database; never run pacman -Sy to count updates.
+        command: ["checkupdates"]
+        onStarted: root.pendingUpdates = 0
+        stdout: StdioCollector {
+            onStreamFinished: root.pendingUpdates = text.trim() ? text.trim().split("\n").length : 0
+        }
+        onExited: code => root.availableUpdates = code === 2 ? 0 : code === 0 ? root.pendingUpdates : -2
+    }
+
+    Timer {
+        interval: 30 * 60 * 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            if (!updateCheck.running)
+                updateCheck.running = true;
+        }
+    }
 
     anchors.fill: parent
     anchors.margins: Tokens.padding.large
@@ -187,8 +215,58 @@ Item {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: uptimeChip.implicitSize
+            Layout.preferredHeight: updateChip.implicitSize
             Layout.topMargin: Tokens.spacing.extraSmall
+
+            Row {
+                spacing: Tokens.spacing.small
+
+                Item {
+                    width: updateChip.implicitSize
+                    height: updateChip.implicitSize
+
+                    MaterialShape {
+                        id: updateChip
+
+                        anchors.fill: parent
+                        implicitSize: Tokens.sizes.dashboard.uptimeSize + Tokens.padding.small * 2
+                        shape: MaterialShape.ClamShell
+                        color: Colours.palette.m3secondaryContainer
+
+                        MaterialIcon {
+                            anchors.centerIn: parent
+                            text: "system_update"
+                            color: Colours.palette.m3onSecondaryContainer
+                            fontStyle: Tokens.font.icon.medium
+                        }
+                    }
+                }
+
+                StyledText {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.availableUpdates === -1 ? qsTr("Checking for updates…") : root.availableUpdates === -2 ? qsTr("Updates unavailable") : qsTr("%1 updates available").arg(root.availableUpdates)
+                    color: updatesMouse.containsMouse ? Colours.palette.m3primary : Colours.palette.m3onSurface
+                    elide: Text.ElideRight
+                }
+            }
+
+            MouseArea {
+                id: updatesMouse
+
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    root.screenState.dashboard = false;
+                    Quickshell.execDetached(["kitty", "-e", "sudo", "pacman", "-Syu"]);
+                }
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.preferredHeight: uptimeChip.implicitSize
+            Layout.topMargin: -Tokens.spacing.extraSmall
 
             Row {
                 spacing: Tokens.spacing.small

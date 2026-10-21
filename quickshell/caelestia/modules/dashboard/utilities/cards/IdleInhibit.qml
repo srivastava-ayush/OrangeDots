@@ -21,7 +21,8 @@ StyledRect {
     RowLayout {
         id: layout
 
-        anchors.top: parent.top
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: IdleInhibitor.enabled ? -(activeChip.implicitHeight + activeChip.anchors.topMargin) / 2 : 0
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Tokens.padding.large
@@ -50,7 +51,7 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: qsTr("Keep Awake")
+                text: qsTr("Caffeine")
                 font: Tokens.font.body.medium
                 elide: Text.ElideRight
             }
