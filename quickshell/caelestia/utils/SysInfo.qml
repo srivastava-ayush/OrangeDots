@@ -3,23 +3,14 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Caelestia.Config
-import qs.utils
 
 Singleton {
     id: root
 
     property string osName
     property string osPrettyName
-    property string osId
-    property list<string> osIdLike
-    property string osLogo: Qt.resolvedUrl(`${Quickshell.shellDir}/assets/logo.svg`)
-    property bool isDefaultLogo: true
 
     property string uptime
-    readonly property string user: Quickshell.env("USER")
-    readonly property string wm: Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env("XDG_SESSION_DESKTOP")
-    readonly property string shell: Quickshell.env("SHELL").split("/").pop()
 
     property string kernel
     property string hostname
@@ -44,8 +35,6 @@ Singleton {
     }
 
     FileView {
-        id: osRelease
-
         path: "/etc/os-release"
         onLoaded: {
             const lines = text().split("\n");
@@ -54,29 +43,7 @@ Singleton {
 
             root.osName = fd("NAME");
             root.osPrettyName = fd("PRETTY_NAME");
-            root.osId = fd("ID");
-            root.osIdLike = fd("ID_LIKE").split(" ");
-
-            const logo = Quickshell.iconPath(fd("LOGO"), true);
-            if (GlobalConfig.general.logo === "caelestia") {
-                root.osLogo = Qt.resolvedUrl(`${Quickshell.shellDir}/assets/logo.svg`);
-                root.isDefaultLogo = true;
-            } else if (GlobalConfig.general.logo) {
-                root.osLogo = Quickshell.iconPath(GlobalConfig.general.logo, true) || "file://" + Paths.absolutePath(GlobalConfig.general.logo);
-                root.isDefaultLogo = false;
-            } else if (logo) {
-                root.osLogo = logo;
-                root.isDefaultLogo = false;
-            }
         }
-    }
-
-    Connections {
-        function onLogoChanged(): void {
-            osRelease.reload();
-        }
-
-        target: GlobalConfig.general
     }
 
     FileView {
