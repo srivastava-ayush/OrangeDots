@@ -84,6 +84,10 @@ Item {
                     sourceComponent: IdleInhibit {}
                 }
 
+                BlackoutCard {
+                    Layout.fillWidth: true
+                }
+
                 Loader {
                     Layout.fillWidth: true
                     active: Config.utilities.cards.recorder

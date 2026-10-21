@@ -18,6 +18,8 @@ Scope {
     property var dimmedMonitors: []
     property var brightnessTransitions: []
     readonly property bool enabled: {
+        if (Blackout.enabled)
+            return false;
         if (GlobalConfig.general.idle.inhibitWhenAudio && hasPlayer)
             return false;
         if (GlobalConfig.general.idle.inhibitWhenCharging && isCharging)
