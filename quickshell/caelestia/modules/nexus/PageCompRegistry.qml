@@ -94,6 +94,13 @@ QtObject {
 
         // System
         Component {
+            StackPage {
+                Component {
+                    PowerAndSleepPage {}
+                }
+            }
+        },
+        Component {
             PlaceholderComp {}
         },
         Component {

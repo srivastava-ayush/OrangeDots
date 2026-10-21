@@ -14,6 +14,7 @@ WlSessionLockSurface {
 
     required property WlSessionLock lock
     required property Pam pam
+    required property bool animateEntrance
 
     readonly property alias unlocking: unlockAnim.running
 
@@ -25,6 +26,21 @@ WlSessionLockSurface {
 
     color: "transparent"
 
+    Component.onCompleted: {
+        if (!animateEntrance)
+            Qt.callLater(root.finishEntrance);
+    }
+
+    onAnimateEntranceChanged: {
+        if (!animateEntrance)
+            finishEntrance();
+    }
+
+    onScreenChanged: {
+        if (!animateEntrance)
+            finishEntrance();
+    }
+
     function finishEntrance(): void {
         if (!lock.locked || unlockAnim.running)
             return;
@@ -34,8 +50,9 @@ WlSessionLockSurface {
         blurredBackground.opacity = 1;
         lockContent.scale = 1;
         lockContent.rotation = 360;
-        lockContent.implicitWidth = (screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio;
-        lockContent.implicitHeight = (screen?.height ?? 0) * lockContent.Tokens.sizes.lock.heightMult;
+        const screenHeight = screen?.height || 1440;
+        lockContent.implicitWidth = screenHeight * lockContent.Tokens.sizes.lock.heightMult * lockContent.Tokens.sizes.lock.ratio;
+        lockContent.implicitHeight = screenHeight * lockContent.Tokens.sizes.lock.heightMult;
         lockBg.radius = lockContent.Tokens.rounding.extraLarge * 1.5;
         lockIcon.rotation = 360;
         lockIcon.opacity = 0;
@@ -45,6 +62,16 @@ WlSessionLockSurface {
     }
 
     Connections {
+        function onLockedChanged(): void {
+            if (root.lock.locked && !root.animateEntrance)
+                root.finishEntrance();
+        }
+
+        function onSecureChanged(): void {
+            if (root.lock.secure && !root.animateEntrance)
+                root.finishEntrance();
+        }
+
         function onUnlock(): void {
             unlockAnim.start();
         }
@@ -118,7 +145,7 @@ WlSessionLockSurface {
     ParallelAnimation {
         id: initAnim
 
-        running: true
+        running: root.animateEntrance
 
         SequentialAnimation {
             Anim {

@@ -44,6 +44,12 @@ QtObject {
 
         // System
         {
+            label: qsTr("Power & sleep"),
+            icon: "bedtime",
+            description: qsTr("Idle timers, lock, suspend and hibernate"),
+            category: "system"
+        },
+        {
             label: qsTr("Updates"),
             icon: "update",
             description: qsTr("System updates"),

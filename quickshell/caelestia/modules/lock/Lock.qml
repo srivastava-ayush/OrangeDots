@@ -4,20 +4,48 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Caelestia.Services
 import qs.components.misc
 
 Scope {
+    id: root
+
     property alias lock: lock
+    property bool animateEntrance
+
+    function requestLock(animate: bool): void {
+        if (!lock.locked)
+            animateEntrance = animate;
+        lock.locked = true;
+    }
 
     WlSessionLock {
         id: lock
 
         signal unlock
 
+        onLockedChanged: {
+            if (!locked)
+                root.animateEntrance = false;
+        }
+
         LockSurface {
             lock: lock
             pam: pam
+            animateEntrance: root.animateEntrance
         }
+    }
+
+    Connections {
+        function onAboutToSleep(): void {
+            root.animateEntrance = false;
+        }
+
+        function onResumed(): void {
+            root.animateEntrance = false;
+        }
+
+        target: SessionManager
     }
 
     Pam {
@@ -45,7 +73,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "lock"
         description: "Lock the current session"
-        onPressed: lock.locked = true
+        onPressed: root.requestLock(true)
     }
 
     // qmllint disable unresolved-type
@@ -58,7 +86,7 @@ Scope {
 
     IpcHandler {
         function lock(): void {
-            lock.locked = true;
+            root.requestLock(true);
         }
 
         function unlock(): void {
