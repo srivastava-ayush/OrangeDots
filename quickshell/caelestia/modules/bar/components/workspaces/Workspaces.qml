@@ -26,9 +26,11 @@ StyledClippingRect {
     readonly property int groupOffset: Math.floor((activeWsId - 1) / Config.bar.workspaces.shown) * Config.bar.workspaces.shown
 
     property real blur: onSpecial ? 1 : 0
+    readonly property bool horizontal: Taskbar.horizontal
+    readonly property int length: (horizontal ? layout.implicitWidth : layout.implicitHeight) + Tokens.padding.small * 2
 
-    implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: Tokens.padding.small + Config.bar.workspaces.shown * 14 + (Config.bar.workspaces.shown - 1) * 4 + Tokens.padding.small
+    implicitWidth: horizontal ? length : Tokens.sizes.bar.innerWidth
+    implicitHeight: horizontal ? Tokens.sizes.bar.innerWidth : length
 
     color: "transparent"
     radius: Tokens.rounding.full
@@ -46,12 +48,14 @@ StyledClippingRect {
             blurMax: 32
         }
 
-        ColumnLayout {
+        GridLayout {
             id: layout
 
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            spacing: 4
+            anchors.centerIn: parent
+            columns: root.horizontal ? workspaces.count : 1
+            rows: root.horizontal ? 1 : workspaces.count
+            columnSpacing: 4
+            rowSpacing: 4
 
             Repeater {
                 id: workspaces

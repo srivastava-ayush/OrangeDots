@@ -8,27 +8,23 @@ QtObject {
     readonly property list<var> pages: [
         // Appearance
         {
+            id: "appearance",
             label: qsTr("Wallpaper & style"),
             icon: "palette",
-            description: qsTr("Wallpaper, fonts, colours"),
+            description: qsTr("Wallpaper, shell tint, colours"),
             category: "appearance"
         },
 
         // Connectivity
-        // TODO
-        // {
-        //     label: qsTr("Display"),
-        //     icon: "monitor",
-        //     description: qsTr("Output configuration"),
-        //     category: "connectivity"
-        // },
         {
+            id: "network",
             label: qsTr("Network"),
             icon: "wifi",
             description: qsTr("Wi-Fi, ethernet, VPN"),
             category: "connectivity"
         },
         {
+            id: "bluetooth",
             label: qsTr("Connected devices"),
             icon: "devices_other",
             description: qsTr("Bluetooth, pairing"),
@@ -36,6 +32,7 @@ QtObject {
             noFill: true
         },
         {
+            id: "audio",
             label: qsTr("Audio"),
             icon: "volume_up",
             description: qsTr("App volumes, sound devices"),
@@ -44,44 +41,37 @@ QtObject {
 
         // System
         {
+            id: "power",
             label: qsTr("Power & sleep"),
             icon: "bedtime",
             description: qsTr("Idle timers, lock, suspend and hibernate"),
             category: "system"
         },
-        {
-            label: qsTr("Updates"),
-            icon: "update",
-            description: qsTr("System updates"),
-            category: "system"
-        },
-        {
-            label: qsTr("Plugins"),
-            icon: "extension",
-            description: qsTr("Manage plugins"),
-            category: "system"
-        },
 
         // Shell
         {
+            id: "panels",
             label: qsTr("Panels"),
             icon: "dock_to_bottom",
-            description: qsTr("Dashboard, taskbar, calendar, notification shade"),
+            description: qsTr("Dashboard & utilities, taskbar & notifications, launcher, calendar"),
             category: "shell"
         },
         {
+            id: "apps",
             label: qsTr("Apps"),
             icon: "apps",
             description: qsTr("Default apps, favourites, hidden apps"),
             category: "shell"
         },
         {
+            id: "services",
             label: qsTr("Services"),
             icon: "build",
             description: qsTr("Poll intervals, lyrics backend"),
             category: "shell"
         },
         {
+            id: "language",
             label: qsTr("Language & region"),
             icon: "globe",
             description: qsTr("UI language, display units"),
@@ -90,9 +80,10 @@ QtObject {
 
         // About
         {
+            id: "about",
             label: qsTr("About"),
             icon: "info",
-            description: qsTr("System information, credits"),
+            description: qsTr("Orange OS version and system information"),
             category: "about"
         },
     ]

@@ -16,7 +16,7 @@ Item {
         if (currentItem)
             currentItem.destroy();
 
-        const comp = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.placeholderComp;
+        const comp = PageCompRegistry.pageComps[idx] ?? PageCompRegistry.pageComps[0];
         const incubator = comp.incubateObject(container, {
             nState
         });

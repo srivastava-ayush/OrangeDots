@@ -35,12 +35,16 @@ Item {
     }
 
     // Floor for the top row so the user card keeps a sane height; the row
-    // grows beyond it when the keep-awake/recorder cards need more room.
+    // grows beyond it when the utility, recorder, or weather cards need more room.
     readonly property int topRowHeight: 352
 
-    // Extra width beyond the content sum so the dash reads as a rectangle,
-    // not a square. Tune this to taste.
-    readonly property int extraWidth: 220
+    // Extra width beyond the content sum so the dash reads as a rectangle
+    // and the three utility toggles have room for their labels.
+    readonly property int extraWidth: 480
+
+    // Give the horizontal forecast more room within the existing dashboard;
+    // the recorder uses the remaining width and adapts its header.
+    readonly property int weatherCardWidth: Math.max(420, Tokens.sizes.dashboard.weatherWidth)
 
     implicitWidth: Tokens.sizes.dashboard.userWidth + Tokens.sizes.dashboard.weatherWidth + Tokens.spacing.medium * 3 + root.extraWidth
     implicitHeight: layout.implicitHeight
@@ -95,17 +99,45 @@ Item {
                         Layout.fillHeight: true
                         Layout.preferredWidth: 0
                     }
+
+                    GameModeCard {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 0
+                    }
                 }
 
-                Loader {
+                RowLayout {
                     Layout.fillWidth: true
-                    active: Config.utilities.cards.recorder
-                    visible: active
-                    z: 1
+                    visible: recorderCard.active || weatherCard.active
+                    spacing: Tokens.spacing.medium
 
-                    sourceComponent: Record {
-                        props: root.props
-                        screenState: root.screenState
+                    Loader {
+                        id: recorderCard
+
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 0
+                        active: Config.utilities.cards.recorder
+                        visible: active
+                        z: 1
+
+                        sourceComponent: Record {
+                            props: root.props
+                            screenState: root.screenState
+                        }
+                    }
+
+                    Loader {
+                        id: weatherCard
+
+                        Layout.fillWidth: !recorderCard.active
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: root.weatherCardWidth
+                        active: Config.dashboard.showWeather
+                        visible: active
+
+                        sourceComponent: WeatherCard {}
                     }
                 }
             }

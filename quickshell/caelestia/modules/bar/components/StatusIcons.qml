@@ -13,9 +13,11 @@ StyledRect {
     id: root
 
     property color colour: Colours.palette.m3secondary
+    required property var bar
     readonly property alias items: iconColumn
 
     readonly property int spacing: Tokens.spacing.medium / 2
+    readonly property bool horizontal: Taskbar.horizontal
 
     // Index of the first/last entry that isn't collapsed, for edge margin gating
     readonly property int firstPresent: {
@@ -40,33 +42,56 @@ StyledRect {
         return false;
     }
 
+    function notificationIcon(): Item {
+        return iconColumn.children.find(child => child.name === "notifications")?.item ?? null;
+    }
+
     color: Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
     clip: true
-    implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: iconColumn.implicitHeight + Tokens.padding.medium * 2
+    implicitWidth: horizontal ? iconColumn.implicitWidth + Tokens.padding.medium * 2 : Tokens.sizes.bar.innerWidth
+    implicitHeight: horizontal ? Tokens.sizes.bar.innerWidth : iconColumn.implicitHeight + Tokens.padding.medium * 2
 
-    ColumnLayout {
+    GridLayout {
         id: iconColumn
 
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: Tokens.padding.medium
+        anchors.centerIn: parent
+        width: root.horizontal ? implicitWidth : parent.width
+        columns: root.horizontal ? model.values.length : 1
+        rows: root.horizontal ? 1 : model.values.length
 
-        spacing: 0
+        columnSpacing: 0
+        rowSpacing: 0
 
         Repeater {
             model: ScriptModel {
                 id: model
 
-                values: root.Config.bar.statusIcons.values.filter(e => e.enabled)
+                values: {
+                    const configured = root.Config.bar.statusIcons.values;
+                    const entries = configured.filter(e => e.enabled && (e.id !== "notifications" || root.Config.notifs.shadeEnabled));
+                    // Keep the bell inside the shared status pill, including for
+                    // existing configurations that predate the notification icon.
+                    if (root.Config.notifs.shadeEnabled && !configured.some(e => e.id === "notifications"))
+                        entries.unshift({ id: "notifications", enabled: true });
+                    return entries;
+                }
             }
 
             DelegateChooser {
                 role: "id"
 
+                DelegateChoice {
+                    roleValue: "notifications"
+                    delegate: EntryWrapper {
+                        NotificationIcon {
+                            objectName: "taskbarNotifications"
+                            bar: root.bar
+                            colour: root.colour
+                        }
+                    }
+                }
                 DelegateChoice {
                     roleValue: "lockStatus"
                     delegate: EntryWrapper {
@@ -156,11 +181,13 @@ StyledRect {
         default property Item item
         property string name: modelData.id.toLowerCase()
 
-        Layout.topMargin: Math.round(topGap)
-        Layout.bottomMargin: Math.round(bottomGap)
-        Layout.alignment: Qt.AlignHCenter
+        Layout.topMargin: root.horizontal ? 0 : Math.round(topGap)
+        Layout.bottomMargin: root.horizontal ? 0 : Math.round(bottomGap)
+        Layout.leftMargin: root.horizontal ? Math.round(topGap) : 0
+        Layout.rightMargin: root.horizontal ? Math.round(bottomGap) : 0
+        Layout.alignment: Qt.AlignCenter
 
-        implicitWidth: item?.implicitWidth ?? 0
+        implicitWidth: root.horizontal && !present ? 0 : (item?.implicitWidth ?? 0)
         implicitHeight: item?.implicitHeight ?? 0
 
         children: item

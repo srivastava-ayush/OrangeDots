@@ -3,6 +3,10 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.components
+import qs.components.controls
+import qs.components.misc
+import qs.services
 import qs.modules.nexus.common
 
 PageBase {
@@ -11,11 +15,20 @@ PageBase {
     title: qsTr("Dashboard")
     isSubPage: true
 
+    readonly property list<MenuItem> weatherUnits: [
+        MenuItem { text: qsTr("Celsius (°C)") },
+        MenuItem { text: qsTr("Fahrenheit (°F)") }
+    ]
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
+
+        Ref {
+            service: Weather
+        }
 
         // General
         SectionHeader {
@@ -61,6 +74,84 @@ PageBase {
             text: qsTr("Performance")
             checked: Config.dashboard.showPerformance
             onToggled: GlobalConfig.dashboard.showPerformance = checked
+        }
+
+        SectionHeader {
+            text: qsTr("Utilities")
+        }
+
+        NavRow {
+            objectName: "dashboardUtilities"
+            first: true
+            last: true
+            icon: "construction"
+            text: qsTr("Utilities")
+            subtext: qsTr("Dashboard utility cards and overview hot corner")
+            onClicked: root.nState.openSubPage(5)
+        }
+
+        SectionHeader {
+            text: qsTr("Weather")
+        }
+
+        ToggleRow {
+            first: true
+            text: qsTr("Show weather")
+            subtext: qsTr("Display a weather card beside the screen recorder")
+            checked: Config.dashboard.showWeather
+            onToggled: GlobalConfig.dashboard.showWeather = checked
+        }
+
+        TextFieldRow {
+            label: qsTr("Location")
+            subtext: qsTr("City name, or latitude, longitude for an exact location")
+            placeholderText: qsTr("London or 51.51, -0.13")
+            maximumLength: 128
+            value: GlobalConfig.services.weatherLocation
+            onEditingFinished: value => GlobalConfig.services.weatherLocation = value.trim()
+        }
+
+        SelectRow {
+            label: qsTr("Weather units")
+            subtext: qsTr("Temperature and wind speed; system temperatures are separate")
+            menuItems: root.weatherUnits
+            active: root.weatherUnits[GlobalConfig.services.useFahrenheit ? 1 : 0]
+            onSelected: item => GlobalConfig.services.useFahrenheit = root.weatherUnits.indexOf(item) === 1
+        }
+
+        StepperRow {
+            label: qsTr("Refresh interval")
+            subtext: qsTr("Minutes between updates while weather is displayed")
+            value: Weather.refreshMinutes
+            from: 5
+            to: 180
+            stepSize: 5
+            onMoved: value => Weather.refreshMinutes = value
+        }
+
+        InfoRow {
+            label: qsTr("Resolved location")
+            value: Weather.locationName || qsTr("Not set")
+            subtext: qsTr("No automatic location tracking · data from Open-Meteo")
+        }
+
+        RowButton {
+            last: true
+            icon: "refresh"
+            text: Weather.loading ? qsTr("Updating weather…") : qsTr("Refresh weather now")
+            subtext: Weather.hasData ? qsTr("Last updated %1").arg(Qt.formatTime(Weather.updatedAt, GlobalConfig.services.useTwelveHourClock ? "hh:mm a" : "HH:mm")) : qsTr("No API key required")
+            disabled: Weather.loading || !Weather.locationQuery
+            onClicked: Weather.refresh()
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.margins: Tokens.padding.small
+            visible: Weather.error.length > 0
+            text: Weather.error
+            color: Colours.palette.m3error
+            font: Tokens.font.body.small
+            wrapMode: Text.WordWrap
         }
 
         // Performance widgets

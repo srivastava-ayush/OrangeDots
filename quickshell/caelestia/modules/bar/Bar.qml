@@ -10,7 +10,7 @@ import Caelestia.Config
 import qs.components
 import qs.services
 
-ColumnLayout {
+GridLayout {
     id: root
 
     required property ShellScreen screen
@@ -18,69 +18,129 @@ ColumnLayout {
     required property BarPopouts.Wrapper popouts
     required property bool fullscreen
     readonly property int vPadding: Tokens.padding.large
+    readonly property bool horizontal: Taskbar.horizontal
+    readonly property int spacing: Tokens.spacing.medium
+
+    function centerFor(item: Item): real {
+        const center = item.mapToItem(root, item.width / 2, item.height / 2);
+        return horizontal ? center.x : center.y;
+    }
+
+    function hasEntryAt(x: real, y: real): bool {
+        // Include the padding above/below a horizontal entry so edge gestures
+        // cannot open another panel while reaching for its clock or status icon.
+        const entry = childAt(horizontal ? x : width / 2, horizontal ? height / 2 : y) as EntryWrapper;
+        return !!entry?.item;
+    }
 
     function closeTray(): void {
         if (!Config.bar.tray.compact)
             return;
 
         for (let i = 0; i < repeater.count; i++) {
-            const tray = (repeater.itemAt(i) as EntryWrapper).item as Tray;
+            const entry = repeater.itemAt(i) as EntryWrapper;
+            const tray = entry?.item as Tray;
             if (tray)
                 tray.expanded = false;
         }
     }
 
-    function checkPopout(y: real): void {
-        const ch = childAt(width / 2, y) as EntryWrapper;
+    function showPopout(name: string, item: Item): void {
+        popouts.cancelClose();
+        popouts.anchorHovered = true;
+        popouts.currentName = name;
+        popouts.currentCenter = Qt.binding(() => root.centerFor(item));
+        popouts.hasCurrent = true;
+    }
+
+    function openNotifications(shortcut = false): void {
+        if (!Config.notifs.shadeEnabled) {
+            screenState.notifShade = false;
+            return;
+        }
+        for (let i = 0; i < repeater.count; i++) {
+            const entry = repeater.itemAt(i) as EntryWrapper;
+            const status = entry?.item as StatusIcons;
+            const icon = status?.notificationIcon();
+            if (icon) {
+                if (shortcut)
+                    popouts.notificationShortcutActive = true;
+                showPopout("notifications", icon);
+                return;
+            }
+        }
+        // A configuration can explicitly omit/disable the notification entry.
+        screenState.notifShade = false;
+    }
+
+    Component.onCompleted: Qt.callLater(() => {
+        if (root.screenState.notifShade && !root.popouts.notificationsOpen)
+            root.openNotifications(true);
+    })
+
+    Connections {
+        target: root.screenState
+
+        function onNotifShadeChanged(): void {
+            if (root.screenState.notifShade && !root.popouts.notificationsOpen)
+                root.openNotifications(true);
+        }
+    }
+
+    function checkPopout(x: real, y: real): void {
+        // Hit-test along the bar's length, not just the painted icon. The
+        // cross-axis padding is the path the pointer takes into its popout.
+        const px = horizontal ? x : width / 2;
+        const py = horizontal ? height / 2 : y;
+        const ch = childAt(px, py) as EntryWrapper;
+        popouts.anchorHovered = false;
 
         if (ch?.entryId !== "tray")
             closeTray();
 
         if (!ch) {
-            popouts.hasCurrent = false;
+            popouts.scheduleClose();
             return;
         }
 
         const id = ch.entryId;
-        const top = ch.y;
-
-        if (id === "statusIcons" && Config.bar.popouts.statusIcons) {
+        if (id === "statusIcons") {
             const items = (ch.item as StatusIcons).items;
-            const icon = items.childAt(items.width / 2, mapToItem(items, 0, y).y);
-            if (icon) {
-                popouts.currentName = icon.name;
-                popouts.currentCenter = Qt.binding(() => icon.mapToItem(root, 0, icon.implicitHeight / 2).y);
-                popouts.hasCurrent = true;
-            }
+            const pos = items.mapFromItem(root, px, py);
+            const icon = items.childAt(pos.x, pos.y);
+            if (icon?.name === "notifications") {
+                if (Config.notifs.shadeShowOnHover)
+                    openNotifications();
+                else if (!popouts.notificationsOpen)
+                    popouts.scheduleClose();
+            } else if (icon && Config.bar.popouts.statusIcons) {
+                showPopout(icon.name, icon);
+            } else
+                popouts.scheduleClose();
         } else if (id === "tray" && Config.bar.popouts.tray) {
             const tray = ch.item as Tray;
-            if (!Config.bar.tray.compact || (tray.expanded && !tray.expandIcon.contains(mapToItem(tray.expandIcon, tray.implicitWidth / 2, y)))) {
-                const index = Math.floor(((y - top - tray.padding * 2 + tray.spacing) / tray.layout.implicitHeight) * tray.items.count);
-                const trayItem = tray.items.itemAt(index);
+            if (!Config.bar.tray.compact || (tray.expanded && !tray.expandIcon.contains(tray.expandIcon.mapFromItem(root, px, py)))) {
+                const pos = tray.layout.mapFromItem(root, px, py);
+                const trayItem = tray.layout.childAt(pos.x, pos.y) as TrayItem;
                 if (trayItem) {
-                    popouts.currentName = `traymenu${index}`;
-                    popouts.currentCenter = Qt.binding(() => trayItem.mapToItem(root, 0, trayItem.implicitHeight / 2).y);
-                    popouts.hasCurrent = true;
+                    showPopout(`traymenu${trayItem.index}`, trayItem);
                 } else {
-                    popouts.hasCurrent = false;
+                    popouts.scheduleClose();
                 }
             } else {
-                popouts.hasCurrent = false;
+                popouts.scheduleClose();
                 tray.expanded = true;
             }
         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
-            popouts.currentName = id.toLowerCase();
-            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
-            popouts.hasCurrent = true;
+            showPopout(id.toLowerCase(), ch.item);
         } else if (id === "clock") {
-            popouts.currentName = id.toLowerCase();
-            popouts.currentCenter = (ch.item as Item).mapToItem(root, 0, (ch.item as Item).implicitHeight / 2).y ?? 0;
-            popouts.hasCurrent = true;
-        }
+            showPopout(id.toLowerCase(), ch.item);
+        } else
+            popouts.scheduleClose();
     }
 
-    function handleWheel(y: real, angleDelta: point): void {
-        const ch = childAt(width / 2, y) as EntryWrapper;
+    function handleWheel(x: real, y: real, angleDelta: point): void {
+        const ch = childAt(x, y) as EntryWrapper;
         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
             const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
@@ -89,14 +149,14 @@ ColumnLayout {
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.workspace.toggle_special("${specialWs.slice(8)}")` : `togglespecialworkspace ${specialWs.slice(8)}`);
             else if (angleDelta.y < 0 || (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? mon.activeWorkspace?.id : Hypr.activeWsId) > 1)
                 Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "r${angleDelta.y > 0 ? "-" : "+"}1" })` : `workspace r${angleDelta.y > 0 ? "-" : "+"}1`);
-        } else if (y < screen.height / 2 && Config.bar.scrollActions.volume) {
-            // Volume scroll on top half
+        } else if ((horizontal ? x < width / 2 : y < height / 2) && Config.bar.scrollActions.volume) {
+            // Volume scroll on the first half (top or left).
             if (angleDelta.y > 0)
                 Audio.incrementVolume();
             else if (angleDelta.y < 0)
                 Audio.decrementVolume();
         } else if (Config.bar.scrollActions.brightness) {
-            // Brightness scroll on bottom half
+            // Brightness scroll on the second half (bottom or right).
             const monitor = Brightness.getMonitorForScreen(screen);
             if (angleDelta.y > 0)
                 monitor.setBrightness(monitor.brightness + GlobalConfig.services.brightnessIncrement);
@@ -105,13 +165,16 @@ ColumnLayout {
         }
     }
 
-    spacing: Tokens.spacing.medium
+    columns: horizontal ? repeater.count : 1
+    rows: horizontal ? 1 : repeater.count
+    columnSpacing: spacing
+    rowSpacing: spacing
 
     Repeater {
         id: repeater
 
         model: ScriptModel {
-            values: root.Config.bar.entries.values.filter(e => e.enabled)
+            values: root.Config.bar.entries.values.filter(e => e.enabled && e.id !== "notifications")
         }
 
         DelegateChooser {
@@ -120,7 +183,8 @@ ColumnLayout {
             DelegateChoice {
                 roleValue: "spacer"
                 delegate: EntryWrapper {
-                    Layout.fillHeight: true
+                    Layout.fillWidth: root.horizontal
+                    Layout.fillHeight: !root.horizontal
                 }
             }
             DelegateChoice {
@@ -172,6 +236,7 @@ ColumnLayout {
                 delegate: EntryWrapper {
                     StatusIcons {
                         objectName: "taskbarStatusIcons"
+                        bar: root
                     }
                 }
             }
@@ -184,9 +249,11 @@ ColumnLayout {
         default property Item item
         readonly property string entryId: modelData.id
 
-        Layout.topMargin: index === 0 ? root.vPadding : 0
-        Layout.bottomMargin: index === repeater.count - 1 ? root.vPadding : 0
-        Layout.alignment: Qt.AlignHCenter
+        Layout.topMargin: !root.horizontal && index === 0 ? root.vPadding : 0
+        Layout.bottomMargin: !root.horizontal && index === repeater.count - 1 ? root.vPadding : 0
+        Layout.leftMargin: root.horizontal && index === 0 ? root.vPadding : 0
+        Layout.rightMargin: root.horizontal && index === repeater.count - 1 ? root.vPadding : 0
+        Layout.alignment: Qt.AlignCenter
 
         implicitWidth: item?.implicitWidth ?? 0
         implicitHeight: item?.implicitHeight ?? 0

@@ -7,11 +7,13 @@ import Quickshell.Services.SystemTray
 import Caelestia.Config
 import qs.components
 import qs.services
+import qs.modules.notifshade as NotifShade
 
 Item {
     id: root
 
     required property PopoutState popouts
+    required property ScreenState screenState
     readonly property Popout currentPopout: content.children.find(c => c.shouldBeActive) ?? null
     readonly property Item current: currentPopout?.item ?? null
 
@@ -118,6 +120,16 @@ Item {
             name: "clock"
             sourceComponent: CalendarPopout {
                 popouts: root.popouts
+            }
+        }
+
+        Popout {
+            name: "notifications"
+            sourceComponent: NotifShade.Shade {
+                objectName: "taskbarNotificationShade"
+                screenState: root.screenState
+                // The shared popout already supplies the outer background.
+                color: "transparent"
             }
         }
 

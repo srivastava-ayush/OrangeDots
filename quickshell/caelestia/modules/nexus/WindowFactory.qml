@@ -14,6 +14,16 @@ Singleton {
         nexusComp.createObject(parent ?? dummy, props);
     }
 
+    function openDashboardSettings(): void {
+        const win = nexusComp.createObject(dummy);
+        if (win) {
+            win.nState.currentPageIdx = PageRegistry.pages.findIndex(page => page.id === "panels");
+            // Panels' first subpage is Dashboard. The new StackPage restores
+            // this stack when it is loaded, without signalling the old page.
+            win.nState.subPageIdxStack = [1];
+        }
+    }
+
     QtObject {
         id: dummy
     }
@@ -23,6 +33,8 @@ Singleton {
 
         FloatingWindow {
             id: win
+
+            readonly property alias nState: nexus.nState
 
             color: Colours.tPalette.m3surface
             surfaceFormat.opaque: false
@@ -41,7 +53,7 @@ Singleton {
             contentItem.Config.screen: screen.name
             contentItem.Tokens.screen: screen.name
 
-            title: qsTr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx].label)
+            title: qsTr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx]?.label ?? PageRegistry.pages[0].label)
 
             Nexus {
                 id: nexus

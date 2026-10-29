@@ -24,21 +24,22 @@ Item {
     readonly property real dotSize: 14
     readonly property real pillHeight: 30
     readonly property real size: isActive ? pillHeight : dotSize
+    readonly property bool horizontal: Taskbar.horizontal
 
-    Layout.alignment: Qt.AlignHCenter
-    Layout.preferredWidth: dotSize
-    Layout.preferredHeight: size
+    Layout.alignment: Qt.AlignCenter
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: implicitHeight
 
-    implicitWidth: dotSize
-    implicitHeight: size
+    implicitWidth: horizontal ? size : dotSize
+    implicitHeight: horizontal ? dotSize : size
 
     Rectangle {
         id: dot
 
         anchors.centerIn: parent
-        width: root.dotSize
-        height: root.size
-        radius: width / 2
+        width: root.implicitWidth
+        height: root.implicitHeight
+        radius: root.dotSize / 2
         color: root.isActive
             ? Colours.palette.m3primary
             : root.isOccupied
@@ -46,6 +47,12 @@ Item {
                 : Colours.layer(Colours.palette.m3outlineVariant, 1)
 
         Behavior on height {
+            Anim {
+                type: Anim.Emphasized
+            }
+        }
+
+        Behavior on width {
             Anim {
                 type: Anim.Emphasized
             }

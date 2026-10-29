@@ -92,14 +92,14 @@ StyledWindow {
     Region {
         id: emptyRegion
 
-        x: panels.notifications.x + bar.implicitWidth
-        y: panels.notifications.y + root.borderThickness
+        x: panels.notifications.x + panels.x
+        y: panels.notifications.y + panels.y
         width: panels.notifications.width
         height: panels.notifications.height
 
         Region {
             x: root.width - width
-            y: panels.osdWrapper.y + root.borderThickness
+            y: panels.osdWrapper.y + panels.y
             width: panels.osdWrapper.width * (1 - panels.osd.offsetScale) + root.borderThickness
             height: panels.osd.height
         }
@@ -123,11 +123,6 @@ StyledWindow {
                 return true;
             if (!conf.dashboard.showOnHover && s.dashboard && conf.dashboard.enabled)
                 return true;
-            // Grab focus only when the shade wasn't opened by hover, so a
-            // stray corner hover can't steal keyboard input; clicking anywhere
-            // else still dismisses it.
-            if (s.notifShade && conf.notifs.shadeEnabled && interactionWrapper.shadeShortcutActive)
-                return true;
             // Same for the sidebar, which hosts the notes text field
             if (s.utilitySidebar && conf.sidebar.enabled && interactionWrapper.utilityShortcutActive)
                 return true;
@@ -149,9 +144,8 @@ StyledWindow {
 
     StyledRect {
         anchors.fill: parent
-        // Light scrim, and only for deliberately opened shades (drag/IPC):
-        // incidental corner hovers shouldn't dim the whole screen
-        opacity: root.screenState.notifShade && interactionWrapper.shadeShortcutActive ? 0.3 : (root.screenState.session && Config.session.enabled) || panels.popouts.detachedMode !== "" ? 0.5 : 0
+        // Hover popouts stay undimmed; only session and detached panels need a scrim.
+        opacity: (root.screenState.session && Config.session.enabled) || panels.popouts.detachedMode !== "" ? 0.5 : 0
         color: Colours.palette.m3scrim
 
         Behavior on opacity {
@@ -183,9 +177,9 @@ StyledWindow {
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: bar.implicitWidth - anchors.margins - root.sdfBorderOffset
+            borderLeft: panels.x - anchors.margins - root.sdfBorderOffset
             borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderTop: root.borderThickness - anchors.margins - root.sdfBorderOffset
+            borderTop: panels.y - anchors.margins - root.sdfBorderOffset
             borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
         }
 
@@ -208,7 +202,7 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            x: panels.sessionWrapper.x + panels.session.x + bar.implicitWidth
+            x: panels.sessionWrapper.x + panels.session.x + panels.x
             implicitWidth: panels.session.width
         }
 
@@ -217,7 +211,7 @@ StyledWindow {
 
             panel: panels.osdWrapper
             deformAmount: 0.25
-            x: panels.osdWrapper.x + panels.osd.x + bar.implicitWidth
+            x: panels.osdWrapper.x + panels.osd.x + panels.x
             implicitWidth: panels.osd.width
         }
 
@@ -225,12 +219,10 @@ StyledWindow {
             id: notifsBg
 
             panel: panels.notifications
-        }
-
-        PanelBg {
-            id: notifShadeBg
-
-            panel: panels.notifShade
+            // The taskbar shade hides banners without deleting their popup state.
+            // Hide their separate surface too, rather than leaving a ghost panel.
+            implicitWidth: panels.notifications.visible ? panels.notifications.width : 0
+            implicitHeight: panels.notifications.visible ? panels.notifications.height : 0
         }
 
         PanelBg {
@@ -242,15 +234,17 @@ StyledWindow {
         PanelBg {
             id: popoutBg
 
-            // Extra width to prevent vertical movement deformation partially detaching panel from bar
-            property real extraWidth: panels.popouts.isDetached ? 0 : 0.2
+            // Overlap the bar edge so movement deformation cannot detach the popout.
+            property real extraSize: panels.popouts.isDetached ? 0 : 0.2
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.popoutsWrapper.x + panels.popouts.x + bar.implicitWidth - panels.popouts.width * extraWidth
-            implicitWidth: panels.popouts.width * (1 + extraWidth)
+            x: panels.x + panels.popoutsWrapper.x + panels.popouts.x - (bar.horizontal ? 0 : panels.popouts.width * extraSize)
+            y: panels.y + panels.popoutsWrapper.y + panels.popouts.y - (bar.horizontal ? panels.popouts.height * extraSize : 0)
+            implicitWidth: panels.popouts.width * (1 + (bar.horizontal ? 0 : extraSize))
+            implicitHeight: panels.popouts.height * (1 + (bar.horizontal ? extraSize : 0))
 
-            Behavior on extraWidth {
+            Behavior on extraSize {
                 Anim {}
             }
         }
@@ -290,9 +284,6 @@ StyledWindow {
             notifications.transform: Matrix4x4 {
                 matrix: notifsBg.deformMatrix
             }
-            notifShade.transform: Matrix4x4 {
-                matrix: notifShadeBg.deformMatrix
-            }
             utilitySidebar.transform: Matrix4x4 {
                 matrix: utilitySidebarBg.deformMatrix
             }
@@ -305,7 +296,7 @@ StyledWindow {
             id: bar
 
             anchors.top: parent.top
-            anchors.bottom: parent.bottom
+            anchors.left: parent.left
 
             screen: root.screen
             screenState: root.screenState
@@ -376,8 +367,8 @@ StyledWindow {
         property real deformAmount: 0.15
 
         group: blobGroup
-        x: panel.x + bar.implicitWidth
-        y: panel.y + root.borderThickness
+        x: panel.x + panels.x
+        y: panel.y + panels.y
         implicitWidth: panel.width
         implicitHeight: panel.height
         radius: Tokens.rounding.extraLarge

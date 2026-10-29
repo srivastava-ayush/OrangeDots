@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import qs.components
 import qs.services
 
-ColumnLayout {
+GridLayout {
     id: root
 
     required property color colour
@@ -13,7 +13,10 @@ ColumnLayout {
     property real capsHeight: Hypr.capsLock ? capslockIcon.implicitHeight : 0
     property real numHeight: Hypr.numLock ? numlockIcon.implicitHeight : 0
 
-    spacing: Math.round(gap)
+    columns: Taskbar.horizontal ? 2 : 1
+    rows: Taskbar.horizontal ? 1 : 2
+    columnSpacing: Math.round(gap)
+    rowSpacing: Math.round(gap)
 
     Behavior on gap {
         Anim {
@@ -34,8 +37,8 @@ ColumnLayout {
     }
 
     Item {
-        implicitWidth: capslockIcon.implicitWidth
-        implicitHeight: Math.round(root.capsHeight)
+        implicitWidth: Taskbar.horizontal ? Math.round(root.capsHeight) : capslockIcon.implicitWidth
+        implicitHeight: Taskbar.horizontal ? capslockIcon.implicitHeight : Math.round(root.capsHeight)
 
         MaterialIcon {
             id: capslockIcon
@@ -63,8 +66,8 @@ ColumnLayout {
     }
 
     Item {
-        implicitWidth: numlockIcon.implicitWidth
-        implicitHeight: Math.round(root.numHeight)
+        implicitWidth: Taskbar.horizontal ? Math.round(root.numHeight) : numlockIcon.implicitWidth
+        implicitHeight: Taskbar.horizontal ? numlockIcon.implicitHeight : Math.round(root.numHeight)
 
         MaterialIcon {
             id: numlockIcon

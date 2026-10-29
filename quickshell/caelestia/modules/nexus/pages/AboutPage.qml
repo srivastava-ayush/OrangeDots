@@ -11,8 +11,8 @@ import qs.modules.nexus.common
 PageBase {
     id: root
 
-    // Plugin support is not wired up yet; always 0 for now
-    readonly property int pluginCount: 0
+    readonly property string shellName: "Orange OS"
+    readonly property string shellVersion: "AYUSH_GOAT_V4"
 
     property string quickshellVersion
     property string cliVersion
@@ -68,15 +68,17 @@ PageBase {
                 }
 
                 StyledText {
+                    objectName: "aboutShellName"
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: Tokens.spacing.small
-                    text: "Caelestia"
+                    text: root.shellName
                     font: Tokens.font.headline.builders.large.width(110).build()
                 }
 
                 StyledText {
+                    objectName: "aboutShellVersion"
                     Layout.alignment: Qt.AlignHCenter
-                    text: CUtils.version ? `v${CUtils.version}` : "…"
+                    text: root.shellVersion
                     color: Colours.palette.m3onSurfaceVariant
                     font: Tokens.font.body.medium
                 }
@@ -121,9 +123,10 @@ PageBase {
         }
 
         InfoRow {
+            objectName: "aboutShellSoftware"
             first: true
             label: qsTr("Shell")
-            value: CUtils.version || "…"
+            value: root.shellVersion
         }
 
         InfoRow {
@@ -142,16 +145,5 @@ PageBase {
             value: CUtils.qtVersion || "…"
         }
 
-        // Plugins
-        SectionHeader {
-            text: qsTr("Plugins")
-        }
-
-        InfoRow {
-            first: true
-            last: true
-            label: qsTr("Loaded plugins")
-            value: root.pluginCount.toString()
-        }
     }
 }

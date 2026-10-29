@@ -10,9 +10,8 @@ import qs.components.controls
 import qs.components.effects
 import qs.services
 
-// Android-style notification shade panel. Slides down from the top-right
-// corner; the list is a grouped dock (swipe to clear an app, right click /
-// drag down to expand).
+// Taskbar notification popout. The list is a grouped dock (swipe to clear
+// an app, right click / drag down to expand).
 StyledRect {
     id: root
 
@@ -21,13 +20,13 @@ StyledRect {
     readonly property Props props: Props {}
     readonly property int notifCount: Notifs.list.reduce((acc, n) => n.closed ? acc : acc + 1, 0)
 
-    // Cap the shade so it never swallows more than ~55% of the screen height.
-    readonly property real maxShadeHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1000) * 0.55
-    readonly property int listMaxHeight: 420
-    readonly property int emptyMinHeight: 130
+    // Keep some breathing room while allowing a slightly taller notification list.
+    readonly property real maxShadeHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1000) * 0.60
+    readonly property int listMaxHeight: 480
+    readonly property int emptyMinHeight: 180
 
     implicitWidth: Tokens.sizes.notifs.width
-    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight + Tokens.padding.large * 2)
+    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight)
 
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
@@ -35,8 +34,9 @@ StyledRect {
     ColumnLayout {
         id: layout
 
+        objectName: "notificationShadeLayout"
         anchors.fill: parent
-        anchors.margins: root.Tokens.padding.large
+        // The shared status-popout container already supplies the outer padding.
         spacing: root.Tokens.spacing.medium
 
         RowLayout {
@@ -105,7 +105,10 @@ StyledRect {
             id: listArea
 
             Layout.fillWidth: true
-            implicitHeight: Math.min(root.listMaxHeight, Math.max(view.contentHeight, root.emptyMinHeight))
+            Layout.fillHeight: true
+            // Preserve the panel's height: give the removed inner inset to the
+            // scrollable list instead of padding the header and sides twice.
+            implicitHeight: Math.min(root.listMaxHeight, Math.max(view.contentHeight, root.emptyMinHeight)) + root.Tokens.padding.large * 2
             clip: true
 
             StyledFlickable {

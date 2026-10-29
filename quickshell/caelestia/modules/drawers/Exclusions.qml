@@ -14,11 +14,12 @@ Scope {
 
     ExclusionZone {
         anchors.left: true
-        exclusiveZone: root.bar.exclusiveZone
+        exclusiveZone: root.bar.horizontal ? contentItem.Config.border.thickness : root.bar.exclusiveZone
     }
 
     ExclusionZone {
         anchors.top: true
+        exclusiveZone: root.bar.horizontal ? root.bar.exclusiveZone : contentItem.Config.border.thickness
     }
 
     ExclusionZone {

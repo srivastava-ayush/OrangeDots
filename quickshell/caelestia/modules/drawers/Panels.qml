@@ -6,7 +6,6 @@ import qs.modules.bar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
 import qs.modules.notifications as Notifications
-import qs.modules.notifshade as NotifShade
 import qs.modules.osd as Osd
 import qs.modules.session as Session
 import qs.modules.sidebar as Sidebar
@@ -23,7 +22,6 @@ Item {
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
     readonly property alias notifications: notifications
-    readonly property alias notifShade: notifShade
     readonly property alias session: session
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias utilitySidebar: utilitySidebar
@@ -34,7 +32,8 @@ Item {
 
     anchors.fill: parent
     anchors.margins: borderThickness
-    anchors.leftMargin: bar.implicitWidth
+    anchors.leftMargin: bar.horizontal ? borderThickness : bar.thickness
+    anchors.topMargin: bar.horizontal ? bar.thickness : borderThickness
 
     Item {
         id: osdWrapper
@@ -65,16 +64,6 @@ Item {
         screenState: root.screenState
         osdPanel: osdWrapper
         sessionPanel: sessionWrapper
-
-        anchors.top: parent.top
-        anchors.right: parent.right
-    }
-
-    NotifShade.Wrapper {
-        id: notifShade
-
-        screenState: root.screenState
-        popupPanel: notifications
 
         anchors.top: parent.top
         anchors.right: parent.right
@@ -134,6 +123,8 @@ Item {
         id: popoutsWrapper
 
         screen: root.screen
+        screenState: root.screenState
         borderThickness: root.borderThickness
+        horizontal: root.bar.horizontal
     }
 }

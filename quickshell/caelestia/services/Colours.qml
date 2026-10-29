@@ -2,6 +2,7 @@ pragma Singleton
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQml.Models
 import Quickshell
 import Quickshell.Io
 import Caelestia
@@ -18,7 +19,8 @@ Singleton {
     readonly property bool light: showPreview ? previewLight : currentLight
     property bool currentLight
     property bool previewLight
-    readonly property M3Palette palette: showPreview ? preview : current
+    readonly property M3Palette sourcePalette: showPreview ? preview : current
+    readonly property M3Palette palette: M3Palette {}
     readonly property M3TPalette tPalette: M3TPalette {}
     readonly property M3Palette current: M3Palette {}
     readonly property M3Palette preview: M3Palette {}
@@ -27,6 +29,20 @@ Singleton {
 
     property bool cooldownPending
     property real lastBaseTransparency
+
+    // Derive the shell-only palette without rewriting scheme.json, the Hyprland
+    // palette, or wallpaper previews. Both opaque and transparent widgets share it.
+    Instantiator {
+        model: Object.keys(root.current).filter(key => /^(m3|term[0-9])/.test(key) && !key.endsWith("Changed"))
+
+        delegate: Binding {
+            required property string modelData
+
+            target: root.palette
+            property: modelData
+            value: ShellTint.apply(modelData, root.sourcePalette[modelData], root.sourcePalette.m3surface)
+        }
+    }
 
     function getLuminance(c: color): real {
         if (c.r == 0 && c.g == 0 && c.b == 0)
@@ -38,6 +54,11 @@ Singleton {
         const luminance = getLuminance(c);
 
         const offset = (!light || layer == 1 ? 1 : -layer / 2) * (light ? 0.2 : 0.3) * (1 - transparency.base) * (1 + wallLuminance * (light ? (layer == 1 ? 3 : 1) : 2.5));
+        // A user-selected pure black tint has zero luminance.
+        if (luminance === 0) {
+            const value = Math.max(0, Math.min(1, offset));
+            return Qt.rgba(value, value, value, a);
+        }
         const scale = (luminance + offset) / luminance;
         const r = Math.max(0, Math.min(1, c.r * scale));
         const g = Math.max(0, Math.min(1, c.g * scale));

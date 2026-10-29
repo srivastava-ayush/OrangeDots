@@ -13,6 +13,7 @@ StyledRect {
 
     required property var props
     required property ScreenState screenState
+    readonly property bool compact: width < 440
     readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2
 
     implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
@@ -27,10 +28,12 @@ StyledRect {
         anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.medium
 
-        RowLayout {
+        GridLayout {
             id: btnLayout
 
-            spacing: Tokens.spacing.medium
+            columns: root.compact ? 2 : 3
+            columnSpacing: Tokens.spacing.medium
+            rowSpacing: Tokens.spacing.small
 
             StyledRect {
                 implicitWidth: implicitHeight
@@ -75,6 +78,8 @@ StyledRect {
             }
 
             SplitButton {
+                Layout.columnSpan: root.compact ? 2 : 1
+                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                 disabled: Recorder.running
 
                 active: menuItems.find(m => root.props.recordingMode === m.icon + m.text) ?? menuItems[0]

@@ -6,15 +6,20 @@ import qs.services
 import qs.utils
 
 Item {
-    required property color colour
+    id: root
 
-    implicitWidth: icon.implicitWidth
-    implicitHeight: icon.implicitHeight + (percentage.visible ? percentage.implicitHeight : 0)
+    required property color colour
+    readonly property bool horizontal: Taskbar.horizontal
+
+    implicitWidth: icon.implicitWidth + (horizontal && percentage.visible ? percentage.implicitWidth + Tokens.spacing.extraSmall : 0)
+    implicitHeight: horizontal ? Math.max(icon.implicitHeight, percentage.implicitHeight) : icon.implicitHeight + (percentage.visible ? percentage.implicitHeight : 0)
 
     MaterialIcon {
         id: icon
-        anchors.top: parent.top
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: root.horizontal ? undefined : parent.top
+        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
+        anchors.left: root.horizontal ? parent.left : undefined
+        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
         animate: true
         text: {
             if (!UPower.displayDevice.isLaptopBattery) {
@@ -32,8 +37,11 @@ Item {
     Text {
         id: percentage
         visible: UPower.displayDevice.isLaptopBattery
-        anchors.top: icon.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: root.horizontal ? undefined : icon.bottom
+        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
+        anchors.left: root.horizontal ? icon.right : undefined
+        anchors.leftMargin: root.horizontal ? Tokens.spacing.extraSmall : 0
+        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
         text: Math.round(UPower.displayDevice.percentage * 100)
         color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? colour : Colours.palette.m3error
         font: Tokens.font.mono.extraSmall

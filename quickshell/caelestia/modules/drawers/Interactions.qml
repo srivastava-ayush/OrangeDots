@@ -21,55 +21,69 @@ CustomMouseArea {
     property point dragStart
     property bool dashboardShortcutActive
     property bool osdShortcutActive
-    property bool shadeShortcutActive
     property bool utilityShortcutActive
     property bool launcherShortcutActive
 
+    function inBarPopout(x: real, y: real): bool {
+        if (!popouts.hasCurrent || popouts.isDetached)
+            return false;
+        const panel = panels.popoutsWrapper;
+        const pos = panel.mapFromItem(root, x, y);
+        return pos.x >= 0 && pos.y >= panel.hoverY && pos.x <= panel.hoverWidth && pos.y <= panel.hoverY + panel.hoverHeight;
+    }
+
+    function updatePopoutHover(x: real, y: real): void {
+        if (popouts.isDetached || popouts.notificationShortcutActive)
+            return;
+        const inBar = bar.horizontal ? y < bar.thickness : x < bar.thickness;
+        const inPopup = inBarPopout(x, y);
+        popouts.pointerInHoverRegion = inPopup;
+        if (inBar) {
+            bar.checkPopout(x, y);
+        } else {
+            popouts.anchorHovered = false;
+            if (inPopup)
+                popouts.cancelClose();
+            else
+                popouts.scheduleClose();
+        }
+        bar.isHovered = Config.bar.showOnHover && !Config.bar.persistent && !screenState.bar && (inBar || inPopup);
+    }
+
+    Connections {
+        target: root.popouts
+
+        function onHoverClosed(): void {
+            root.bar.closeTray();
+        }
+    }
+
     function withinPanelHeight(panel: Item, x: real, y: real): bool {
-        const panelY = root.borderThickness + panel.y;
+        const panelY = panels.y + panel.y;
         return y >= panelY - Config.border.rounding && y <= panelY + panel.height + Config.border.rounding;
     }
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
-        const panelX = bar.implicitWidth + panel.x;
+        const panelX = panels.x + panel.x;
         return x >= panelX - Config.border.rounding && x <= panelX + panel.width + Config.border.rounding;
     }
 
     function inLeftPanel(panel: Item, x: real, y: real): bool {
-        return x < bar.implicitWidth + panel.x + panel.width && withinPanelHeight(panel, x, y);
+        return x < panels.x + panel.x + panel.width && withinPanelHeight(panel, x, y);
     }
 
     function inRightPanel(panel: Item, x: real, y: real): bool {
-        return x > Math.min(width - Config.border.minThickness, bar.implicitWidth + panel.x) && withinPanelHeight(panel, x, y);
+        return x > Math.min(width - Config.border.minThickness, panels.x + panel.x) && withinPanelHeight(panel, x, y);
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y < Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) && withinPanelWidth(panel, x, y);
+        return y < Math.max(Config.border.minThickness, panels.y + panelHeight) && withinPanelWidth(panel, x, y);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
-    }
-
-    // Top-right corner strip that toggles the notification shade: close enough
-    // to the edge to feel like a phone's status-bar swipe/hover, deep enough
-    // (expandThreshold) to be usable on touch. The shade panel itself is
-    // anchored to the right edge (see drawers/Panels.qml), so this is the only
-    // corner that triggers it. Hovering or dragging vertically here toggles the
-    // notification shade.
-    function inNotifShadeCorner(x: real, y: real): bool {
-        const inStrip = y < Math.max(Config.border.minThickness, Config.border.thickness) + Config.notifs.expandThreshold;
-        const inRight = x > width - Config.notifs.shadeCornerWidth;
-        return Config.notifs.shadeEnabled && inStrip && inRight;
-    }
-
-    // Body of the shade panel itself, so hovering into the open shade keeps it
-    // open. Only matches while it is actually slid on screen.
-    function inNotifShadePanel(x: real, y: real): bool {
-        const p = root.panels.notifShade;
-        return p.visible && x >= bar.clampedWidth + p.x && x <= bar.clampedWidth + p.x + p.width && y >= root.borderThickness + p.y && y <= root.borderThickness + p.y + p.height;
     }
 
     // Bottom-right corner strip that toggles the utility sidebar.
@@ -81,14 +95,14 @@ CustomMouseArea {
     // keeps it open. Only matches while it is actually slid on screen.
     function inUtilitySidebarPanel(x: real, y: real): bool {
         const p = root.panels.utilitySidebar;
-        return p.visible && x >= bar.clampedWidth + p.x && x <= bar.clampedWidth + p.x + p.width && y >= root.borderThickness + p.y && y <= root.borderThickness + p.y + p.height;
+        return p.visible && x >= panels.x + p.x && x <= panels.x + p.x + p.width && y >= panels.y + p.y && y <= panels.y + p.y + p.height;
     }
 
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
-        if (event.x < bar.implicitWidth) {
-            bar.handleWheel(event.y, event.angleDelta);
+        if (bar.horizontal ? event.y < bar.thickness : event.x < bar.thickness) {
+            bar.handleWheel(event.x, event.y, event.angleDelta);
         }
     }
 
@@ -112,25 +126,20 @@ CustomMouseArea {
             if (!launcherShortcutActive)
                 screenState.launcher = false;
 
-            // Only hide if not opened by drag/shortcut
-            if (!shadeShortcutActive)
-                screenState.notifShade = false;
-
             // Keep the sidebar while the user is typing in its notes field
             if (!utilityShortcutActive && !root.panels.utilitySidebar.notesActive)
                 screenState.utilitySidebar = false;
 
-            if (!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) {
-                popouts.hasCurrent = false;
-                bar.closeTray();
-            }
+            popouts.anchorHovered = false;
+            popouts.pointerInHoverRegion = false;
+            popouts.scheduleClose();
 
             bar.isHovered = false;
         }
     }
 
     onPositionChanged: event => {
-        if (popouts.isDetached) {
+        if (popouts.isDetached || popouts.notificationShortcutActive) {
             bar.isHovered = false;
             return;
         }
@@ -146,13 +155,17 @@ CustomMouseArea {
         }
 
         // Track both entering and leaving the bar while the pointer stays in this window.
-        bar.isHovered = Config.bar.showOnHover && !Config.bar.persistent && !screenState.bar && x < bar.clampedWidth;
+        const inBar = bar.horizontal ? y < bar.clampedHeight : x < bar.clampedWidth;
+        const inPopup = inBarPopout(x, y);
+        bar.isHovered = Config.bar.showOnHover && !Config.bar.persistent && !screenState.bar && (inBar || inPopup);
 
         // Show/hide bar on drag
-        if (pressed && dragStart.x < bar.clampedWidth) {
-            if (dragX > Config.bar.dragThreshold)
+        const dragFromBar = bar.horizontal ? dragStart.y < bar.clampedHeight : dragStart.x < bar.clampedWidth;
+        const barDrag = bar.horizontal ? dragY : dragX;
+        if (pressed && dragFromBar) {
+            if (barDrag > Config.bar.dragThreshold)
                 screenState.bar = true;
-            else if (dragX < -Config.bar.dragThreshold)
+            else if (barDrag < -Config.bar.dragThreshold)
                 screenState.bar = false;
         }
 
@@ -196,7 +209,8 @@ CustomMouseArea {
         }
 
         // Show dashboard on hover
-        const showDashboard = Config.dashboard.showOnHover && inTopPanel(panels.dashboard, x, y) && !inNotifShadeCorner(x, y) && !inNotifShadePanel(x, y);
+        const overBarEntry = bar.horizontal && y < bar.thickness && bar.hasEntryAt(x, y);
+        const showDashboard = Config.dashboard.showOnHover && !overBarEntry && inTopPanel(panels.dashboard, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!dashboardShortcutActive) {
@@ -207,30 +221,11 @@ CustomMouseArea {
         }
 
         // Show/hide dashboard on drag (for touchscreen devices)
-        if (pressed && !inNotifShadeCorner(dragStart.x, dragStart.y) && !inNotifShadePanel(x, y) && inTopPanel(panels.dashboard, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
+        if (pressed && inTopPanel(panels.dashboard, dragStart.x, dragStart.y) && withinPanelWidth(panels.dashboard, x, y)) {
             if (dragY > Config.dashboard.dragThreshold)
                 screenState.dashboard = true;
             else if (dragY < -Config.dashboard.dragThreshold)
                 screenState.dashboard = false;
-        }
-
-        // Show/hide notification shade on hover of the top corner zones or the shade itself
-        const showShade = Config.notifs.shadeEnabled && ((Config.notifs.shadeShowOnHover && inNotifShadeCorner(x, y)) || inNotifShadePanel(x, y));
-
-        // Always update visibility based on hover if not in shortcut mode
-        if (!shadeShortcutActive) {
-            screenState.notifShade = showShade;
-        } else if (showShade) {
-            // If hovering over a shade zone while in shortcut mode, transition to hover control
-            shadeShortcutActive = false;
-        }
-
-        // Show/hide notification shade on vertical drag from the top corners
-        if (Config.notifs.shadeEnabled && pressed && inNotifShadeCorner(dragStart.x, dragStart.y)) {
-            if (dragY > Config.notifs.expandThreshold)
-                screenState.notifShade = true;
-            else if (dragY < -Config.notifs.expandThreshold)
-                screenState.notifShade = false;
         }
 
         // Show/hide utility sidebar on hover of the bottom-right corner or the sidebar itself
@@ -253,13 +248,7 @@ CustomMouseArea {
                 screenState.utilitySidebar = false;
         }
 
-        // Show popouts on hover
-        if (x < bar.implicitWidth) {
-            bar.checkPopout(y);
-        } else if ((!popouts.currentName.startsWith("traymenu") || ((popouts.current as StackView)?.depth ?? 0) <= 1) && !inLeftPanel(panels.popoutsWrapper, x, y)) {
-            popouts.hasCurrent = false;
-            bar.closeTray();
-        }
+        updatePopoutHover(x, y);
     }
 
     Connections {
@@ -355,20 +344,6 @@ CustomMouseArea {
             } else {
                 // OSD hidden, clear shortcut flag
                 root.osdShortcutActive = false;
-            }
-        }
-
-        function onNotifShadeChanged() {
-            if (root.screenState.notifShade) {
-                // Shade became visible without the pointer in a hover zone
-                // (drag or IPC), so keep it open until hovered or dismissed
-                const inShadeZone = root.inNotifShadeCorner(root.mouseX, root.mouseY) || root.inNotifShadePanel(root.mouseX, root.mouseY);
-                if (!inShadeZone) {
-                    root.shadeShortcutActive = true;
-                }
-            } else {
-                // Shade hidden, clear shortcut flag
-                root.shadeShortcutActive = false;
             }
         }
 

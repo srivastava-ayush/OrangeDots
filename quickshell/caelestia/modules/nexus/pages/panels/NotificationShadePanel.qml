@@ -24,37 +24,17 @@ PageBase {
         ToggleRow {
             first: true
             text: qsTr("Enabled")
-            subtext: qsTr("Show the notification shade panel")
+            subtext: qsTr("Show the notification bell and shade in the taskbar")
             checked: Config.notifs.shadeEnabled
             onToggled: GlobalConfig.notifs.shadeEnabled = checked
         }
 
         ToggleRow {
+            last: true
             text: qsTr("Show on hover")
-            subtext: qsTr("Open from the top-right screen corner")
+            subtext: qsTr("Open from the taskbar bell; click to toggle when disabled")
             checked: Config.notifs.shadeShowOnHover
             onToggled: GlobalConfig.notifs.shadeShowOnHover = checked
-        }
-
-        StepperRow {
-            label: qsTr("Corner width")
-            subtext: qsTr("Width of the top-right activation area")
-            value: Config.notifs.shadeCornerWidth
-            from: 20
-            to: 500
-            stepSize: 10
-            onMoved: v => GlobalConfig.notifs.shadeCornerWidth = v
-        }
-
-        StepperRow {
-            last: true
-            label: qsTr("Swipe threshold")
-            subtext: qsTr("Pixels swiped down before the shade opens")
-            value: Config.notifs.expandThreshold
-            from: 0
-            to: 200
-            stepSize: 5
-            onMoved: v => GlobalConfig.notifs.expandThreshold = v
         }
 
         SectionHeader {

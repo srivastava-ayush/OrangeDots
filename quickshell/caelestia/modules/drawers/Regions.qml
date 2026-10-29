@@ -16,15 +16,15 @@ Region {
     readonly property real clampedThickness: win.contentItem.Config.border.clampedThickness
 
     x: bar.clampedWidth + win.dragMaskPadding
-    y: clampedThickness + win.dragMaskPadding
+    y: bar.clampedHeight + win.dragMaskPadding
     width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
-    height: win.height - clampedThickness * 2 - win.dragMaskPadding * 2
+    height: win.height - bar.clampedHeight - clampedThickness - win.dragMaskPadding * 2
     intersection: Intersection.Xor
 
     R {
         panel: root.panels.dashboard
         y: 0
-        height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.borderThickness
+        height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.panels.y
     }
 
     R {
@@ -48,17 +48,11 @@ Region {
     R {
         panel: root.panels.notifications
         y: 0
-        height: panel.height + root.borderThickness
+        width: panel.visible ? panel.width : 0
+        height: panel.visible ? panel.height + root.panels.y : 0
     }
 
-    // Follows the wrapper's y (slides above the screen when closed) so the
-    // region only grabs input while the shade is actually on screen.
-    R {
-        panel: root.panels.notifShade
-        height: panel.height + root.borderThickness
-    }
-
-    // Same for the utility sidebar, which slides up from below the screen.
+    // Follows the utility sidebar as it slides up from below the screen.
     R {
         panel: root.panels.utilitySidebar
         height: panel.height + root.borderThickness
@@ -66,14 +60,16 @@ Region {
 
     R {
         panel: root.panels.popoutsWrapper
-        width: panel.width * (1 - root.panels.popoutsWrapper.offsetScale)
+        y: panel.y + root.panels.y + root.panels.popoutsWrapper.hoverY
+        width: root.panels.popoutsWrapper.hoverWidth
+        height: root.panels.popoutsWrapper.hoverHeight
     }
 
     component R: Region {
         required property Item panel
 
-        x: panel.x + root.bar.implicitWidth
-        y: panel.y + root.borderThickness
+        x: panel.x + root.panels.x
+        y: panel.y + root.panels.y
         width: panel.width
         height: panel.height
         intersection: Intersection.Subtract

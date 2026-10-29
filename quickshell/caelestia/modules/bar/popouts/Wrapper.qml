@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Controls
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
@@ -14,6 +15,7 @@ Item {
     id: root
 
     required property ShellScreen screen
+    required property ScreenState screenState
     required property real offsetScale
 
     readonly property alias content: content
@@ -24,9 +26,69 @@ Item {
     readonly property real nonAnimHeight: children.find(c => c.shouldBeActive)?.implicitHeight ?? content.implicitHeight
     readonly property Item current: (content.item as Content)?.current ?? null
     readonly property bool isDetached: detachedMode.length > 0
+    readonly property bool notificationsOpen: hasCurrent && currentName === "notifications" && !isDetached
+    property bool notificationShortcutActive
+    property bool hovered
+    property bool anchorHovered
+    property bool pointerInHoverRegion
+
+    signal hoverClosed
+
+    function cancelClose(): void {
+        closeTimer.stop();
+    }
+
+    function scheduleClose(): void {
+        if (!closeTimer.running)
+            closeTimer.start();
+    }
+
+    onHoveredChanged: {
+        if (hovered)
+            cancelClose();
+        else
+            scheduleClose();
+    }
+
+    Timer {
+        id: closeTimer
+
+        // Bridge pointer-event ordering, icon padding, and the opening animation.
+        interval: 180
+        onTriggered: {
+            if (root.hovered || root.anchorHovered || root.pointerInHoverRegion || root.isDetached || root.notificationShortcutActive)
+                return;
+            if (root.currentName.startsWith("traymenu") && ((root.current as StackView)?.depth ?? 0) > 1)
+                return;
+            root.hasCurrent = false;
+            root.hoverClosed();
+        }
+    }
+
+    onNotificationsOpenChanged: {
+        if (!notificationsOpen)
+            notificationShortcutActive = false;
+        screenState.notifShade = notificationsOpen;
+    }
+
+    Connections {
+        target: root.screenState
+
+        function onNotifShadeChanged(): void {
+            if (!root.screenState.notifShade && root.currentName === "notifications")
+                root.hasCurrent = false;
+        }
+    }
 
     property alias currentName: popoutState.currentName
     property alias hasCurrent: popoutState.hasCurrent
+    onHasCurrentChanged: {
+        if (!hasCurrent) {
+            cancelClose();
+            anchorHovered = false;
+            pointerInHoverRegion = false;
+        }
+    }
     property real currentCenter
 
     property string detachedMode
@@ -57,6 +119,9 @@ Item {
     }
 
     function close(): void {
+        cancelClose();
+        anchorHovered = false;
+        pointerInHoverRegion = false;
         hasCurrent = false;
         detachedMode = "";
     }
@@ -91,13 +156,13 @@ Item {
     }
 
     HyprlandFocusGrab {
-        active: root.isDetached
+        active: root.isDetached || root.notificationShortcutActive
         windows: [QsWindow.window]
         onCleared: root.close()
     }
 
     Binding {
-        when: root.isDetached || (root.hasCurrent && root.currentName === "wirelesspassword")
+        when: root.isDetached || root.notificationShortcutActive || (root.hasCurrent && root.currentName === "wirelesspassword")
 
         target: QsWindow.window
         property: "WlrLayershell.keyboardFocus"
@@ -112,6 +177,7 @@ Item {
 
         sourceComponent: Content {
             popouts: popoutState
+            screenState: root.screenState
         }
     }
 
@@ -144,7 +210,7 @@ Item {
                 anchors.fill: parent
                 nState.screen: root.screen
                 nState.animatingContainer: nexus.opacity < 1
-                nState.currentPageIdx: ["appearance", "network", "bluetooth", "audio"].indexOf(root.queuedMode)
+                nState.currentPageIdx: Math.max(0, PageRegistry.pages.findIndex(page => page.id === root.queuedMode))
                 onClose: root.close()
             }
         }

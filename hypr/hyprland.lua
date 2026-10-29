@@ -16,7 +16,7 @@ hl.monitor({
 
 local terminal    = "kitty"
 local fileManager = "yazi"
-local ide         = "code"
+local ide         = "/home/ayush/.local/bin/zed"
 local browser     = "helium-browser"
 -------------------
 ---- AUTOSTART ----
@@ -25,7 +25,6 @@ local browser     = "helium-browser"
 hl.on("hyprland.start", function()
     hl.exec_cmd("caelestia shell -d")
     hl.exec_cmd("hyprpm reload -n")
-    hl.exec_cmd("gnome-keyring-daemon --start --components=secrets,ssh,pkcs11")
     hl.exec_cmd("kdeconnectd")
     hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
@@ -47,7 +46,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 hl.config({
     general = {
         gaps_in  = 5,
-        gaps_out = 10,
+        gaps_out = 8,
 
         border_size = 1,
 
@@ -372,6 +371,7 @@ hl.bind(mainMod .. " + B",   hl.dsp.exec_cmd("blueman-manager"))
 hl.bind(mainMod .. " + M",   hl.dsp.exec_cmd("pavucontrol"))
 hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
 hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus open"))
+hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 
 -- Clipboard / emoji

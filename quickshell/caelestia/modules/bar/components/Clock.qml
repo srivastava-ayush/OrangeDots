@@ -12,9 +12,10 @@ StyledRect {
     readonly property color colour: Colours.palette.m3tertiary
     readonly property int padding: Config.bar.clock.background ? Tokens.padding.medium : Tokens.padding.extraSmall
     readonly property var font: Tokens.font.body.builders.small.scale(1.1)
+    readonly property bool horizontal: Taskbar.horizontal
 
-    implicitWidth: Tokens.sizes.bar.innerWidth
-    implicitHeight: layout.implicitHeight + root.padding * 2
+    implicitWidth: horizontal ? horizontalLayout.implicitWidth + padding * 2 : Tokens.sizes.bar.innerWidth
+    implicitHeight: (horizontal ? horizontalLayout.implicitHeight : layout.implicitHeight) + padding * 2
 
     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, Config.bar.clock.background ? Colours.tPalette.m3surfaceContainer.a : 0)
     radius: Tokens.rounding.full
@@ -24,6 +25,7 @@ StyledRect {
 
         anchors.centerIn: parent
         spacing: Tokens.spacing.extraSmall
+        visible: !root.horizontal
 
         Loader {
             Layout.alignment: Qt.AlignHCenter
@@ -119,6 +121,33 @@ StyledRect {
                 font: Tokens.font.body.builders.small.scale(0.9).build()
                 color: root.colour
             }
+        }
+    }
+
+    RowLayout {
+        id: horizontalLayout
+
+        anchors.centerIn: parent
+        spacing: Tokens.spacing.small
+        visible: root.horizontal
+
+        MaterialIcon {
+            visible: Config.bar.clock.showIcon
+            text: "calendar_month"
+            color: root.colour
+        }
+
+        StyledText {
+            visible: Config.bar.clock.showDate
+            text: Time.format("ddd, d MMM")
+            font: root.font.build()
+            color: root.colour
+        }
+
+        StyledText {
+            text: `${Time.hourStr}:${Time.minuteStr}${GlobalConfig.services.useTwelveHourClock ? ` ${Time.amPmStr.toLowerCase()}` : ""}`
+            font: root.font.build()
+            color: root.colour
         }
     }
 }

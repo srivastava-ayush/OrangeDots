@@ -10,7 +10,7 @@ PersistentProperties {
     property bool launcher
     property bool dashboard
 
-    // Notification shade (drag down from the top-right corner)
+    // Notification shade (taskbar bell popout; also exposed through drawer IPC)
     property bool notifShade
 
     // Utility sidebar with calendar agenda + notes (bottom-right corner)

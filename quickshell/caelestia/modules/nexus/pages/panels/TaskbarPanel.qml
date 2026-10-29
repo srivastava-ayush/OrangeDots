@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
 import qs.components.controls
+import qs.services
 import qs.modules.nexus.common
 
 PageBase {
@@ -12,6 +13,14 @@ PageBase {
     readonly property var barEntries: GlobalConfig.bar.entries.values
     readonly property int activeWindowIndex: barEntries.findIndex(e => e.id === "activeWindow")
     readonly property int clockIndex: barEntries.findIndex(e => e.id === "clock")
+    readonly property list<MenuItem> orientationItems: [
+        MenuItem {
+            text: qsTr("Left")
+        },
+        MenuItem {
+            text: qsTr("Top")
+        }
+    ]
     readonly property list<MenuItem> centerItems: [
         MenuItem {
             text: qsTr("Active window")
@@ -58,8 +67,17 @@ PageBase {
             text: qsTr("Behaviour")
         }
 
-        ToggleRow {
+        SelectRow {
+            objectName: "taskbarOrientation"
             first: true
+            label: qsTr("Orientation")
+            subtext: qsTr("Choose which screen edge the taskbar uses")
+            menuItems: root.orientationItems
+            active: root.orientationItems[Taskbar.horizontal ? 1 : 0]
+            onSelected: item => Taskbar.orientation = root.orientationItems.indexOf(item) === 1 ? "top" : "left"
+        }
+
+        ToggleRow {
             text: qsTr("Persistent")
             subtext: qsTr("Keep the bar visible at all times")
             checked: Config.bar.persistent
@@ -78,7 +96,7 @@ PageBase {
         }
 
         StepperRow {
-            label: qsTr("Width")
+            label: qsTr("Thickness")
             subtext: qsTr("Thickness of the bar")
             value: Config.border.thickness
             from: 1
@@ -143,8 +161,16 @@ PageBase {
         NavRow {
             icon: "signal_cellular_alt"
             text: qsTr("Status icons")
-            subtext: qsTr("Visible indicators")
+            subtext: qsTr("Visible indicators, notification bell")
             onClicked: root.nState.openSubPage(9)
+        }
+
+        NavRow {
+            objectName: "taskbarNotificationShade"
+            icon: "notifications"
+            text: qsTr("Notification shade")
+            subtext: Config.notifs.shadeEnabled ? qsTr("Status-group bell, hover popout, notification history") : qsTr("Disabled")
+            onClicked: root.nState.openSubPage(11)
         }
 
         NavRow {
@@ -170,7 +196,7 @@ PageBase {
 
         ToggleRow {
             text: qsTr("Volume")
-            subtext: qsTr("Scroll on the top half of the bar to adjust volume")
+            subtext: Taskbar.horizontal ? qsTr("Scroll on the left half of the bar to adjust volume") : qsTr("Scroll on the top half of the bar to adjust volume")
             checked: Config.bar.scrollActions.volume
             onToggled: GlobalConfig.bar.scrollActions.volume = checked
         }
@@ -178,7 +204,7 @@ PageBase {
         ToggleRow {
             last: true
             text: qsTr("Brightness")
-            subtext: qsTr("Scroll on the bottom half of the bar to adjust brightness")
+            subtext: Taskbar.horizontal ? qsTr("Scroll on the right half of the bar to adjust brightness") : qsTr("Scroll on the bottom half of the bar to adjust brightness")
             checked: Config.bar.scrollActions.brightness
             onToggled: GlobalConfig.bar.scrollActions.brightness = checked
         }

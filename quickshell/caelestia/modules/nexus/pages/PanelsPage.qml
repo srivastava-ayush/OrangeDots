@@ -14,14 +14,16 @@ PageBase {
         spacing: Tokens.spacing.extraSmall / 2
 
         NavRow {
+            objectName: "panelsDashboard"
             first: true
             icon: "dashboard"
             text: qsTr("Dashboard")
-            subtext: Config.dashboard.enabled ? qsTr("Enabled") : qsTr("Disabled")
+            subtext: Config.dashboard.enabled ? qsTr("Tabs, weather, utilities") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(1)
         }
 
         NavRow {
+            objectName: "panelsTaskbar"
             icon: "dock_to_bottom"
             text: qsTr("Taskbar")
             subtext: Config.bar.persistent ? qsTr("Always visible") : Config.bar.showOnHover ? qsTr("Reveal on hover") : qsTr("Reveal on drag")
@@ -36,25 +38,12 @@ PageBase {
         }
 
         NavRow {
+            last: true
             icon: "event_note"
             text: qsTr("Calendar & notes")
             subtext: Config.sidebar.enabled ? qsTr("Enabled") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(4)
         }
 
-        NavRow {
-            icon: "notifications"
-            text: qsTr("Notification shade")
-            subtext: Config.notifs.shadeEnabled ? qsTr("Enabled") : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(11)
-        }
-
-        NavRow {
-            last: true
-            icon: "construction"
-            text: qsTr("Utilities")
-            subtext: Config.utilities.enabled ? qsTr("Enabled") : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(5)
-        }
     }
 }
