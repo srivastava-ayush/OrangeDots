@@ -35,7 +35,7 @@ StyledRect {
         return Math.max(Config.bar.tray.background ? Tokens.sizes.bar.innerWidth : 0, iconLength + pad);
     }
     readonly property real nonAnimWidth: horizontal ? nonAnimLength : Tokens.sizes.bar.innerWidth
-    readonly property real nonAnimHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, Taskbar.centerOnly ? Math.max(layout.implicitHeight, expandIcon.implicitHeight) : 0) : nonAnimLength
+    readonly property real nonAnimHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, layout.implicitHeight, expandIcon.implicitHeight) : nonAnimLength
 
     clip: true
     visible: width > 0 && height > 0
@@ -49,12 +49,9 @@ StyledRect {
     Grid {
         id: layout
 
-        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
-        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
-        anchors.top: root.horizontal ? undefined : parent.top
-        anchors.left: root.horizontal ? parent.left : undefined
-        anchors.topMargin: root.padding
-        anchors.leftMargin: root.padding
+        // Coordinates avoid transient conflicting anchors when the bar rotates.
+        x: root.horizontal ? root.padding : (root.width - width) / 2
+        y: root.horizontal ? (root.height - height) / 2 : root.padding
         columns: root.horizontal ? Math.max(1, items.count) : 1
         spacing: Tokens.spacing.small
 
@@ -75,9 +72,9 @@ StyledRect {
                 to: 1
                 easing: Tokens.anim.standardDecel
             }
-            Anim {
-                properties: "x,y"
-            }
+            // Let the positioner apply new coordinates immediately. Animating
+            // old vertical positions into a horizontal row can cross/clip icons
+            // during a live orientation change.
         }
 
         Repeater {
@@ -102,11 +99,8 @@ StyledRect {
 
         asynchronous: true
 
-        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
-        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
-        anchors.bottom: root.horizontal ? undefined : parent.bottom
-        anchors.right: root.horizontal ? parent.right : undefined
-        anchors.rightMargin: root.horizontal ? root.padding : 0
+        x: root.horizontal ? root.width - width - root.padding : (root.width - width) / 2
+        y: root.horizontal ? (root.height - height) / 2 : root.height - height
 
         active: Config.bar.tray.compact && items.count > 0
 
@@ -117,12 +111,8 @@ StyledRect {
             MaterialIcon {
                 id: expandIconInner
 
-                anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
-                anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
-                anchors.bottom: root.horizontal ? undefined : parent.bottom
-                anchors.right: root.horizontal ? parent.right : undefined
-                anchors.bottomMargin: Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small
-                anchors.rightMargin: root.horizontal ? 0 : (Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small)
+                x: (parent.width - width) / 2
+                y: root.horizontal ? (parent.height - height) / 2 : parent.height - height - (Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small)
                 text: root.horizontal ? "chevron_left" : "expand_less"
                 color: Colours.palette.m3onSurfaceVariant
                 fontStyle: Tokens.font.icon.medium
@@ -132,9 +122,6 @@ StyledRect {
                     Anim {}
                 }
 
-                Behavior on anchors.bottomMargin {
-                    Anim {}
-                }
             }
         }
     }

@@ -13,6 +13,7 @@ Item {
     id: root
 
     required property color colour
+    readonly property alias layout: layout
 
     implicitWidth: layout.implicitWidth
     implicitHeight: layout.implicitHeight
@@ -27,8 +28,8 @@ Item {
         id: layout
 
         anchors.centerIn: parent
-        columns: Taskbar.centerOnly && Taskbar.horizontal ? -1 : 1
-        rows: Taskbar.centerOnly && Taskbar.horizontal ? 1 : -1
+        columns: Taskbar.horizontal ? Math.max(1, devices.count + 1) : 1
+        rows: Taskbar.horizontal ? 1 : Math.max(1, devices.count + 1)
         columnSpacing: Tokens.spacing.medium / 2
         rowSpacing: Tokens.spacing.medium / 2
 
@@ -47,6 +48,7 @@ Item {
 
         // Connected bluetooth devices
         Repeater {
+            id: devices
             model: ScriptModel {
                 values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected) // qmllint disable unresolved-type
             }

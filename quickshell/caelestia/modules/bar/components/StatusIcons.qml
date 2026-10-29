@@ -51,7 +51,7 @@ StyledRect {
 
     clip: true
     implicitWidth: horizontal ? iconColumn.implicitWidth + Tokens.padding.medium * 2 : Tokens.sizes.bar.innerWidth
-    implicitHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, Taskbar.centerOnly ? iconColumn.implicitHeight : 0) : iconColumn.implicitHeight + Tokens.padding.medium * 2
+    implicitHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, iconColumn.implicitHeight) : iconColumn.implicitHeight + Tokens.padding.medium * 2
 
     GridLayout {
         id: iconColumn

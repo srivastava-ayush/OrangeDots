@@ -807,6 +807,13 @@ ShellRoot {
                     root.check(bar.hasEntryAt(point.x, 0), "Top clock's column should take priority over screen-edge hover panels");
                     root.check(root.find(settings, "taskbarOrientation").active === settings.orientationItems[1], "Nexus should show Top as selected");
                     const status = root.find(window.contentItem, "taskbarStatusIcons");
+                    const bluetooth = status.items.children.find(child => child.name === "bluetooth")?.item;
+                    root.check(bluetooth && bluetooth.layout.rows === 1, "Top Bluetooth devices must form one row in Unified style, not stack vertically");
+                    root.check(bluetooth.height <= status.height, "Top status pill must fit the Bluetooth row");
+                    const tray = root.find(window.contentItem, "taskbarTray");
+                    root.check(tray.nonAnimHeight >= tray.layout.implicitHeight, "Top tray must reserve enough height for its icons");
+                    if (tray.layout.implicitHeight > 0)
+                        root.check(tray.layout.y >= 0 && tray.layout.y + tray.layout.height <= tray.height + 1, "Top tray icons must stay inside their clip after rotating");
                     root.check(status.parent.Layout.rightMargin === Tokens.padding.large, "Unified status icons must have trailing padding even with an unsupported power entry");
                     root.check(Math.abs(bar.width - status.mapToItem(bar, status.width, 0).x - Tokens.padding.large) <= 1, "Unified status icons must not stick to the screen's right edge");
                     bar.checkPopout(point.x, point.y);
