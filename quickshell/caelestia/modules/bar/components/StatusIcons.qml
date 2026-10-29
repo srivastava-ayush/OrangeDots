@@ -46,18 +46,18 @@ StyledRect {
         return iconColumn.children.find(child => child.name === "notifications")?.item ?? null;
     }
 
-    color: Colours.tPalette.m3surfaceContainer
+    color: Taskbar.centerOnly ? "transparent" : Colours.tPalette.m3surfaceContainer
     radius: Tokens.rounding.full
 
     clip: true
     implicitWidth: horizontal ? iconColumn.implicitWidth + Tokens.padding.medium * 2 : Tokens.sizes.bar.innerWidth
-    implicitHeight: horizontal ? Tokens.sizes.bar.innerWidth : iconColumn.implicitHeight + Tokens.padding.medium * 2
+    implicitHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, Taskbar.centerOnly ? iconColumn.implicitHeight : 0) : iconColumn.implicitHeight + Tokens.padding.medium * 2
 
     GridLayout {
         id: iconColumn
 
         anchors.centerIn: parent
-        width: root.horizontal ? implicitWidth : parent.width
+        width: root.horizontal ? implicitWidth : Math.max(implicitWidth, parent.width)
         columns: root.horizontal ? model.values.length : 1
         rows: root.horizontal ? 1 : model.values.length
 
@@ -172,10 +172,15 @@ StyledRect {
     }
 
     component EntryWrapper: Item {
+        id: entryWrapper
+
         required property var modelData
         required property int index
         property int margin: root.spacing / 2
         readonly property bool present: !root.collapsed(modelData)
+        // Exclude inactive lock indicators from the layout entirely. Keeping a
+        // zero-sized animated cell makes neighboring status icons jump/overlap.
+        visible: present
         property real topGap: present && index !== root.firstPresent ? margin : 0
         property real bottomGap: present && index !== root.lastPresent ? margin : 0
         default property Item item
@@ -192,16 +197,12 @@ StyledRect {
 
         children: item
 
-        Behavior on topGap {
-            Anim {
-                type: Anim.SlowEffects
-            }
+        Binding {
+            target: entryWrapper.item
+            property: "anchors.centerIn"
+            value: entryWrapper
+            when: Taskbar.centerOnly && entryWrapper.item !== null
         }
 
-        Behavior on bottomGap {
-            Anim {
-                type: Anim.SlowEffects
-            }
-        }
     }
 }

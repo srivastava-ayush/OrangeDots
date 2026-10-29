@@ -27,6 +27,15 @@ Region {
         height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.panels.y
     }
 
+    // Widen only the edge strip, not the invisible area beside the open panel.
+    R {
+        panel: root.panels.dashboard
+        x: panel.x + root.panels.x + (panel.width - width) / 2
+        y: 0
+        width: root.panels.dashboard.hoverWidth
+        height: Math.max(root.win.contentItem.Config.border.minThickness, root.panels.y)
+    }
+
     R {
         panel: root.panels.launcher
         y: root.win.height - height

@@ -21,6 +21,17 @@ PageBase {
             text: qsTr("Top")
         }
     ]
+    readonly property list<MenuItem> styleItems: [
+        MenuItem {
+            text: qsTr("Unified")
+        },
+        MenuItem {
+            text: qsTr("Three notches")
+        },
+        MenuItem {
+            text: qsTr("Center notch")
+        }
+    ]
     readonly property list<MenuItem> centerItems: [
         MenuItem {
             text: qsTr("Active window")
@@ -77,6 +88,28 @@ PageBase {
             onSelected: item => Taskbar.orientation = root.orientationItems.indexOf(item) === 1 ? "top" : "left"
         }
 
+        SelectRow {
+            objectName: "taskbarStyle"
+            label: qsTr("Taskbar style")
+            subtext: qsTr("Unified bar, three notches, or just the date/time notch")
+            menuItems: root.styleItems
+            active: root.styleItems[Taskbar.centerOnly ? 2 : Taskbar.notched ? 1 : 0]
+            onSelected: item => Taskbar.style = ["unified", "notches", "center"][root.styleItems.indexOf(item)] ?? "unified"
+        }
+
+        StepperRow {
+            objectName: "taskbarCenterNotchSize"
+            label: qsTr("Center notch size")
+            subtext: qsTr("Minimum width (Top) or height (Left) in pixels; 0 = Auto. Limited to the space between notches.")
+            enabled: Taskbar.notched
+            opacity: enabled ? 1 : 0.5
+            value: Taskbar.centerNotchSize
+            from: 0
+            to: 1200
+            stepSize: 20
+            onMoved: v => Taskbar.centerNotchSize = v
+        }
+
         ToggleRow {
             text: qsTr("Persistent")
             subtext: qsTr("Keep the bar visible at all times")
@@ -125,9 +158,11 @@ PageBase {
             first: true
             last: true
             label: qsTr("Center of taskbar")
-            subtext: qsTr("Choose what appears between the two spacers")
+            subtext: Taskbar.notched ? qsTr("The notched style uses date and time in its center notch") : qsTr("Choose what appears between the two spacers")
+            enabled: !Taskbar.notched
+            opacity: enabled ? 1 : 0.5
             menuItems: root.centerItems
-            active: root.centerItems[root.clockIndex !== -1 && root.clockIndex < root.activeWindowIndex ? 1 : 0]
+            active: root.centerItems[Taskbar.notched || (root.clockIndex !== -1 && root.clockIndex < root.activeWindowIndex) ? 1 : 0]
             onSelected: item => {
                 const showClock = root.centerItems.indexOf(item) === 1;
                 root.setCenterClock(showClock);
@@ -147,7 +182,8 @@ PageBase {
         NavRow {
             icon: "web_asset"
             text: qsTr("Active window")
-            subtext: qsTr("Title display, popout")
+            subtext: Taskbar.notched ? qsTr("Available in the Unified style") : qsTr("Title display, popout")
+            disabled: Taskbar.notched
             onClicked: root.nState.openSubPage(7)
         }
 

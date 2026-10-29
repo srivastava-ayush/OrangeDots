@@ -67,7 +67,7 @@ QtObject {
             id: "services",
             label: qsTr("Services"),
             icon: "build",
-            description: qsTr("Poll intervals, lyrics backend"),
+            description: qsTr("Poll intervals, lyrics backend, recorder settings"),
             category: "shell"
         },
         {

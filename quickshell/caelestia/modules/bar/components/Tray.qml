@@ -25,13 +25,17 @@ StyledRect {
         const iconLength = horizontal ? expandIcon.implicitWidth : expandIcon.implicitHeight;
         if (!Config.bar.tray.compact)
             return length + padding * 2;
+        // In Top mode reserve a complete arrow cell and padding on both
+        // edges; the vertical tray's shortened arrow geometry clips here.
+        if (horizontal)
+            return (expanded ? length + spacing : 0) + iconLength + padding * 2;
         const pad = (Config.bar.tray.background ? Tokens.padding.extraSmall : 0) + padding;
         if (expanded)
             return iconLength + length + spacing + pad;
         return Math.max(Config.bar.tray.background ? Tokens.sizes.bar.innerWidth : 0, iconLength + pad);
     }
     readonly property real nonAnimWidth: horizontal ? nonAnimLength : Tokens.sizes.bar.innerWidth
-    readonly property real nonAnimHeight: horizontal ? Tokens.sizes.bar.innerWidth : nonAnimLength
+    readonly property real nonAnimHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, Taskbar.centerOnly ? Math.max(layout.implicitHeight, expandIcon.implicitHeight) : 0) : nonAnimLength
 
     clip: true
     visible: width > 0 && height > 0
@@ -39,7 +43,7 @@ StyledRect {
     implicitWidth: nonAnimWidth
     implicitHeight: nonAnimHeight
 
-    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (Config.bar.tray.background && items.count > 0) ? Colours.tPalette.m3surfaceContainer.a : 0)
+    color: Qt.alpha(Colours.tPalette.m3surfaceContainer, (!Taskbar.centerOnly && Config.bar.tray.background && items.count > 0) ? Colours.tPalette.m3surfaceContainer.a : 0)
     radius: Tokens.rounding.full
 
     Grid {
@@ -102,11 +106,12 @@ StyledRect {
         anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
         anchors.bottom: root.horizontal ? undefined : parent.bottom
         anchors.right: root.horizontal ? parent.right : undefined
+        anchors.rightMargin: root.horizontal ? root.padding : 0
 
         active: Config.bar.tray.compact && items.count > 0
 
         sourceComponent: Item {
-            implicitWidth: expandIconInner.implicitWidth - (root.horizontal ? Tokens.padding.small : 0)
+            implicitWidth: expandIconInner.implicitWidth
             implicitHeight: expandIconInner.implicitHeight - (root.horizontal ? 0 : Tokens.padding.small)
 
             MaterialIcon {
@@ -117,7 +122,7 @@ StyledRect {
                 anchors.bottom: root.horizontal ? undefined : parent.bottom
                 anchors.right: root.horizontal ? parent.right : undefined
                 anchors.bottomMargin: Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small
-                anchors.rightMargin: Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small
+                anchors.rightMargin: root.horizontal ? 0 : (Config.bar.tray.background ? Tokens.padding.extraSmall : -Tokens.padding.small)
                 text: root.horizontal ? "chevron_left" : "expand_less"
                 color: Colours.palette.m3onSurfaceVariant
                 fontStyle: Tokens.font.icon.medium

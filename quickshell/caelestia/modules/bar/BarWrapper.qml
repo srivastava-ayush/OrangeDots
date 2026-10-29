@@ -18,6 +18,17 @@ Item {
 
     readonly property bool disabled: Strings.testRegexList(Config.bar.excludedScreens, screen.name)
     readonly property bool horizontal: Taskbar.horizontal
+    readonly property bool notched: Taskbar.notched
+    readonly property var notchRects: {
+        const bar = content.item as Bar;
+        if (!notched || !bar || thickness <= Config.border.thickness)
+            return [];
+        return bar.notchRanges.map((range, index) => {
+            if (Taskbar.centerOnly && index !== 1)
+                return Qt.rect(0, 0, 0, 0);
+            return horizontal ? Qt.rect(range.start, 0, range.length, thickness) : Qt.rect(0, range.start, thickness, range.length);
+        });
+    }
 
     readonly property real leftInset: horizontal ? Config.border.thickness : thickness
     readonly property real topInset: horizontal ? thickness : Config.border.thickness
@@ -69,6 +80,12 @@ Item {
         isHovered = false;
         closeTray();
         popouts.close();
+    }
+
+    onNotchedChanged: {
+        isHovered = false;
+        closeTray();
+        popouts?.close();
     }
 
     states: State {

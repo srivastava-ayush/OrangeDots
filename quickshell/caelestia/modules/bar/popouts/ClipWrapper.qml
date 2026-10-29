@@ -12,6 +12,7 @@ Item {
     required property ScreenState screenState
     required property real borderThickness
     required property bool horizontal
+    property real hideInset: 0
 
     readonly property alias content: content
     readonly property bool bottomAligned: !horizontal && content.currentName === "notifications" && !content.isDetached
@@ -85,7 +86,7 @@ Item {
         // Keep both dimensions bound to the content and slide using coordinates.
         width: implicitWidth
         height: implicitHeight
-        x: root.horizontal ? (parent.width - width) / 2 : (-width - 5) * root.offsetScale
-        y: root.horizontal ? (-height - 5) * root.offsetScale : (parent.height - height) / 2
+        x: root.horizontal ? (parent.width - width) / 2 : (-width - root.hideInset - 5) * root.offsetScale
+        y: root.horizontal ? (-height - root.hideInset - 5) * root.offsetScale : (parent.height - height) / 2
     }
 }

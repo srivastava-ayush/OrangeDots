@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import Caelestia.Config
 import qs.components
+import qs.services
 import qs.utils
 
 Item {
@@ -22,10 +23,14 @@ Item {
         }
     }
 
-    ColumnLayout {
+    GridLayout {
         id: layout
 
-        spacing: Tokens.spacing.medium / 2
+        anchors.centerIn: parent
+        columns: Taskbar.centerOnly && Taskbar.horizontal ? -1 : 1
+        rows: Taskbar.centerOnly && Taskbar.horizontal ? 1 : -1
+        columnSpacing: Tokens.spacing.medium / 2
+        rowSpacing: Tokens.spacing.medium / 2
 
         // Bluetooth icon
         MaterialIcon {

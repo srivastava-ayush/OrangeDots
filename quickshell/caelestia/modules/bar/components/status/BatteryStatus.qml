@@ -7,19 +7,21 @@ import qs.utils
 
 Item {
     id: root
+    objectName: "taskbarBatteryStatus"
 
     required property color colour
     readonly property bool horizontal: Taskbar.horizontal
 
-    implicitWidth: icon.implicitWidth + (horizontal && percentage.visible ? percentage.implicitWidth + Tokens.spacing.extraSmall : 0)
+    implicitWidth: Math.ceil(horizontal ? icon.implicitWidth + (percentage.visible ? percentage.implicitWidth + Tokens.spacing.extraSmall : 0) : Math.max(icon.implicitWidth, percentage.visible ? percentage.implicitWidth : 0))
     implicitHeight: horizontal ? Math.max(icon.implicitHeight, percentage.implicitHeight) : icon.implicitHeight + (percentage.visible ? percentage.implicitHeight : 0)
 
     MaterialIcon {
         id: icon
-        anchors.top: root.horizontal ? undefined : parent.top
-        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
-        anchors.left: root.horizontal ? parent.left : undefined
-        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
+        objectName: "taskbarBatteryGlyph"
+        // Explicit coordinates avoid conflicting old/new anchors during a live
+        // orientation switch (a fresh shell never encounters that transition).
+        x: root.horizontal ? 0 : (root.width - width) / 2
+        y: root.horizontal ? (root.height - height) / 2 : 0
         animate: true
         text: {
             if (!UPower.displayDevice.isLaptopBattery) {
@@ -36,14 +38,12 @@ Item {
     }
     Text {
         id: percentage
+        objectName: "taskbarBatteryPercentage"
         visible: UPower.displayDevice.isLaptopBattery
-        anchors.top: root.horizontal ? undefined : icon.bottom
-        anchors.horizontalCenter: root.horizontal ? undefined : parent.horizontalCenter
-        anchors.left: root.horizontal ? icon.right : undefined
-        anchors.leftMargin: root.horizontal ? Tokens.spacing.extraSmall : 0
-        anchors.verticalCenter: root.horizontal ? parent.verticalCenter : undefined
+        x: root.horizontal ? icon.width + Tokens.spacing.extraSmall : (root.width - width) / 2
+        y: root.horizontal ? (root.height - height) / 2 : icon.height
         text: Math.round(UPower.displayDevice.percentage * 100)
         color: !UPower.onBattery || UPower.displayDevice.percentage > 0.2 ? colour : Colours.palette.m3error
-        font: Tokens.font.mono.extraSmall
+        font: Qt.font({ family: Tokens.font.mono.small.family, pointSize: Tokens.font.label.small.pointSize * (root.horizontal ? 1 : 0.8) })
     }
 }

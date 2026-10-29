@@ -13,6 +13,7 @@ StyledRect {
     readonly property int padding: Config.bar.clock.background ? Tokens.padding.medium : Tokens.padding.extraSmall
     readonly property var font: Tokens.font.body.builders.small.scale(1.1)
     readonly property bool horizontal: Taskbar.horizontal
+    readonly property bool showDate: Config.bar.clock.showDate || Taskbar.notched
 
     implicitWidth: horizontal ? horizontalLayout.implicitWidth + padding * 2 : Tokens.sizes.bar.innerWidth
     implicitHeight: (horizontal ? horizontalLayout.implicitHeight : layout.implicitHeight) + padding * 2
@@ -42,7 +43,7 @@ StyledRect {
         Loader {
             Layout.alignment: Qt.AlignHCenter
             asynchronous: true
-            active: Config.bar.clock.showDate
+            active: root.showDate
             visible: active
 
             sourceComponent: ColumnLayout {
@@ -138,7 +139,7 @@ StyledRect {
         }
 
         StyledText {
-            visible: Config.bar.clock.showDate
+            visible: root.showDate
             text: Time.format("ddd, d MMM")
             font: root.font.build()
             color: root.colour

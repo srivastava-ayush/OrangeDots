@@ -92,6 +92,21 @@ PageBase {
             onClicked: root.nState.openSubPage(1)
         }
 
+        // Recording
+        SectionHeader {
+            text: qsTr("Recording")
+        }
+
+        NavRow {
+            objectName: "servicesRecorder"
+            first: true
+            last: true
+            icon: "screen_record"
+            text: qsTr("Screen recorder")
+            subtext: qsTr("Native resolution, quality, codec, frame rate")
+            onClicked: root.nState.openSubPage(2)
+        }
+
         // Polling
         SectionHeader {
             text: qsTr("Polling")

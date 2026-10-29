@@ -166,6 +166,10 @@ QtObject {
                 Component {
                     NotificationsPage {}
                 }
+                Component {
+                    // Services → Screen recorder (index 2).
+                    RecorderPanel {}
+                }
             }
         },
         Component {

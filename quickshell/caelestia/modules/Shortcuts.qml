@@ -95,6 +95,14 @@ Scope {
     }
 
     IpcHandler {
+        function cycleBarStyle(): void {
+            Taskbar.cycleStyle();
+        }
+
+        function toggleBarOrientation(): void {
+            Taskbar.orientation = Taskbar.horizontal ? "left" : "top";
+        }
+
         function toggleBarPersistent(): void {
             GlobalConfig.bar.persistent = !GlobalConfig.bar.persistent;
             if (!GlobalConfig.bar.persistent)

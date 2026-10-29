@@ -31,16 +31,31 @@ Item {
 
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 0
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
+    // A top taskbar can inset the dashboard below the screen edge. Include that
+    // gap in the slide-out distance so no background remains inside the screen.
+    property real hideInset: 0
     property real offsetScale: shouldBeActive ? 0 : 1
+    // Reveal a full-sized dashboard through a centered curtain instead of
+    // squeezing its cards/text as the hover surface expands from the top.
+    readonly property real fullWidth: content.implicitWidth || 854
+    // Keep the edge target generous even while the curtain is collapsed.
+    readonly property real hoverWidth: Math.min(parent ? parent.width : fullWidth + 200, fullWidth + 200)
+    readonly property real curtainProgress: Math.max(0, Math.min(1, 1 - offsetScale))
+    readonly property real curtainWidthScale: Config.dashboard.showOnHover ? 0.48 + 0.52 * curtainProgress : 1
 
     visible: offsetScale < 1
-    anchors.topMargin: (-implicitHeight - 5) * offsetScale
+    anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
     implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 854 // Hard coded fallback for first open
+    implicitWidth: fullWidth * curtainWidthScale
     opacity: 1 - offsetScale
+    clip: Config.dashboard.showOnHover
 
     Behavior on offsetScale {
-        Anim {}
+        Anim {
+            // A monotonic curve keeps the reveal from overshooting its clip.
+            type: Anim.FastSpatial
+            easing.type: Easing.OutCubic
+        }
     }
 
     Loader {

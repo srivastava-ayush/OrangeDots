@@ -40,6 +40,7 @@ Item {
         width: root.implicitWidth
         height: root.implicitHeight
         radius: root.dotSize / 2
+        opacity: Taskbar.centerOnly && !root.isActive ? (root.isOccupied ? 0.85 : 0.45) : 1
         color: root.isActive
             ? Colours.palette.m3primary
             : root.isOccupied

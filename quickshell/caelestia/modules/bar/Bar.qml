@@ -4,6 +4,7 @@ import "popouts" as BarPopouts
 import "components"
 import "components/workspaces"
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Caelestia.Config
@@ -20,6 +21,80 @@ GridLayout {
     readonly property int vPadding: Tokens.padding.large
     readonly property bool horizontal: Taskbar.horizontal
     readonly property int spacing: Tokens.spacing.medium
+    readonly property int notchPadding: Tokens.padding.medium
+    readonly property var entryItems: children.filter(child => child.entryId && child.item)
+
+    function notchGroup(id: string): int {
+        if (id === "logo" || id === "workspaces")
+            return 0;
+        if (id === "clock")
+            return 1;
+        if (id === "tray" || id === "statusIcons")
+            return 2;
+        return -1;
+    }
+
+    readonly property var notchMetrics: {
+        const lengths = [0, 0, 0];
+        const counts = [0, 0, 0];
+        if (Taskbar.notched) {
+            for (const entry of entryItems) {
+                const group = notchGroup(entry.entryId);
+                if (group < 0)
+                    continue;
+                lengths[group] += horizontal ? entry.item.implicitWidth : entry.item.implicitHeight;
+                counts[group]++;
+            }
+            for (let i = 0; i < lengths.length; i++)
+                lengths[i] += Math.max(0, counts[i] - 1) * spacing;
+        }
+        return { lengths, counts };
+    }
+
+    function spacerLength(side: string): real {
+        const half = (horizontal ? width : height) / 2;
+        const centerHalf = notchMetrics.lengths[1] / 2;
+        const group = side === "start" ? 0 : 2;
+        const gaps = notchMetrics.counts[group] > 0 ? 2 : 1;
+        return Math.max(0, half - centerHalf - notchMetrics.lengths[group] - vPadding - spacing * gaps);
+    }
+
+    // Main-axis ranges shared by the shell's SDF backgrounds. The notch itself
+    // is drawn at the screen edge, not as a floating rectangle around the icon.
+    readonly property var notchRanges: {
+        const ranges = [{ start: 0, length: 0 }, { start: 0, length: 0 }, { start: 0, length: 0 }];
+        if (!Taskbar.notched)
+            return ranges;
+        const starts = [Infinity, Infinity, Infinity];
+        const ends = [-Infinity, -Infinity, -Infinity];
+        for (const entry of entryItems) {
+            const group = notchGroup(entry.entryId);
+            if (group < 0)
+                continue;
+            const start = horizontal ? entry.x : entry.y;
+            const length = horizontal ? entry.width : entry.height;
+            starts[group] = Math.min(starts[group], start);
+            ends[group] = Math.max(ends[group], start + length);
+        }
+        const limit = horizontal ? width : height;
+        for (let i = 0; i < ranges.length; i++) {
+            if (!Number.isFinite(starts[i]))
+                continue;
+            const start = Math.max(0, starts[i] - notchPadding);
+            ranges[i] = { start, length: Math.max(0, Math.min(limit, ends[i] + notchPadding) - start) };
+        }
+        if (ranges[1].length > 0 && Taskbar.centerNotchSize > ranges[1].length) {
+            const center = (starts[1] + ends[1]) / 2;
+            const left = ranges[0].length > 0 ? ranges[0].start + ranges[0].length + spacing : 0;
+            const right = ranges[2].length > 0 ? ranges[2].start - spacing : limit;
+            // Keep the clock centered and prevent a large preference from
+            // merging its notch into the workspace/status groups.
+            const available = Math.max(0, 2 * Math.min(center - left, right - center));
+            const length = Math.max(ranges[1].length, Math.min(Taskbar.centerNotchSize, available));
+            ranges[1] = { start: center - length / 2, length };
+        }
+        return ranges;
+    }
 
     function centerFor(item: Item): real {
         const center = item.mapToItem(root, item.width / 2, item.height / 2);
@@ -29,8 +104,15 @@ GridLayout {
     function hasEntryAt(x: real, y: real): bool {
         // Include the padding above/below a horizontal entry so edge gestures
         // cannot open another panel while reaching for its clock or status icon.
-        const entry = childAt(horizontal ? x : width / 2, horizontal ? height / 2 : y) as EntryWrapper;
+        const entry = entryAt(horizontal ? x : width / 2, horizontal ? height / 2 : y);
         return !!entry?.item;
+    }
+
+    function entryAt(x: real, y: real): Item {
+        // Layer effects insert rendering items alongside their source. childAt
+        // can hit that proxy instead of EntryWrapper in Center notch mode.
+        // Test real entries in their own coordinates, independent of painting.
+        return entryItems.find(entry => entry.visible && entry.contains(entry.mapFromItem(root, x, y))) ?? null;
     }
 
     function closeTray(): void {
@@ -92,7 +174,7 @@ GridLayout {
         // cross-axis padding is the path the pointer takes into its popout.
         const px = horizontal ? x : width / 2;
         const py = horizontal ? height / 2 : y;
-        const ch = childAt(px, py) as EntryWrapper;
+        const ch = entryAt(px, py) as EntryWrapper;
         popouts.anchorHovered = false;
 
         if (ch?.entryId !== "tray")
@@ -140,7 +222,7 @@ GridLayout {
     }
 
     function handleWheel(x: real, y: real, angleDelta: point): void {
-        const ch = childAt(x, y) as EntryWrapper;
+        const ch = entryAt(x, y) as EntryWrapper;
         if (ch?.entryId === "workspaces" && Config.bar.scrollActions.workspaces) {
             // Workspace scroll
             const mon = (GlobalConfig.bar.workspaces.perMonitorWorkspaces ? Hypr.monitorFor(screen) : Hypr.focusedMonitor);
@@ -174,7 +256,22 @@ GridLayout {
         id: repeater
 
         model: ScriptModel {
-            values: root.Config.bar.entries.values.filter(e => e.enabled && e.id !== "notifications")
+            values: {
+                const configured = root.Config.bar.entries.values;
+                // Count only entries with a delegate. Legacy presets can end in
+                // an unsupported `power` entry; counting it prevents the last
+                // real widget from receiving its screen-edge padding.
+                const supported = ["logo", "workspaces", "spacer", "activeWindow", "tray", "clock", "statusIcons"];
+                const enabled = configured.filter(e => e.enabled && supported.includes(e.id));
+                if (!Taskbar.notched)
+                    return enabled;
+                const start = enabled.filter(e => root.notchGroup(e.id) === 0);
+                const end = enabled.filter(e => root.notchGroup(e.id) === 2);
+                // This style has a dedicated date/time notch. Unified restores
+                // the user's original entry ordering and active-window choice.
+                const clock = configured.find(e => e.id === "clock" && e.enabled) ?? { id: "clock", enabled: true };
+                return [...start, { id: "spacer", side: "start" }, clock, { id: "spacer", side: "end" }, ...end];
+            }
         }
 
         DelegateChooser {
@@ -183,8 +280,16 @@ GridLayout {
             DelegateChoice {
                 roleValue: "spacer"
                 delegate: EntryWrapper {
-                    Layout.fillWidth: root.horizontal
-                    Layout.fillHeight: !root.horizontal
+                    readonly property real mainLength: Taskbar.notched ? root.spacerLength(modelData.side) : 0
+
+                    Layout.fillWidth: root.horizontal && !Taskbar.notched
+                    Layout.fillHeight: !root.horizontal && !Taskbar.notched
+                    Layout.preferredWidth: root.horizontal ? mainLength : 0
+                    Layout.preferredHeight: root.horizontal ? 0 : mainLength
+                    Layout.minimumWidth: root.horizontal && Taskbar.notched ? mainLength : 0
+                    Layout.maximumWidth: root.horizontal && Taskbar.notched ? mainLength : Infinity
+                    Layout.minimumHeight: !root.horizontal && Taskbar.notched ? mainLength : 0
+                    Layout.maximumHeight: !root.horizontal && Taskbar.notched ? mainLength : Infinity
                 }
             }
             DelegateChoice {
@@ -244,10 +349,28 @@ GridLayout {
     }
 
     component EntryWrapper: Item {
+        id: entryWrapper
+
         required property var modelData
         required property int index
         default property Item item
         readonly property string entryId: modelData.id
+        readonly property bool wallpaperContrast: Taskbar.centerOnly && (root.notchGroup(entryId) === 0 || root.notchGroup(entryId) === 2)
+
+        // White silhouettes with a dark halo remain legible over light, dark,
+        // and busy wallpaper without introducing another pill/notch background.
+        // Apply to this entry only: the clock and all popouts keep theme colours.
+        layer.enabled: wallpaperContrast
+        layer.effect: MultiEffect {
+            brightness: 1
+            shadowEnabled: true
+            shadowColor: "#f0000000"
+            shadowOpacity: 1
+            shadowBlur: 0.3
+            blurMax: 8
+            shadowHorizontalOffset: 0
+            shadowVerticalOffset: 0
+        }
 
         Layout.topMargin: !root.horizontal && index === 0 ? root.vPadding : 0
         Layout.bottomMargin: !root.horizontal && index === repeater.count - 1 ? root.vPadding : 0
@@ -259,5 +382,12 @@ GridLayout {
         implicitHeight: item?.implicitHeight ?? 0
 
         children: item
+
+        Binding {
+            target: entryWrapper.item
+            property: "anchors.centerIn"
+            value: entryWrapper
+            when: Taskbar.centerOnly && entryWrapper.item !== null
+        }
     }
 }

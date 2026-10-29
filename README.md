@@ -22,10 +22,12 @@ This is a desktop shell and dotfiles repository, **not an operating-system insta
 ## Features
 
 - Left-side or top taskbar, launcher, dashboard, lock screen, notifications, media controls, system tray, and Nexus settings.
+- Selectable **Unified** (default), **Three notches**, or **Center notch** taskbar, with centered date/time and shell-attached backgrounds in either orientation.
 - Notification bell inside the status-icon group, with a hover popout. In Left orientation, the shade is attached to the shell's inner bottom edge. New-notification banners remain separate from notification history.
 - Material 3 wallpaper-derived colours, transparency, and a customizable global background tint.
 - **VOID** tint preset: pure black at 100% tint strength. Transparency remains a separate setting.
 - Dashboard weather, recording controls, utility cards, performance information, and optional phone integration.
+- Recording captures at the display or selected region's native resolution with the `ultra` quality preset; `-s 0x0` prevents downscaling. Quality, codec, frame rate, tune, and cursor are configurable in **Services → Screen recorder**.
 - Calendar/notes sidebar and optional private Google Calendar iCal integration.
 - Optional Lua-based Hyprland dotfiles, scratchpads, gestures, and overview-plugin integration.
 
@@ -159,7 +161,7 @@ Optional features have additional requirements:
 
 | Feature | Requirements |
 |---|---|
-| Screen recording | `gpu-screen-recorder`; supported GPU/driver and recording permissions. Install with `sudo pacman -S --needed gpu-screen-recorder` where available. |
+| Screen recording | `gpu-screen-recorder`; supported GPU/driver and recording permissions. Install with `sudo pacman -S --needed gpu-screen-recorder` where available. The bundled `cli.json` records at native resolution with the `ultra` quality preset. |
 | Power-profile switching | `power-profiles-daemon` and its system service. Do not run competing power managers such as TLP/tuned without checking compatibility. |
 | Phone integration | `kdeconnect`, a running `kdeconnectd`, and a paired phone. |
 | External-display brightness | Monitor DDC/CI support and the appropriate `ddcutil`/I²C permissions. |
@@ -190,7 +192,7 @@ fi
 ln -s "$repo/quickshell/caelestia" "$config_home/quickshell/caelestia"
 
 # Seed presets only when the destination does not already exist.
-for file in shell.json shell-tokens.json; do
+for file in shell.json shell-tokens.json cli.json; do
   if [[ ! -e "$config_home/caelestia/$file" && ! -L "$config_home/caelestia/$file" ]]; then
     cp "$repo/caelestia/$file" "$config_home/caelestia/$file"
   fi
@@ -368,17 +370,24 @@ Open Nexus with `caelestia shell nexus open`, or `SUPER+X` when using the bundle
 
 | Preference | Nexus location |
 |---|---|
-| Left / Top orientation and taskbar persistence | **Panels → Taskbar** |
+| Left / Top orientation, Unified / Three notches / Center notch style, and taskbar persistence | **Panels → Taskbar** |
 | Notification bell/shade and hover behavior | **Panels → Taskbar → Notification shade** |
 | Status icons and their order | **Panels → Taskbar → Status icons** |
 | Global background tint, VOID, presets, hex/RGB, strength, reset | **Wallpaper & style → Shell tint** |
 | Wallpaper, transparency, dark/light theme | **Wallpaper & style** |
 | Weather visibility, location, units, refresh | **Panels → Dashboard** |
 | Utility cards and overview hot corner | **Panels → Dashboard → Utilities** |
+| Recorder resolution, quality, codec, frame rate, cursor, reset | **Services → Screen recorder** |
 | Calendar/notes sidebar | **Panels → Calendar & notes** |
 | Orange OS release label and system details | **About** |
 
 Settings apply live where supported. Tint does not replace the Material accent scheme. To make VOID fully opaque rather than wallpaper-tinted black, disable **Transparency** separately.
+
+**Three notches** keeps enabled logo/workspace entries together at the start, date/time in the center, and enabled tray/status entries at the end. The notches merge into the shell border rather than floating independently. This style always shows date/time and hides the active-window entry; switching back to **Unified** restores your configured entry order and active-window settings. Auto-hide and hover popouts work with either style.
+
+Use **Panels → Taskbar → Center notch size** to set its minimum width in Top orientation or height in Left orientation, in logical pixels. **0 = Auto** fits the clock. The size cannot shrink below its contents or overlap the neighboring notches, and is saved across restarts.
+
+**Center notch** uses the same grouping but draws only the date/time notch. Logo/workspaces and tray/status icons stay visible directly over the wallpaper, without side notches or background pills. Those exposed entries use white silhouettes with a dark shadow for contrast on light, dark, or busy wallpaper; workspace size/opacity still distinguish active, occupied, and empty workspaces. The clock and popouts retain their theme colours. Center notch sizing, auto-hide, and popouts work as in Three notches.
 
 ### Optional personal data
 
@@ -412,6 +421,8 @@ Useful shortcuts in the **bundled** `hyprland.lua`:
 | `SUPER+SUPER_L` on release | Launcher |
 | `SUPER+L` | Lock |
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence |
+| `SUPER+SHIFT+T` | Cycle taskbar style: Unified → Three notches → Center notch |
+| `SUPER+SHIFT+T+O` | Toggle taskbar orientation: Left ↔ Top (hold T, then press O) |
 | `SUPER+ALT+1..4` | Media / Dashboard / Performance / Phone, subject to enabled tabs |
 | `SUPER+Q` / `SUPER+A` | Terminal / Yazi through the bundled wrapper |
 | `SUPER+S` | Spotify scratchpad |
@@ -429,10 +440,11 @@ Default paths below honor `XDG_CONFIG_HOME` / `XDG_STATE_HOME` if set:
 |---|---|
 | `~/.config/caelestia/shell.json` | Main Nexus preferences |
 | `~/.config/caelestia/shell-tokens.json` | Font/size/style token overrides |
+| `~/.config/caelestia/cli.json` | CLI options, including native-resolution recording |
 | `~/.config/caelestia/monitors/<output>/` | Per-monitor overrides; output names must match the new machine |
 | `~/.config/caelestia/weather.json` | Weather refresh interval |
 | `~/.config/caelestia/calendar-url` | Private calendar URL |
-| `~/.local/state/caelestia/taskbar.json` | Left/Top orientation |
+| `~/.local/state/caelestia/taskbar.json` | Left/Top orientation, taskbar style, and center notch size |
 | `~/.local/state/caelestia/shell-tint.json` | Custom tint, strength, and enabled state |
 | `~/.local/state/caelestia/hot-corner.json` | Overview hot-corner settings |
 | `~/.local/state/caelestia/scheme.json` | Generated Material palette |
@@ -482,6 +494,7 @@ After native-source, Qt, or Quickshell ABI changes, repeat [the native-module bu
 | Wallpaper/scheme errors | Choose an existing wallpaper using the CLI. Restore/regenerate state rather than copying another user's absolute wallpaper path. |
 | Login/config parsing errors with the full dotfiles | Confirm Lua-compatible Hyprland, adapt monitor/app paths, and check ScrollOverview references. Return to your backed-up config if necessary. |
 | Recording does not start | Install/check `gpu-screen-recorder`, GPU support, available audio devices, and the CLI's recording command. |
+| Recording is downscaled or lower quality | Open **Services → Screen recorder** and choose **Reset to highest quality**, or ensure `~/.config/caelestia/cli.json` has `"record": {"extraArgs": ["-s", "0x0", "-q", "ultra", "-tune", "quality"]}`, then restart the recording. Resolution is always native. |
 | Calendar is empty | Check the private iCal URL file and network access. The calendar parser does not expand all recurring-event rules. |
 | A pure-black preset still looks translucent | VOID sets tint strength, not opacity. Turn off Transparency for an opaque background. |
 
@@ -510,7 +523,7 @@ From the repository root, inside a Wayland session with the native modules insta
 python3 quickshell/caelestia/tests/taskbar.test.py
 ```
 
-The integration checks use isolated config/state and a transparent, input-free test surface. They cover taskbar orientation, popout sizing/hover, notification shade, Nexus navigation, tint/VOID, persistence, and invalid settings. A focused run is available, for example:
+The integration checks use isolated config/state and a transparent, input-free test surface. They cover taskbar orientation/styles, shell-attached notch geometry, popout sizing/hover, notification shade, Nexus navigation, recorder settings/persistence, tint/VOID, persistence, and invalid settings. A focused run is available, for example:
 
 ```bash
 python3 quickshell/caelestia/tests/taskbar.test.py --mode tint
@@ -533,7 +546,7 @@ These checks do not replace testing your real GPU, audio devices, network permis
 | `hypr/spotify-toggle.sh` | Spotify scratchpad helper |
 | `hypr/caelestia-toggle.sh` | Toggle this shell instance |
 | `refresh-rate-toggle.sh` | Hardware-specific refresh-rate helper |
-| `caelestia/shell*.json` | First-install preferences and token presets |
+| `caelestia/*.json` | First-install shell, token, and CLI presets |
 | `quickshell/caelestia/shell.qml` | Orange OS shell entry point |
 | `quickshell/caelestia/modules/` | Bar, popouts, dashboard, Nexus, launcher, lock, and other UI |
 | `quickshell/caelestia/services/` | Runtime services, including tint, taskbar state, weather, and notifications |

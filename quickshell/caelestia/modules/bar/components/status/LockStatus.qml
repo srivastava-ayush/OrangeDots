@@ -9,36 +9,15 @@ GridLayout {
     required property color colour
     required property int parentSpacing
 
-    property real gap: Hypr.capsLock && Hypr.numLock ? parentSpacing : 0
-    property real capsHeight: Hypr.capsLock ? capslockIcon.implicitHeight : 0
-    property real numHeight: Hypr.numLock ? numlockIcon.implicitHeight : 0
-
     columns: Taskbar.horizontal ? 2 : 1
     rows: Taskbar.horizontal ? 1 : 2
-    columnSpacing: Math.round(gap)
-    rowSpacing: Math.round(gap)
-
-    Behavior on gap {
-        Anim {
-            type: Anim.SlowEffects
-        }
-    }
-
-    Behavior on capsHeight {
-        Anim {
-            type: Anim.SlowEffects
-        }
-    }
-
-    Behavior on numHeight {
-        Anim {
-            type: Anim.SlowEffects
-        }
-    }
+    columnSpacing: parentSpacing
+    rowSpacing: parentSpacing
 
     Item {
-        implicitWidth: Taskbar.horizontal ? Math.round(root.capsHeight) : capslockIcon.implicitWidth
-        implicitHeight: Taskbar.horizontal ? capslockIcon.implicitHeight : Math.round(root.capsHeight)
+        visible: Hypr.capsLock
+        implicitWidth: capslockIcon.implicitWidth
+        implicitHeight: capslockIcon.implicitHeight
 
         MaterialIcon {
             id: capslockIcon
@@ -66,8 +45,9 @@ GridLayout {
     }
 
     Item {
-        implicitWidth: Taskbar.horizontal ? Math.round(root.numHeight) : numlockIcon.implicitWidth
-        implicitHeight: Taskbar.horizontal ? numlockIcon.implicitHeight : Math.round(root.numHeight)
+        visible: Hypr.numLock
+        implicitWidth: numlockIcon.implicitWidth
+        implicitHeight: numlockIcon.implicitHeight
 
         MaterialIcon {
             id: numlockIcon

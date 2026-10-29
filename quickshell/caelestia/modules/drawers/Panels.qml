@@ -114,6 +114,7 @@ Item {
         id: dashboard
 
         screenState: root.screenState
+        hideInset: root.bar.notched ? root.y : 0
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
@@ -126,5 +127,6 @@ Item {
         screenState: root.screenState
         borderThickness: root.borderThickness
         horizontal: root.bar.horizontal
+        hideInset: root.bar.notched ? (horizontal ? root.y : root.x) : 0
     }
 }

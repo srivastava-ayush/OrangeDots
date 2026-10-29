@@ -1,0 +1,12 @@
+{
+    "record": {
+        "extraArgs": [
+            "-s",
+            "0x0",
+            "-q",
+            "ultra",
+            "-tune",
+            "quality"
+        ]
+    }
+}

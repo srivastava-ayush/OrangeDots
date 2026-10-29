@@ -249,6 +249,10 @@ hl.bind(mainMod .. " + ALT_R", dashToggle, { release = true })
 
 -- Tap SUPER+SHIFT to toggle the left-side taskbar's Always visible setting.
 local barToggle = hl.dsp.exec_cmd("caelestia shell drawers toggleBarPersistent")
+-- Cycle taskbar styles: Unified -> Three notches -> Center notch (saved by the shell).
+hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("caelestia shell drawers cycleBarStyle"), { release = true })
+-- Hold SUPER+SHIFT+T, then press O to switch Left <-> Top without cycling style.
+hl.bind(mainMod .. " + SHIFT + T + O", hl.dsp.exec_cmd("caelestia shell drawers toggleBarOrientation"))
 hl.bind(mainMod .. " + SHIFT_L", barToggle, { release = true })
 hl.bind(mainMod .. " + SHIFT_R", barToggle, { release = true })
 
@@ -292,7 +296,7 @@ hl.bind(
         end
     end
 )
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("/home/ayush/OrangeDots/refresh-rate-toggle.sh"))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("/home/ayush/OrangeDots/refresh-rate-toggle.sh"))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(browser))
 
 -- Move focus with mainMod + arrow keys (hold to repeat)
@@ -365,6 +369,8 @@ hl.bind(mainMod .. " + ALT + page_down", hl.dsp.exec_cmd("brightnessctl -e4 -n2 
 -- Screenshot / screen recording
 hl.bind(mainMod .. " + caps_lock",       hl.dsp.exec_cmd("caelestia screenshot -r"))
 hl.bind(mainMod .. " + ALT + caps_lock", hl.dsp.exec_cmd("caelestia record -r -s"))
+-- Screen recording alternative (same action as SUPER+ALT+CAPS_LOCK).
+hl.bind(mainMod .. " + R",               hl.dsp.exec_cmd("caelestia record -r -s"))
 
 -- Bluetooth / network / settings
 hl.bind(mainMod .. " + B",   hl.dsp.exec_cmd("blueman-manager"))
@@ -373,6 +379,8 @@ hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtu
 hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus open"))
 hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
+-- Wallpaper picker alternative (same action as SUPER+TAB).
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 
 -- Clipboard / emoji
 hl.bind("CTRL + ALT + V",         hl.dsp.exec_cmd("caelestia clipboard"))

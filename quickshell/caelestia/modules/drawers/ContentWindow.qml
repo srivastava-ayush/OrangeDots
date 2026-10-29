@@ -173,14 +173,34 @@ StyledWindow {
         }
 
         BlobInvertedRect {
+            objectName: "taskbarShellBorder"
             anchors.fill: parent
             anchors.margins: -50 // Make border thicker to smooth out bulge from closed drawers
             group: blobGroup
             radius: root.borderRounding
-            borderLeft: panels.x - anchors.margins - root.sdfBorderOffset
+            borderLeft: (bar.notched ? root.borderThickness : panels.x) - anchors.margins - root.sdfBorderOffset
             borderRight: root.borderThickness - anchors.margins - root.sdfBorderOffset
-            borderTop: panels.y - anchors.margins - root.sdfBorderOffset
+            borderTop: (bar.notched ? root.borderThickness : panels.y) - anchors.margins - root.sdfBorderOffset
             borderBottom: root.borderThickness - anchors.margins - root.sdfBorderOffset
+        }
+
+        Repeater {
+            model: 3
+
+            BlobRect {
+                required property int index
+                readonly property rect bounds: bar.notchRects[index] ?? Qt.rect(0, 0, 0, 0)
+
+                objectName: ["taskbarNotchStart", "taskbarNotchClock", "taskbarNotchStatus"][index]
+                group: blobGroup
+                // Extend behind the outer border to keep the notch attached and
+                // its outer edge flat, with rounded corners facing the desktop.
+                x: bar.horizontal ? bounds.x : -root.borderRounding
+                y: bar.horizontal ? -root.borderRounding : bounds.y
+                width: bounds.width > 0 ? bounds.width + (bar.horizontal ? 0 : root.borderRounding) : 0
+                height: bounds.height > 0 ? bounds.height + (bar.horizontal ? root.borderRounding : 0) : 0
+                radius: root.borderRounding
+            }
         }
 
         PanelBg {
@@ -188,6 +208,19 @@ StyledWindow {
 
             panel: panels.dashboard
             deformAmount: 0.1
+            // In notch mode the full-width bar no longer bridges this gap.
+            // Continue the dashboard's own surface behind the shell's top edge,
+            // across its whole width, rather than hanging it from the clock.
+            y: bar.notched ? -root.borderRounding : panel.y + panels.y
+            implicitWidth: panel.visible ? panel.width : 0
+            implicitHeight: {
+                if (!panel.visible)
+                    return 0;
+                if (!bar.notched)
+                    return panel.height;
+                const bottom = panel.y + panels.y + panel.height;
+                return bottom > 0 ? bottom - y : 0;
+            }
         }
 
         PanelBg {
@@ -234,15 +267,32 @@ StyledWindow {
         PanelBg {
             id: popoutBg
 
+            readonly property bool shellAttached: bar.notched && !panels.popouts.isDetached
+            readonly property real contentX: panels.x + panels.popoutsWrapper.x + panels.popouts.x
+            readonly property real contentY: panels.y + panels.popoutsWrapper.y + panels.popouts.y
             // Overlap the bar edge so movement deformation cannot detach the popout.
             property real extraSize: panels.popouts.isDetached ? 0 : 0.2
 
             panel: panels.popoutsWrapper
             deformAmount: panels.popouts.isDetached ? 0.05 : panels.popouts.hasCurrent ? 0.15 : 0.1
-            x: panels.x + panels.popoutsWrapper.x + panels.popouts.x - (bar.horizontal ? 0 : panels.popouts.width * extraSize)
-            y: panels.y + panels.popoutsWrapper.y + panels.popouts.y - (bar.horizontal ? panels.popouts.height * extraSize : 0)
-            implicitWidth: panels.popouts.width * (1 + (bar.horizontal ? 0 : extraSize))
-            implicitHeight: panels.popouts.height * (1 + (bar.horizontal ? extraSize : 0))
+            x: shellAttached && !bar.horizontal ? -root.borderRounding : contentX - (bar.horizontal ? 0 : panels.popouts.width * extraSize)
+            y: shellAttached && bar.horizontal ? -root.borderRounding : contentY - (bar.horizontal ? panels.popouts.height * extraSize : 0)
+            implicitWidth: {
+                if (!panel.visible)
+                    return 0;
+                if (!shellAttached)
+                    return panels.popouts.width * (1 + (bar.horizontal ? 0 : extraSize));
+                const right = contentX + panels.popouts.width;
+                return bar.horizontal ? panels.popouts.width : right > 0 ? right - x : 0;
+            }
+            implicitHeight: {
+                if (!panel.visible)
+                    return 0;
+                if (!shellAttached)
+                    return panels.popouts.height * (1 + (bar.horizontal ? extraSize : 0));
+                const bottom = contentY + panels.popouts.height;
+                return bar.horizontal ? (bottom > 0 ? bottom - y : 0) : panels.popouts.height;
+            }
 
             Behavior on extraSize {
                 Anim {}

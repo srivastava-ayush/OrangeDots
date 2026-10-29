@@ -65,6 +65,10 @@ CustomMouseArea {
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
         const panelX = panels.x + panel.x;
+        if (panel === panels.dashboard && y <= Math.max(Config.border.minThickness, panels.y)) {
+            const center = panelX + panel.width / 2;
+            return Math.abs(x - center) <= panels.dashboard.hoverWidth / 2 + Config.border.rounding;
+        }
         return x >= panelX - Config.border.rounding && x <= panelX + panel.width + Config.border.rounding;
     }
 
