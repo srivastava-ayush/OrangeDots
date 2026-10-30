@@ -25,6 +25,16 @@ ShellRoot {
     settings.watchFiles: false
 
     property int step
+    property int mediaWaitTicks
+    readonly property QtObject recorderFixture: QtObject {
+        property bool running: false
+        property bool paused: false
+        property real elapsed: 75
+        property var startArgs: []
+        function start(args = []): void { startArgs = args; running = true; paused = false; }
+        function togglePause(): void { paused = !paused; }
+        function stop(): void { running = false; paused = false; }
+    }
     readonly property QtObject islandPlayer: QtObject {
         property string uniqueId: "island-fixture"
         property string trackTitle: "First track"
@@ -116,7 +126,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -515,6 +525,190 @@ ShellRoot {
                     return;
                 }
 
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "recorder-delete") {
+                    const scene = fullSceneLoader.item;
+                    const card = root.find(scene.contentItem, "overviewRecorder")?.item;
+                    switch (root.step) {
+                    case 0:
+                        scene.screenState.dashboardTab = 0;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 1:
+                        if (!card && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(!!card, "Recorder card must load for isolated deletion testing");
+                        card.recorder = root.recorderFixture;
+                        break;
+                    case 2:
+                        if (!root.find(card, "recordingDelete") && root.mediaWaitTicks++ < 20)
+                            return;
+                        root.check(!!root.find(card, "recordingDelete"), "Disposable recording must appear in history");
+                        root.find(card, "recordingDelete").clicked();
+                        break;
+                    case 3:
+                        root.check(card.props.recordingConfirmDelete.length > 0 && root.find(card, "recordingDeleteCancel").visible, "Delete must request confirmation before removing a file");
+                        root.find(card, "recordingDeleteCancel").clicked();
+                        break;
+                    case 4:
+                        root.check(card.props.recordingConfirmDelete === "" && !!root.find(card, "recordingDelete"), "Cancel must leave the disposable recording intact");
+                        root.find(card, "recordingDelete").clicked();
+                        break;
+                    case 5:
+                        root.find(card, "recordingDelete").clicked();
+                        break;
+                    case 6:
+                        if (root.find(card, "recordingDelete") && root.mediaWaitTicks++ < 30)
+                            return;
+                        root.check(card.props.recordingConfirmDelete === "" && !root.find(card, "recordingDelete"), "Confirmed deletion must remove the file and refresh the recording history");
+                        const history = root.find(card, "recorderCardHistory").item;
+                        const missing = `${Quickshell.env("CAELESTIA_RECORDINGS_DIR")}/missing.mp4`;
+                        card.props.recordingConfirmDelete = missing;
+                        history.confirmDelete(missing);
+                        root.check(history.deleteError.length > 0 && card.props.recordingConfirmDelete === missing, "A deletion failure must show an error and allow retry or cancellation");
+                        card.props.recordingConfirmDelete = "";
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "recorder-card") {
+                    const scene = fullSceneLoader.item;
+                    const card = root.find(scene.contentItem, "overviewRecorder")?.item;
+                    switch (root.step) {
+                    case 0:
+                        scene.screenState.dashboardTab = 0;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 1:
+                        if (!card && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(!!card, "Redesigned recorder card must load in Overview");
+                        card.recorder = root.recorderFixture;
+                        break;
+                    case 2:
+                        const capture = root.find(card, "recorderCardCapture");
+                        root.check(capture.visible && capture.menuItems.length === 4, "Idle recorder must expose all four capture modes");
+                        for (let index = 0; index < 4; index++) {
+                            capture.menuItems[index].clicked();
+                            root.check(JSON.stringify(root.recorderFixture.startArgs) === JSON.stringify([[], ["-r"], ["-s"], ["-sr"]][index]), "Capture mode must preserve the CLI arguments using only a mock recorder");
+                        }
+                        capture.menu.itemSelected(capture.menuItems[3]);
+                        root.check(card.props.recordingMode === capture.menuItems[3].icon + capture.menuItems[3].text, "Capture mode selection must persist in dashboard state");
+                        break;
+                    case 3:
+                        root.check(root.find(card, "recorderCardStatus").text === qsTr("Recording") && root.find(card, "recorderCardTimer").text === "01:15", "Running recorder must show a clear status and elapsed timer");
+                        root.check(!root.find(card, "recorderCardCapture").visible && !root.find(card, "recorderCardHistory").active, "Running recorder must replace capture/history with live controls");
+                        root.find(card, "recorderCardPause").clicked();
+                        break;
+                    case 4:
+                        root.check(root.find(card, "recorderCardStatus").text === qsTr("Paused") && root.find(card, "recorderCardPause").icon === "play_arrow", "Paused recorder must offer resume");
+                        root.find(card, "recorderCardPause").clicked();
+                        root.check(!root.recorderFixture.paused, "Resume control must resume the mock recorder");
+                        root.recorderFixture.elapsed = 3661;
+                        root.find(card, "recorderCardStop").clicked();
+                        break;
+                    case 5:
+                        root.check(!root.recorderFixture.running && root.find(card, "recorderCardCapture").visible && root.find(card, "recorderCardHistory").active, "Stop must restore capture and recordings history");
+                        root.check(card.elapsedText === "1:01:01", "Recorder timer must handle recordings over one hour");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "overview") {
+                    const scene = fullSceneLoader.item;
+                    switch (root.step) {
+                    case 0:
+                        scene.screenState.dashboardTab = 0;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 1:
+                        if (!root.find(scene.contentItem, "overviewSessionControls") && root.mediaWaitTicks++ < 10)
+                            return;
+                        const overview = root.find(scene.contentItem, "dashboardOverview");
+                        const profile = root.find(overview, "overviewProfileCard");
+                        root.check(overview.width === Tokens.sizes.dashboard.mediaTabWidth && profile.width <= 260, "Overview must use a compact profile panel within the Media tab footprint");
+                        for (const name of ["overviewAvatar", "overviewClock", "overviewUpdates", "overviewSessionControls"]) {
+                            const item = root.find(profile, name);
+                            root.check(!!item, `Compact profile must retain ${name}`);
+                            const pos = item.mapToItem(profile, 0, 0);
+                            root.check(pos.x >= 0 && pos.y >= 0 && pos.x + item.width <= profile.width + 0.01 && pos.y + item.height <= profile.height + 0.01, `${name} must fit inside the compact profile card`);
+                        }
+                        root.check(root.find(overview, "overviewSessionControls").children.filter(child => child.icon !== undefined).length === 5, "The minimal profile must retain all five session actions");
+                        root.check(!!root.find(overview, "overviewQuickControls") && !!root.find(overview, "overviewRecorder") && !!root.find(overview, "overviewWeather"), "Overview must retain utilities, recorder and weather");
+                        Weather.dataQuery = Weather.locationQuery;
+                        Weather.weather = {
+                            temperature: 22, feelsLike: 23, humidity: 55, windSpeed: 12,
+                            code: 1, isDay: true,
+                            days: [
+                                { date: "2026-10-30", code: 1, high: 24, low: 16, rainChance: 10 },
+                                { date: "2026-10-31", code: 2, high: 23, low: 15, rainChance: 25 },
+                                { date: "2026-11-01", code: 3, high: 21, low: 14, rainChance: 30 }
+                            ]
+                        };
+                        break;
+                    case 2:
+                        const weatherCard = root.find(scene.contentItem, "overviewWeather").item;
+                        const forecast = root.find(weatherCard, "overviewWeatherForecast");
+                        root.check(root.find(weatherCard, "overviewWeatherConditions").visible && !root.find(weatherCard, "overviewWeatherStatus").visible, "Weather must show current conditions when data is available");
+                        root.check(root.find(weatherCard, "overviewWeatherTemperature").text === Weather.temperature(22), "Weather hero must show the current temperature");
+                        root.check(forecast.children.filter(child => child.objectName === "overviewWeatherForecastDay").length === 3, "Weather must retain the compact three-day forecast");
+                        const forecastPosition = forecast.mapToItem(weatherCard, 0, 0);
+                        root.check(forecastPosition.y >= 0 && forecastPosition.y + forecast.height <= weatherCard.height, "Weather forecast must fit inside the redesigned card");
+                        Weather.weather = null;
+                        break;
+                    case 3:
+                        root.check(root.find(scene.contentItem, "overviewWeatherStatus").visible, "Weather must retain its setup and unavailable-data state");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "media-dashboard") {
+                    const scene = fullSceneLoader.item;
+                    switch (root.step) {
+                    case 0:
+                        GlobalConfig.dashboard.showMedia = true;
+                        scene.screenState.dashboardTab = 0;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 1:
+                        root.check(!!root.find(scene.contentItem, "dashboardMediaEmpty"), "The redesigned Media tab must retain its empty state");
+                        // Exercise layout regardless of playback availability;
+                        // never click controls or change a real player's state.
+                        root.find(scene.contentItem, "dashboardMediaContent").opacity = 1;
+                        break;
+                    case 2:
+                        if (!root.find(scene.contentItem, "dashboardMediaRepeat") && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(!!root.find(scene.contentItem, "dashboardMediaArtwork"), "Media tab must show rounded artwork instead of a click wheel");
+                        const visualizer = root.find(scene.contentItem, "dashboardMediaVisualizer");
+                        root.check(!!visualizer && visualizer.width > 0 && visualizer.height === 28 && visualizer.barCount > 2, "Media tab must show a compact spectrum beneath the artwork");
+                        root.check(visualizer.playing === (Players.active?.isPlaying ?? false), "Visualizer must follow playback state");
+                        const capabilities = { Shuffle: "shuffleSupported", Previous: "canGoPrevious", PlayPause: "canTogglePlaying", Next: "canGoNext", Repeat: "loopSupported" };
+                        for (const name of Object.keys(capabilities)) {
+                            const control = root.find(scene.contentItem, `dashboardMedia${name}`);
+                            root.check(!!control && control.disabled === !Players.active?.[capabilities[name]], `${name} must respect the player's capabilities`);
+                            const position = control.mapToItem(scene.interactionWrapper.panels.dashboard, 0, 0);
+                            root.check(position.y >= 0 && position.y + control.height <= scene.interactionWrapper.panels.dashboard.height, `${name} must fit within the dashboard height (y=${position.y}, height=${control.height}, dashboard=${scene.interactionWrapper.panels.dashboard.height})`);
+                        }
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "media-island") {
                     const scene = fullSceneLoader.item;
                     const island = scene.mediaIsland;
@@ -531,6 +725,8 @@ ShellRoot {
                         break;
                     case 1:
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
+                        const islandVisualizer = root.find(island, "mediaIslandVisualizer");
+                        root.check(!!islandVisualizer && islandVisualizer.height === 12 && islandVisualizer.width > 0 && islandVisualizer.playing, "Island must show a compact live spectrum while playing");
                         const background = root.findBackground(scene.contentItem, island);
                         const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
                         root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
@@ -544,11 +740,13 @@ ShellRoot {
                         break;
                     case 3:
                         root.check(island.expanded && !root.islandPlayer.isPlaying, "Pausing must reveal the island with working playback controls");
+                        root.check(!root.find(island, "mediaIslandVisualizer").playing, "Island spectrum must settle when playback pauses");
                         const islandBackground = root.findBackground(scene.contentItem, island);
                         root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
                         break;
                     case 4:
                         root.check(!island.expanded, "The island must automatically dismiss after its timeout");
+                        root.check(!root.find(island, "mediaIslandVisualizer"), "Hidden island must unload its visualizer and release its audio service reference");
                         root.islandPlayer.trackArtist = "Late artist metadata";
                         scene.screenState.dashboardTab = 1;
                         scene.screenState.dashboard = true;
@@ -558,19 +756,22 @@ ShellRoot {
                         root.islandPlayer.togglePlaying();
                         break;
                     case 6:
-                        root.check(island.expanded && scene.screenState.dashboard && scene.screenState.dashboardTab === 1, "Resuming must reveal the island without changing an open dashboard");
-                        island.fullscreen = true;
-                        root.check(!island.expanded, "Fullscreen must immediately dismiss the island");
+                        root.check(!island.expanded && scene.screenState.dashboard && scene.screenState.dashboardTab === 1, "Playback events must not reveal the island or change tabs while the dashboard is open");
+                        root.islandPlayer.previous();
                         break;
                     case 7:
+                        root.check(!island.expanded, "Track changes must also stay suppressed while the dashboard is open");
+                        scene.screenState.dashboard = false;
+                        island.fullscreen = true;
+                        root.check(!island.expanded, "Fullscreen must immediately dismiss the island");
                         island.fullscreen = false;
                         island.activeScreen = false;
-                        root.islandPlayer.previous();
+                        root.islandPlayer.next();
                         break;
                     case 8:
                         root.check(!island.expanded, "An unfocused screen must not reveal an island");
                         island.activeScreen = true;
-                        root.islandPlayer.next();
+                        root.islandPlayer.previous();
                         break;
                     case 9:
                         root.check(island.expanded, "A fresh track event on the focused screen must reveal the island");
@@ -617,7 +818,7 @@ ShellRoot {
                     } else if (phase === 1) {
                         const dashboard = panels.dashboard;
                         const requestedScale = index % 2 === 0 ? 0.6 : 1.4;
-                        root.check(dashboard.dashboardScale > 0 && dashboard.dashboardScale <= requestedScale + 0.001, `Dashboard scale must respect the requested size and screen bounds (case=${index}, actual=${dashboard.dashboardScale}, requested=${requestedScale}, config=${GlobalConfig.dashboard.scale})`);
+                        root.check(dashboard.dashboardScale > 0 && dashboard.dashboardScale <= requestedScale + 0.001, `Dashboard scale must respect the requested size and screen bounds (case=${index}, actual=${dashboard.dashboardScale}, requested=${requestedScale}, config=${GlobalConfig.dashboard.scale}, screenConfig=${GlobalConfig.forScreen(scene.screen.name).dashboard.scale})`);
                         root.check(Math.abs(dashboard.fullWidth - dashboard.naturalWidth * dashboard.dashboardScale) < 0.01, "Dashboard background and input width must follow the scaled content");
                         root.check(dashboard.fullWidth <= panels.width + 0.01 && dashboard.height <= panels.height + 0.01, "Scaled dashboard must fit inside the screen");
                         root.check(panels.dashboard.visible && dashBg.width === panels.dashboard.width, "Dashboard background must span its full width");
@@ -924,6 +1125,7 @@ ShellRoot {
                         break;
                     case 6:
                         root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Dashboard navigation should remain intact");
+                        root.check(!!root.find(root.nexusStack.currentItem, "weatherDataLicense"), "Weather provider and license must remain accessible in Nexus rather than cluttering the card");
                         root.check(root.find(root.nexusStack.currentItem, "dashboardScale").value === 100, "Dashboard scale must default to 100 percent");
                         root.find(root.nexusStack.currentItem, "dashboardScale").moved(90);
                         root.check(GlobalConfig.dashboard.scale === 90, "Nexus scale control must update dashboard preferences");

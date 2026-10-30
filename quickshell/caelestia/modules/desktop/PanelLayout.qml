@@ -115,6 +115,7 @@ Item {
     MediaIsland {
         id: mediaIsland
         fullscreen: root.fullscreen
+        dashboardOpen: root.screenState.dashboard
         activeScreen: ShellState.forActive() === root.screenState
         hideInset: root.bar.notched ? root.y : 0
         anchors.horizontalCenter: parent.horizontalCenter

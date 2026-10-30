@@ -2,7 +2,6 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
-import Caelestia.Components
 import Caelestia.Config
 import qs.components
 import qs.components.controls
@@ -13,284 +12,151 @@ StyledRect {
 
     required property var props
     required property ScreenState screenState
-    readonly property bool compact: width < 440
-    readonly property real nonAnimHeight: btnLayout.implicitHeight + listOrControls.implicitHeight + layout.spacing + layout.anchors.margins * 2
+    property var recorder: Recorder
+    readonly property real nonAnimHeight: layout.implicitHeight + Tokens.padding.large * 2
+    readonly property string elapsedText: {
+        const elapsed = Math.max(0, Math.floor(recorder.elapsed));
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
+        const seconds = (elapsed % 60).toString().padStart(2, "0");
+        return hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}:${seconds}` : `${minutes.toString().padStart(2, "0")}:${seconds}`;
+    }
 
-    implicitHeight: layout.implicitHeight + layout.anchors.margins * 2
-
-    radius: Tokens.rounding.large
+    implicitHeight: Math.max(232, nonAnimHeight)
+    radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
 
     ColumnLayout {
         id: layout
-
         anchors.fill: parent
         anchors.margins: Tokens.padding.large
         spacing: Tokens.spacing.medium
 
-        GridLayout {
-            id: btnLayout
-
-            columns: root.compact ? 2 : 3
-            columnSpacing: Tokens.spacing.medium
-            rowSpacing: Tokens.spacing.small
-
-            StyledRect {
-                implicitWidth: implicitHeight
-                implicitHeight: {
-                    const h = icon.implicitHeight + Tokens.padding.small * 2;
-                    return h - (h % 2);
-                }
-
-                radius: Tokens.rounding.full
-                color: Recorder.running ? Colours.palette.m3secondary : Colours.palette.m3secondaryContainer
-
-                MaterialIcon {
-                    id: icon
-
-                    anchors.centerIn: parent
-                    anchors.verticalCenterOffset: 1
-                    text: "screen_record"
-                    color: Recorder.running ? Colours.palette.m3onSecondary : Colours.palette.m3onSecondaryContainer
-                    fontStyle: Tokens.font.icon.large
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: qsTr("Screen Recorder")
-                    font: Tokens.font.body.medium
-                    elide: Text.ElideRight
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: Recorder.paused ? qsTr("Paused") : Recorder.running ? qsTr("Running...") : qsTr("Ready")
-                    color: Colours.palette.m3onSurfaceVariant
-                    font: Tokens.font.body.small
-                    elide: Text.ElideRight
-                    animate: true
-                }
-            }
-
-            SplitButton {
-                Layout.columnSpan: root.compact ? 2 : 1
-                Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
-                disabled: Recorder.running
-
-                active: menuItems.find(m => root.props.recordingMode === m.icon + m.text) ?? menuItems[0]
-                menu.onItemSelected: item => root.props.recordingMode = item.icon + item.text
-
-                menuItems: [
-                    MenuItem {
-                        icon: "fullscreen"
-                        text: qsTr("Record fullscreen")
-                        activeText: qsTr("Fullscreen")
-                        onClicked: Recorder.start()
-                    },
-                    MenuItem {
-                        icon: "screenshot_region"
-                        text: qsTr("Record region")
-                        activeText: qsTr("Region")
-                        onClicked: Recorder.start(["-r"])
-                    },
-                    MenuItem {
-                        icon: "select_to_speak"
-                        text: qsTr("Record fullscreen with sound")
-                        activeText: qsTr("Fullscreen")
-                        onClicked: Recorder.start(["-s"])
-                    },
-                    MenuItem {
-                        icon: "volume_up"
-                        text: qsTr("Record region with sound")
-                        activeText: qsTr("Region")
-                        onClicked: Recorder.start(["-sr"])
-                    }
-                ]
-            }
-        }
-
-        Loader {
-            id: listOrControls
-
-            property bool running: Recorder.running
-
-            asynchronous: true
-            Layout.fillWidth: true
-            Layout.preferredHeight: implicitHeight
-            sourceComponent: running ? recordingControls : recordingList
-            clip: Layout.preferredHeight < implicitHeight
-
-            Behavior on Layout.preferredHeight {
-                id: locHeightAnim
-
-                enabled: false
-
-                Anim {}
-            }
-
-            Behavior on running {
-                SequentialAnimation {
-                    Anim {
-                        target: listOrControls
-                        property: "opacity"
-                        to: 0
-                        type: Anim.DefaultEffects
-                    }
-                    PropertyAction {
-                        target: locHeightAnim
-                        property: "enabled"
-                        value: true
-                    }
-                    PropertyAction {}
-                    ParallelAnimation {
-                        SequentialAnimation {
-                            PauseAnimation {
-                                duration: 100
-                            }
-                            PropertyAction {
-                                target: locHeightAnim
-                                property: "enabled"
-                                value: false
-                            }
-                        }
-                        Anim {
-                            target: listOrControls
-                            property: "opacity"
-                            to: 1
-                            type: Anim.SlowEffects
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Component {
-        id: recordingList
-
-        RecordingList {
-            props: root.props
-            screenState: root.screenState
-        }
-    }
-
-    Component {
-        id: recordingControls
-
         RowLayout {
-            spacing: Tokens.spacing.medium
-
-            StyledRect {
-                radius: Tokens.rounding.full
-                color: Recorder.paused ? Colours.palette.m3tertiary : Colours.palette.m3error
-
-                implicitWidth: recText.implicitWidth + Tokens.padding.medium * 2
-                implicitHeight: recText.implicitHeight + Tokens.padding.large
-
-                StyledText {
-                    id: recText
-
-                    anchors.centerIn: parent
-                    animate: true
-                    text: Recorder.paused ? "PAUSED" : "REC"
-                    color: Recorder.paused ? Colours.palette.m3onTertiary : Colours.palette.m3onError
-                    font: Tokens.font.mono.small
-                }
-
-                Behavior on implicitWidth {
-                    Anim {}
-                }
-
-                SequentialAnimation on opacity {
-                    running: !Recorder.paused
-                    alwaysRunToEnd: true
-                    loops: Animation.Infinite
-
-                    Anim {
-                        from: 1
-                        to: 0
-                        duration: Tokens.anim.durations.large
-                        easing: Tokens.anim.emphasizedAccel
-                    }
-                    Anim {
-                        from: 0
-                        to: 1
-                        duration: Tokens.anim.durations.extraLarge
-                        easing: Tokens.anim.emphasizedDecel
-                    }
-                }
-            }
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
 
             StyledText {
                 Layout.fillWidth: true
-                text: {
-                    const elapsed = Recorder.elapsed;
-
-                    const hours = Math.floor(elapsed / 3600);
-                    const mins = Math.floor((elapsed % 3600) / 60);
-                    const secs = Math.floor(elapsed % 60).toString().padStart(2, "0");
-
-                    let time;
-                    if (hours > 0)
-                        time = `${hours}:${mins.toString().padStart(2, "0")}:${secs}`;
-                    else
-                        time = `${mins}:${secs}`;
-
-                    return qsTr("Recording for %1").arg(time);
-                }
-                font: Tokens.font.body.medium
-                elide: Text.ElideMiddle
+                text: qsTr("Screen recorder")
+                font: Tokens.font.title.small
+                elide: Text.ElideRight
             }
 
-            ButtonRow {
-                spacing: Tokens.spacing.extraSmall
+            StyledRect {
+                implicitWidth: 6
+                implicitHeight: 6
+                radius: 3
+                color: root.recorder.paused ? Colours.palette.m3tertiary : root.recorder.running ? Colours.palette.m3error : Colours.palette.m3outline
+            }
 
-                IconButton {
-                    shapeMorph: true
-                    isRound: true
-                    label.animate: true
-                    icon: Recorder.paused ? "play_arrow" : "pause"
-                    isToggle: true
-                    checked: Recorder.paused
-                    type: IconButton.Tonal
-                    font: Tokens.font.icon.medium
-                    onClicked: {
-                        Recorder.togglePause();
-                        internalChecked = Recorder.paused;
-                    }
-
-                    implicitWidth: {
-                        // Ensure even size so icon is centered properly
-                        const h = label.implicitHeight + Tokens.padding.large * 2;
-                        if (h % 2 !== 0)
-                            return h + 1;
-                        return h;
-                    }
-                }
-
-                IconButton {
-                    shapeMorph: true
-                    isRound: true
-                    icon: "stop"
-                    inactiveColour: Colours.palette.m3error
-                    inactiveOnColour: Colours.palette.m3onError
-                    font: Tokens.font.icon.medium
-                    onClicked: Recorder.stop()
-
-                    implicitWidth: {
-                        // Ensure even size so icon is centered properly
-                        const h = label.implicitHeight + Tokens.padding.large * 2;
-                        if (h % 2 !== 0)
-                            return h + 1;
-                        return h;
-                    }
-                }
+            StyledText {
+                objectName: "recorderCardStatus"
+                text: root.recorder.paused ? qsTr("Paused") : root.recorder.running ? qsTr("Recording") : qsTr("Ready")
+                color: Colours.palette.m3onSurfaceVariant
+                font: Tokens.font.label.small
             }
         }
+
+        SplitButton {
+            id: capture
+            objectName: "recorderCardCapture"
+            Layout.fillWidth: true
+            Layout.alignment: Qt.AlignHCenter
+            visible: !root.recorder.running
+            minLeftWidth: Math.max(0, layout.width - expandBtn.implicitWidth - spacing)
+            label.Layout.maximumWidth: Math.max(0, minLeftWidth - iconLabel.implicitWidth - textRow.spacing - horizontalPadding * 2)
+            label.elide: Text.ElideRight
+            menuOnTop: true
+            active: menuItems.find(m => root.props.recordingMode === m.icon + m.text) ?? menuItems[0]
+            menu.onItemSelected: item => root.props.recordingMode = item.icon + item.text
+
+            menuItems: [
+                MenuItem {
+                    icon: "fullscreen"
+                    text: qsTr("Record fullscreen")
+                    activeText: qsTr("Record screen")
+                    onClicked: root.recorder.start()
+                },
+                MenuItem {
+                    icon: "screenshot_region"
+                    text: qsTr("Record region")
+                    activeText: qsTr("Record region")
+                    onClicked: root.recorder.start(["-r"])
+                },
+                MenuItem {
+                    icon: "select_to_speak"
+                    text: qsTr("Record fullscreen with sound")
+                    activeText: qsTr("Screen + audio")
+                    onClicked: root.recorder.start(["-s"])
+                },
+                MenuItem {
+                    icon: "volume_up"
+                    text: qsTr("Record region with sound")
+                    activeText: qsTr("Region + audio")
+                    onClicked: root.recorder.start(["-sr"])
+                }
+            ]
+        }
+
+        RowLayout {
+            objectName: "recorderCardLiveControls"
+            Layout.fillWidth: true
+            visible: root.recorder.running
+            spacing: Tokens.spacing.small
+
+            StyledText {
+                objectName: "recorderCardTimer"
+                Layout.fillWidth: true
+                text: root.elapsedText
+                font: Tokens.font.headline.medium
+                elide: Text.ElideRight
+            }
+
+            IconButton {
+                objectName: "recorderCardPause"
+                icon: root.recorder.paused ? "play_arrow" : "pause"
+                type: IconButton.Tonal
+                onClicked: root.recorder.togglePause()
+            }
+
+            IconButton {
+                objectName: "recorderCardStop"
+                icon: "stop"
+                type: IconButton.Filled
+                inactiveColour: Colours.palette.m3error
+                inactiveOnColour: Colours.palette.m3onError
+                onClicked: root.recorder.stop()
+            }
+        }
+
+        StyledRect {
+            Layout.fillWidth: true
+            implicitHeight: 1
+            color: Colours.palette.m3outlineVariant
+        }
+
+        Loader {
+            objectName: "recorderCardHistory"
+            Layout.fillWidth: true
+            asynchronous: true
+            active: !root.recorder.running
+            visible: active
+            sourceComponent: RecordingList {
+                props: root.props
+                screenState: root.screenState
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            visible: root.recorder.running
+            text: root.recorder.paused ? qsTr("Resume when you're ready") : qsTr("Recording in progress")
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.small
+            elide: Text.ElideRight
+        }
+
+        Item { Layout.fillHeight: true }
     }
 }

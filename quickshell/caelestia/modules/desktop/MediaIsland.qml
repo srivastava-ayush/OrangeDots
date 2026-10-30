@@ -7,6 +7,7 @@ import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.modules.dashboard.media as DashboardMedia
 import qs.services
 
 // Independent player content, drawn on the shell's shared dashboard surface.
@@ -15,6 +16,7 @@ Item {
 
     required property bool fullscreen
     required property bool activeScreen
+    property bool dashboardOpen: false
     property real hideInset: 0
     property var player: Players.active
     property int displayDuration: 5000
@@ -26,9 +28,23 @@ Item {
     property real offsetScale: expanded ? 0 : 1
     readonly property real reveal: Math.max(0, Math.min(1, 1 - offsetScale))
 
-    onEventKeyChanged: eventDelay.restart()
+    onEventKeyChanged: {
+        if (dashboardOpen) {
+            lastEventKey = eventKey;
+            eventDelay.stop();
+        } else {
+            eventDelay.restart();
+        }
+    }
     onFullscreenChanged: if (fullscreen) dismiss()
     onActiveScreenChanged: if (!activeScreen) dismiss()
+    onDashboardOpenChanged: {
+        if (dashboardOpen) {
+            dismiss();
+            eventDelay.stop();
+            lastEventKey = eventKey;
+        }
+    }
 
     function dismiss(): void {
         expanded = false;
@@ -62,7 +78,7 @@ Item {
             if (root.eventKey === root.lastEventKey)
                 return;
             root.lastEventKey = root.eventKey;
-            if (root.fullscreen || !root.activeScreen)
+            if (root.fullscreen || !root.activeScreen || root.dashboardOpen)
                 return;
             root.expanded = true;
             hideTimer.restart();
@@ -129,6 +145,18 @@ Item {
                     font: Tokens.font.label.small
                     color: Colours.palette.m3onSurfaceVariant
                     elide: Text.ElideRight
+                }
+
+                Loader {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 12
+                    active: root.visible
+                    sourceComponent: DashboardMedia.EqBars {
+                        objectName: "mediaIslandVisualizer"
+                        barWidth: 3
+                        barSpacing: 2
+                        playing: root.player?.isPlaying ?? false
+                    }
                 }
             }
 

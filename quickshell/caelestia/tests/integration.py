@@ -34,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "notifications", "hover", "media-island", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "notifications", "hover", "media-island", "media-dashboard", "overview", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     parser.add_argument("--shell-root", type=Path, default=SHELL, help="Load QML modules from a staged/installed shell tree")
     args = parser.parse_args()
@@ -112,7 +112,16 @@ def main():
                         "extraArgs": ["-s", "1280x720", "-q", "medium", "-k", "hevc", "-f", "60", "-cursor", "no", "-tune", "performance", "-bm", "vbr"],
                     },
                 }))
+            if mode == "recorder-delete":
+                recordings = base / "recordings"
+                recordings.mkdir()
+                (recordings / "recording_20261030_12-30-00 test.mp4").write_text("disposable recording fixture")
+                (recordings / "keep.mp4").write_text("keep this file")
+                env["CAELESTIA_RECORDINGS_DIR"] = str(recordings)
             run(config, env, "left", mode=mode)
+            if mode == "recorder-delete":
+                assert not (recordings / "recording_20261030_12-30-00 test.mp4").exists()
+                assert (recordings / "keep.mp4").read_text() == "keep this file"
             print(f"PASS: {mode}")
             return
 

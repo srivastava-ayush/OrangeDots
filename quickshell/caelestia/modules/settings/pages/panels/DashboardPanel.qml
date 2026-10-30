@@ -168,12 +168,20 @@ PageBase {
         }
 
         RowButton {
-            last: true
             icon: "refresh"
             text: Weather.loading ? qsTr("Updating weather…") : qsTr("Refresh weather now")
             subtext: Weather.hasData ? qsTr("Last updated %1").arg(Qt.formatTime(Weather.updatedAt, GlobalConfig.services.useTwelveHourClock ? "hh:mm a" : "HH:mm")) : qsTr("No API key required")
             disabled: Weather.loading || !Weather.locationQuery
             onClicked: Weather.refresh()
+        }
+
+        RowButton {
+            objectName: "weatherDataLicense"
+            last: true
+            icon: "open_in_new"
+            text: qsTr("Weather data & license")
+            subtext: qsTr("Open-Meteo · CC BY 4.0")
+            onClicked: Qt.openUrlExternally("https://open-meteo.com/en/licence")
         }
 
         StyledText {

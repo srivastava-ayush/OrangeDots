@@ -9,20 +9,11 @@ import qs.components
 import qs.components.controls
 import qs.services
 
-// Track info + controls; the shared card background comes from Media.qml
+// Expanded island controls; the shared card background comes from Media.qml.
 StyledRect {
     id: root
 
     readonly property bool hasUnknownLength: (Players.active?.length ?? 0) > 2147483647
-    readonly property string loopLabel: {
-        const state = Players.active?.loopState;
-        if (state === MprisLoopState.Track)
-            return qsTr("Repeat · one");
-        if (state === MprisLoopState.Playlist)
-            return qsTr("Repeat · all");
-        return qsTr("Repeat · off");
-    }
-
     function lengthStr(length: int): string {
         if (length < 0)
             return "-1:-1";
@@ -48,9 +39,27 @@ StyledRect {
             onTriggered: Players.active?.positionChanged()
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Tokens.spacing.small
+
+            MaterialIcon {
+                text: Players.active?.isPlaying ? "graphic_eq" : "pause"
+                color: Colours.palette.m3primary
+                fontStyle: Tokens.font.icon.small
+            }
+
+            StyledText {
+                Layout.fillWidth: true
+                text: [Players.active?.isPlaying ? qsTr("Playing") : qsTr("Paused"), Players.getIdentity(Players.active)].filter(Boolean).join(" · ")
+                color: Colours.palette.m3primary
+                font: Tokens.font.label.medium
+                elide: Text.ElideRight
+            }
+        }
+
         StyledText {
             Layout.fillWidth: true
-            Layout.topMargin: Tokens.spacing.small
             text: Players.active?.trackTitle ?? ""
             font: Tokens.font.title.large
             elide: Text.ElideRight
@@ -59,11 +68,20 @@ StyledRect {
 
         StyledText {
             Layout.fillWidth: true
-            text: `${Players.active?.trackArtist || qsTr("Unknown artist")} • ${Players.active?.trackAlbum || qsTr("Unknown album")}`
+            text: Players.active?.trackArtist || qsTr("Unknown artist")
             color: Colours.palette.m3onSurfaceVariant
-            font: Tokens.font.body.large
+            font: Tokens.font.body.medium
             elide: Text.ElideRight
             animate: true
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            text: Players.active?.trackAlbum ?? ""
+            visible: text.length > 0
+            color: Colours.palette.m3outline
+            font: Tokens.font.label.medium
+            elide: Text.ElideRight
         }
 
         // Push the controls to the bottom of the card
@@ -72,7 +90,7 @@ StyledRect {
         }
 
         RowLayout {
-            Layout.topMargin: Tokens.spacing.extraLargeIncreased
+            Layout.topMargin: Tokens.spacing.small
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
@@ -99,10 +117,7 @@ StyledRect {
                 Layout.fillWidth: true
                 value: Players.active ? Players.active.position / (Players.active.length || 1) : 0
                 enabled: (Players.active?.canSeek ?? false) && !root.hasUnknownLength
-                wavy: true
-                animateWave: Players.active?.isPlaying ?? false
-                waveFrequency: 5
-                waveDuration: 2000
+                wavy: false
                 interactionOnMove: false
                 onInteraction: value => {
                     const active = Players.active;
@@ -128,15 +143,53 @@ StyledRect {
         }
 
         RowLayout {
-            Layout.topMargin: Tokens.spacing.medium
+            Layout.topMargin: Tokens.spacing.small
             Layout.fillWidth: true
             spacing: Tokens.spacing.small
 
             IconButton {
-                type: IconButton.Tonal
+                objectName: "dashboardMediaShuffle"
+                type: IconButton.Text
+                icon: "shuffle"
+                checked: Players.active?.shuffle ?? false
+                disabled: !Players.active?.shuffleSupported
+                onClicked: Players.active.shuffle = !Players.active.shuffle
+            }
+
+            Item { Layout.fillWidth: true }
+
+            IconButton {
+                objectName: "dashboardMediaPrevious"
+                type: IconButton.Text
+                icon: "skip_previous"
+                disabled: !Players.active?.canGoPrevious
+                onClicked: Players.active?.previous()
+            }
+
+            IconButton {
+                objectName: "dashboardMediaPlayPause"
+                type: IconButton.Filled
+                icon: Players.active?.isPlaying ? "pause" : "play_arrow"
+                disabled: !Players.active?.canTogglePlaying
+                padding: Tokens.padding.medium
+                onClicked: Players.active?.togglePlaying()
+            }
+
+            IconButton {
+                objectName: "dashboardMediaNext"
+                type: IconButton.Text
+                icon: "skip_next"
+                disabled: !Players.active?.canGoNext
+                onClicked: Players.active?.next()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            IconButton {
+                objectName: "dashboardMediaRepeat"
+                type: IconButton.Text
                 icon: Players.active?.loopState === MprisLoopState.Track ? "repeat_one" : "repeat"
                 isRound: true
-                shapeMorph: true
                 checked: Players.active?.loopState === MprisLoopState.Track || Players.active?.loopState === MprisLoopState.Playlist
                 font: Tokens.font.icon.builders.medium.weight(Font.Medium).build()
                 disabled: !Players.active?.loopSupported
@@ -152,22 +205,6 @@ StyledRect {
                 implicitWidth: Math.round(implicitHeight * 0.9)
             }
 
-            StyledText {
-                text: root.loopLabel
-                color: Colours.palette.m3onSurfaceVariant
-                font: Tokens.font.label.builders.medium.weight(Font.Medium).build()
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            // Engraved branding, iPod style
-            StyledText {
-                text: qsTr("ORANGEPOD")
-                color: Colours.palette.m3outline
-                font: Tokens.font.mono.builders.small.weight(Font.Medium).capitalisation(Font.AllUppercase).letterSpacing(1.5).build()
-            }
         }
     }
 }

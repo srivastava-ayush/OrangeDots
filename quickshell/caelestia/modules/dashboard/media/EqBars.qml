@@ -13,7 +13,7 @@ Item {
     property int barWidth: 5
     property int barSpacing: 3
 
-    readonly property bool playing: Players.active?.isPlaying ?? false
+    property bool playing: Players.active?.isPlaying ?? false
     readonly property int barCount: Math.max(2, Math.floor((width + barSpacing) / (barWidth + barSpacing)))
 
     // Hold a ref so the cava service actually starts its capture thread
@@ -38,16 +38,16 @@ Item {
 
             required property int index
 
-                readonly property real level: {
-                    const vals = Audio.cava.values;
-                    if (!vals.length || !root.playing)
-                        return 0;
-                    // Sample across the spectrum so neighbours move smoothly together,
-                    // then lift quiet bins with a gamma curve so bars visibly dance
-                    const idx = Math.floor((index + 0.5) * vals.length / root.barCount);
-                    const raw = Math.max(0, Math.min(1, vals[idx]));
-                    return Math.pow(raw, 0.4);
-                }
+            readonly property real level: {
+                const vals = Audio.cava.values;
+                if (!vals.length || !root.playing)
+                    return 0;
+                // Sample across the spectrum so neighbours move smoothly together,
+                // then lift quiet bins with a gamma curve so quiet audio is visible.
+                const idx = Math.floor((index + 0.5) * vals.length / root.barCount);
+                const raw = Math.max(0, Math.min(1, vals[idx]));
+                return Math.pow(raw, 0.4);
+            }
 
             // Distribute the bars evenly across the full width
             x: Math.round(index * (root.width - root.barWidth) / (root.barCount - 1))

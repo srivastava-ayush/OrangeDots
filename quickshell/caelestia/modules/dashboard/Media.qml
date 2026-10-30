@@ -1,7 +1,7 @@
 import "media"
 import QtQuick
 import QtQuick.Layouts
-import M3Shapes
+import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.services
@@ -71,9 +71,9 @@ Item {
 
             Loader {
                 id: noMedia
+                objectName: "dashboardMediaEmpty"
 
                 anchors.centerIn: parent
-                anchors.horizontalCenterOffset: -Tokens.padding.extraLarge * 2
                 asynchronous: true
                 active: opacity > 0
                 opacity: 0
@@ -81,17 +81,13 @@ Item {
                 sourceComponent: ColumnLayout {
                     spacing: Tokens.spacing.small
 
-                    MaterialShape {
-                        Layout.topMargin: (pathBounds().height - implicitSize) / 2
-                        Layout.bottomMargin: (pathBounds().height - implicitSize) / 2 + Tokens.spacing.small
+                    StyledRect {
+                        Layout.bottomMargin: Tokens.spacing.small
                         Layout.alignment: Qt.AlignHCenter
-                        color: Colours.palette.m3primaryContainer
-                        implicitSize: icon.implicitHeight + Tokens.padding.extraLarge * 2
-                        shape: MaterialShape.ClamShell
-
-                        Behavior on color {
-                            CAnim {}
-                        }
+                        color: Colours.palette.m3secondaryContainer
+                        implicitWidth: 96
+                        implicitHeight: 96
+                        radius: Tokens.rounding.extraLarge
 
                         MaterialIcon {
                             id: icon
@@ -99,7 +95,7 @@ Item {
                             anchors.centerIn: parent
                             text: "queue_music"
                             fontStyle: Tokens.font.icon.builders.large.scale(2).build()
-                            color: Colours.palette.m3onPrimaryContainer
+                            color: Colours.palette.m3onSecondaryContainer
                         }
                     }
 
@@ -119,6 +115,7 @@ Item {
 
             Loader {
                 id: content
+                objectName: "dashboardMediaContent"
 
                 anchors.fill: parent
                 asynchronous: true
@@ -127,7 +124,7 @@ Item {
                 sourceComponent: RowLayout {
                     spacing: Tokens.spacing.extraLarge
 
-                    // One card for the click wheel + track info
+                    // An expanded island: artwork, metadata and direct controls.
                     StyledRect {
                         id: mediaCard
 
@@ -136,19 +133,56 @@ Item {
 
                         color: Colours.tPalette.m3surfaceContainer
                         radius: Tokens.rounding.extraLarge
-                        clip: true // keep the eq strip inside the rounded corners
+                        clip: true
 
                         RowLayout {
                             anchors.fill: parent
                             anchors.leftMargin: Tokens.padding.largeIncreased
                             anchors.rightMargin: Tokens.padding.largeIncreased
                             anchors.topMargin: Tokens.padding.largeIncreased
-                            anchors.bottomMargin: Tokens.padding.largeIncreased + mediaCard.eqHeight + Tokens.spacing.medium
+                            anchors.bottomMargin: Tokens.padding.largeIncreased
                             spacing: Tokens.spacing.extraLarge
 
-                            ClickWheel {
-                                Layout.fillHeight: true
-                                Layout.preferredWidth: Math.min(height, Tokens.sizes.dashboard.mediaSectionWidth)
+                            ColumnLayout {
+                                id: artworkColumn
+                                readonly property real artworkSize: Math.max(64, Math.min(mediaCard.height - Tokens.padding.largeIncreased * 2 - 40, 220))
+                                Layout.alignment: Qt.AlignVCenter
+                                Layout.preferredWidth: artworkSize
+                                Layout.maximumWidth: artworkSize
+                                Layout.minimumWidth: 0
+                                spacing: Tokens.spacing.small
+
+                                ClippingRectangle {
+                                    objectName: "dashboardMediaArtwork"
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: artworkColumn.artworkSize
+                                    Layout.minimumHeight: 0
+                                    Layout.maximumHeight: artworkColumn.artworkSize
+                                    radius: Tokens.rounding.extraLarge
+                                    color: Colours.palette.m3secondaryContainer
+
+                                    MaterialIcon {
+                                        anchors.centerIn: parent
+                                        text: "music_note"
+                                        fontStyle: Tokens.font.icon.builders.large.scale(2).build()
+                                        color: Colours.palette.m3onSecondaryContainer
+                                    }
+
+                                    Image {
+                                        anchors.fill: parent
+                                        source: Players.getArtUrl(Players.active)
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true
+                                        sourceSize.width: 440
+                                        sourceSize.height: 440
+                                    }
+                                }
+
+                                EqBars {
+                                    objectName: "dashboardMediaVisualizer"
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 28
+                                }
                             }
 
                             Details {
@@ -157,15 +191,6 @@ Item {
                             }
                         }
 
-                        EqBars {
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.bottom: parent.bottom
-                            height: mediaCard.eqHeight
-                        }
-
-                        // reserved strip height for the eq
-                        readonly property int eqHeight: 40
                     }
 
                     LyricsAndSelector {

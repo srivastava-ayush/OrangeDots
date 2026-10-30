@@ -18,6 +18,7 @@ import qs.utils
 
 Item {
     id: root
+    objectName: "dashboardOverview"
 
     required property ScreenState screenState
     required property FileDialog facePicker
@@ -29,24 +30,16 @@ Item {
         id: dashProps
 
         property bool recordingListExpanded
+        property string recordingMode
         property string recordingConfirmDelete
 
         reloadableId: "dashboard-recording"
     }
 
-    // Floor for the top row so the user card keeps a sane height; the row
-    // grows beyond it when the utility, recorder, or weather cards need more room.
-    readonly property int topRowHeight: 352
-
-    // Extra width beyond the content sum so the dash reads as a rectangle
-    // and the three utility toggles have room for their labels.
-    readonly property int extraWidth: 480
-
-    // Give the horizontal forecast more room within the existing dashboard;
-    // the recorder uses the remaining width and adapts its header.
-    readonly property int weatherCardWidth: Math.max(420, Tokens.sizes.dashboard.weatherWidth)
-
-    implicitWidth: Tokens.sizes.dashboard.userWidth + Tokens.sizes.dashboard.weatherWidth + Tokens.spacing.medium * 3 + root.extraWidth
+    // Match Media's footprint instead of widening the shell for one tab.
+    // Content can still grow vertically for recorder history or active utilities.
+    readonly property int weatherCardWidth: Math.max(360, Tokens.sizes.dashboard.weatherWidth)
+    implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
     implicitHeight: layout.implicitHeight
 
     ColumnLayout {
@@ -58,16 +51,20 @@ Item {
         RowLayout {
             id: row
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(root.topRowHeight, utilCards.implicitHeight)
+            Layout.preferredHeight: Math.max(288, userCard.implicitHeight, utilCards.implicitHeight)
             spacing: Tokens.spacing.medium
 
             Rect {
-                Layout.preferredWidth: Tokens.sizes.dashboard.userWidth
+                id: userCard
+                objectName: "overviewProfileCard"
+                Layout.preferredWidth: Math.min(260, Tokens.sizes.dashboard.userWidth)
                 Layout.fillHeight: true
+                implicitHeight: userContent.implicitHeight
 
                 radius: Tokens.rounding.extraLarge
 
                 User {
+                    id: userContent
                     screenState: root.screenState
                     facePicker: root.facePicker
                 }
@@ -81,6 +78,7 @@ Item {
                 spacing: Tokens.spacing.medium
 
                 RowLayout {
+                    objectName: "overviewQuickControls"
                     Layout.fillWidth: true
                     spacing: Tokens.spacing.medium
 
@@ -114,6 +112,7 @@ Item {
 
                     Loader {
                         id: recorderCard
+                        objectName: "overviewRecorder"
 
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -130,6 +129,7 @@ Item {
 
                     Loader {
                         id: weatherCard
+                        objectName: "overviewWeather"
 
                         Layout.fillWidth: !recorderCard.active
                         Layout.fillHeight: true

@@ -7,12 +7,14 @@ import qs.components
 import qs.components.controls
 import qs.services
 
-Item {
+StyledRect {
+    color: Colours.tPalette.m3surfaceContainer
+    radius: Tokens.rounding.extraLarge
     ColumnLayout {
         id: layout
 
         anchors.fill: parent
-        anchors.leftMargin: Tokens.padding.medium
+        anchors.margins: Tokens.padding.largeIncreased
         spacing: Tokens.spacing.medium
 
         RowLayout {
