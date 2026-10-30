@@ -4,6 +4,7 @@ import Quickshell
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.services
 import qs.modules.taskbar as Bar
 import qs.modules.taskbar.popouts as BarPopouts
 
@@ -22,6 +23,7 @@ CustomMouseArea {
     property bool dashboardShortcutActive
     property bool osdShortcutActive
     property bool launcherShortcutActive
+    readonly property bool mediaPlaying: Players.active?.isPlaying ?? false
 
     function inBarPopout(x: real, y: real): bool {
         if (!popouts.hasCurrent || popouts.isDetached)
@@ -199,6 +201,8 @@ CustomMouseArea {
         const overBarEntry = bar.horizontal && y < bar.thickness && bar.blocksDashboardHover(x, y);
         const calendarOpen = bar.horizontal && popouts.hasCurrent && popouts.currentName === "clock";
         const showDashboard = Config.dashboard.showOnHover && !overBarEntry && !calendarOpen && inTopPanel(panels.dashboard, x, y);
+        if (showDashboard && !screenState.dashboard)
+            panels.dashboard.selectDefaultTab(mediaPlaying);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!dashboardShortcutActive) {

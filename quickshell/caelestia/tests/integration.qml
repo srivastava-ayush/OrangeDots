@@ -25,6 +25,20 @@ ShellRoot {
     settings.watchFiles: false
 
     property int step
+    readonly property QtObject islandPlayer: QtObject {
+        property string uniqueId: "island-fixture"
+        property string trackTitle: "First track"
+        property string trackArtist: "Test artist"
+        property string trackArtUrl: ""
+        property var metadata: ({})
+        property bool isPlaying: true
+        property bool canGoPrevious: true
+        property bool canGoNext: true
+        property bool canTogglePlaying: true
+        function previous(): void { trackTitle = "First track"; }
+        function next(): void { trackTitle = "Second track"; }
+        function togglePlaying(): void { isPlaying = !isPlaying; }
+    }
     property point bannerPosition
     property NotifData sampleNotification
     readonly property var hoverCases: [
@@ -102,7 +116,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -501,6 +515,85 @@ ShellRoot {
                     return;
                 }
 
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "media-island") {
+                    const scene = fullSceneLoader.item;
+                    const island = scene.mediaIsland;
+                    switch (root.step) {
+                    case 0:
+                        root.check(island.displayDuration === 5000, "Media island must default to a five-second timeout");
+                        Taskbar.style = "unified";
+                        Taskbar.orientation = "top";
+                        island.displayDuration = 850;
+                        island.activeScreen = true;
+                        island.fullscreen = false;
+                        island.player = root.islandPlayer;
+                        scene.screenState.dashboard = false;
+                        break;
+                    case 1:
+                        root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
+                        const background = root.findBackground(scene.contentItem, island);
+                        const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
+                        root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
+                        root.check(island.parent === scene.interactionWrapper.panels && Math.abs(island.y) < 0.01, "The island must live directly inside the shell at the dashboard entry edge");
+                        root.find(island, "islandNext").clicked(null);
+                        break;
+                    case 2:
+                        root.check(island.expanded && root.islandPlayer.trackTitle === "Second track" && !scene.screenState.dashboard, "Next track must renew the island without opening the dashboard");
+                        root.find(island, "islandPlayPause").clicked(null);
+                        Taskbar.style = "notches";
+                        break;
+                    case 3:
+                        root.check(island.expanded && !root.islandPlayer.isPlaying, "Pausing must reveal the island with working playback controls");
+                        const islandBackground = root.findBackground(scene.contentItem, island);
+                        root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
+                        break;
+                    case 4:
+                        root.check(!island.expanded, "The island must automatically dismiss after its timeout");
+                        root.islandPlayer.trackArtist = "Late artist metadata";
+                        scene.screenState.dashboardTab = 1;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 5:
+                        root.check(!island.expanded, "Late artist metadata must not retrigger the island");
+                        root.islandPlayer.togglePlaying();
+                        break;
+                    case 6:
+                        root.check(island.expanded && scene.screenState.dashboard && scene.screenState.dashboardTab === 1, "Resuming must reveal the island without changing an open dashboard");
+                        island.fullscreen = true;
+                        root.check(!island.expanded, "Fullscreen must immediately dismiss the island");
+                        break;
+                    case 7:
+                        island.fullscreen = false;
+                        island.activeScreen = false;
+                        root.islandPlayer.previous();
+                        break;
+                    case 8:
+                        root.check(!island.expanded, "An unfocused screen must not reveal an island");
+                        island.activeScreen = true;
+                        root.islandPlayer.next();
+                        break;
+                    case 9:
+                        root.check(island.expanded, "A fresh track event on the focused screen must reveal the island");
+                        island.player = null;
+                        break;
+                    case 10:
+                        root.check(!island.expanded && !island.visible, "Player removal must dismiss the island");
+                        island.offsetScale = 0.5;
+                        break;
+                    case 11:
+                        const playerContent = root.find(island, "mediaIslandContent");
+                        root.check(Math.abs(island.width - island.fullWidth * 0.74) < 0.01 && island.opacity === 0.5, "Island must match the dashboard's centered curtain and fade halfway through the animation");
+                        root.check(island.y === (-island.height - island.hideInset - 5) * 0.5, "Island must use the dashboard's slide distance with its top inset");
+                        root.check(playerContent.width === island.fullWidth - 32, "Island content must remain full-sized during the reveal animation");
+                        island.offsetScale = 1;
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "attachments") {
                     const scene = fullSceneLoader.item;
                     const panels = scene.interactionWrapper.panels;
@@ -519,8 +612,14 @@ ShellRoot {
                         Taskbar.style = "notches";
                         Taskbar.orientation = entry.orientation;
                         GlobalConfig.bar.persistent = true;
+                        GlobalConfig.dashboard.scale = index % 2 === 0 ? 60 : 140;
                         scene.screenState.dashboard = true;
                     } else if (phase === 1) {
+                        const dashboard = panels.dashboard;
+                        const requestedScale = index % 2 === 0 ? 0.6 : 1.4;
+                        root.check(dashboard.dashboardScale > 0 && dashboard.dashboardScale <= requestedScale + 0.001, `Dashboard scale must respect the requested size and screen bounds (case=${index}, actual=${dashboard.dashboardScale}, requested=${requestedScale}, config=${GlobalConfig.dashboard.scale})`);
+                        root.check(Math.abs(dashboard.fullWidth - dashboard.naturalWidth * dashboard.dashboardScale) < 0.01, "Dashboard background and input width must follow the scaled content");
+                        root.check(dashboard.fullWidth <= panels.width + 0.01 && dashboard.height <= panels.height + 0.01, "Scaled dashboard must fit inside the screen");
                         root.check(panels.dashboard.visible && dashBg.width === panels.dashboard.width, "Dashboard background must span its full width");
                         root.check(dashBg.y < 0 && dashBg.y + dashBg.height >= panels.y + panels.dashboard.y + panels.dashboard.height - 1, "Dashboard must connect directly to the shell's top edge");
                         scene.screenState.dashboard = false;
@@ -825,6 +924,9 @@ ShellRoot {
                         break;
                     case 6:
                         root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Dashboard navigation should remain intact");
+                        root.check(root.find(root.nexusStack.currentItem, "dashboardScale").value === 100, "Dashboard scale must default to 100 percent");
+                        root.find(root.nexusStack.currentItem, "dashboardScale").moved(90);
+                        root.check(GlobalConfig.dashboard.scale === 90, "Nexus scale control must update dashboard preferences");
                         root.find(root.nexusStack.currentItem, "dashboardUtilities").clicked(null);
                         break;
                     case 7:
@@ -833,6 +935,9 @@ ShellRoot {
                         break;
                     case 8:
                         root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Back from Utilities should return to Dashboard");
+                        root.check(root.find(root.nexusStack.currentItem, "dashboardScale").value === 90, "Dashboard scale must survive settings page navigation");
+                        root.find(root.nexusStack.currentItem, "dashboardScaleReset").clicked(null);
+                        root.check(GlobalConfig.dashboard.scale === 100, "Dashboard size reset must restore 100 percent");
                         root.find(root.nexusStack.currentItem, "dashboardCalendarSettings").clicked(null);
                         break;
                     case 9:
@@ -1047,11 +1152,25 @@ ShellRoot {
                     const entry = root.hoverCases[index];
                     if (phase === 0) {
                         popup.close();
+                        if (index === 0) {
+                            scene.screenState.dashboard = false;
+                            GlobalConfig.dashboard.showMedia = true;
+                            GlobalConfig.dashboard.showDashboard = true;
+                        }
                         Taskbar.orientation = entry.orientation;
                         GlobalConfig.notifs.shadeShowOnHover = true;
                         GlobalConfig.bar.persistent = index % 2 === 0;
                         realBar.isHovered = true;
                     } else if (phase === 1) {
+                        if (index === 0) {
+                            // Screen-scoped Config follows GlobalConfig asynchronously.
+                            const dashboard = interactions.panels.dashboard;
+                            dashboard.selectDefaultTab(true);
+                            root.check(scene.screenState.dashboardTab === 0, "Playing media must default to the Media tab");
+                            dashboard.selectDefaultTab(false);
+                            root.check(scene.screenState.dashboardTab === 1, "Paused or absent media must default to Overview");
+                            GlobalConfig.dashboard.showMedia = false;
+                        }
                         let icon;
                         if (entry.name === "clock" || entry.name === "notifications") {
                             icon = root.find(scene.contentItem, entry.name === "clock" ? "taskbarClock" : "taskbarNotifications");

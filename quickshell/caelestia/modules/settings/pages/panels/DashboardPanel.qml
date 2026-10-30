@@ -51,6 +51,30 @@ PageBase {
             onToggled: GlobalConfig.dashboard.showOnHover = checked
         }
 
+        SectionHeader {
+            text: qsTr("Size")
+        }
+
+        StepperRow {
+            objectName: "dashboardScale"
+            first: true
+            label: qsTr("Dashboard scale (%)")
+            subtext: qsTr("Scale text and controls together · automatically limited to fit the screen")
+            value: Config.dashboard.scale
+            from: 60
+            to: 140
+            stepSize: 5
+            onMoved: value => GlobalConfig.dashboard.scale = value
+        }
+
+        RowButton {
+            objectName: "dashboardScaleReset"
+            last: true
+            icon: "restart_alt"
+            text: qsTr("Reset size to 100%")
+            onClicked: GlobalConfig.dashboard.scale = 100
+        }
+
         // Tabs
         SectionHeader {
             text: qsTr("Tabs")

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Caelestia.Config
 import qs.components
+import qs.services
 import qs.modules.taskbar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
@@ -17,6 +18,7 @@ Item {
     required property ScreenState screenState
     required property Bar.TaskbarWrapper bar
     required property real borderThickness
+    property bool fullscreen
 
     readonly property alias osd: osd
     readonly property alias osdWrapper: osdWrapper
@@ -25,6 +27,7 @@ Item {
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
     readonly property alias dashboard: dashboard
+    readonly property alias mediaIsland: mediaIsland
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
 
@@ -105,6 +108,15 @@ Item {
         screenState: root.screenState
         hideInset: root.bar.notched ? root.y : 0
 
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+    }
+
+    MediaIsland {
+        id: mediaIsland
+        fullscreen: root.fullscreen
+        activeScreen: ShellState.forActive() === root.screenState
+        hideInset: root.bar.notched ? root.y : 0
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
     }

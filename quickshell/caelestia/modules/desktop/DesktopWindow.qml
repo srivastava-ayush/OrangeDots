@@ -18,6 +18,7 @@ StyledWindow {
 
     readonly property alias bar: bar
     readonly property alias interactionWrapper: interactions
+    readonly property alias mediaIsland: panels.mediaIsland
 
     readonly property ScreenState screenState: ShellState.forScreen(screen)
 
@@ -223,6 +224,23 @@ StyledWindow {
         }
 
         PanelBg {
+            objectName: "mediaIslandBackground"
+            panel: panels.mediaIsland
+            deformAmount: 0.1
+            // The same BlobGroup, tint, glass mask and top-edge bridge as dashBg.
+            y: bar.notched ? -root.borderRounding : panel.y + panels.y
+            implicitWidth: panel.visible ? panel.width : 0
+            implicitHeight: {
+                if (!panel.visible)
+                    return 0;
+                if (!bar.notched)
+                    return panel.height;
+                const bottom = panel.y + panels.y + panel.height;
+                return bottom > 0 ? bottom - y : 0;
+            }
+        }
+
+        PanelBg {
             id: launcherBg
 
             panel: panels.launcher
@@ -306,6 +324,7 @@ StyledWindow {
 
         PanelLayout {
             id: panels
+            fullscreen: root.hasFullscreen
 
             screen: root.screen
             screenState: root.screenState

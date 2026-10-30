@@ -27,6 +27,13 @@ Region {
         height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.panels.y
     }
 
+    R {
+        panel: root.panels.mediaIsland
+        y: 0
+        width: panel.visible ? panel.width : 0
+        height: panel.visible ? panel.height * (1 - root.panels.mediaIsland.offsetScale) + root.panels.y : 0
+    }
+
     // Widen only the edge strip, not the invisible area beside the open panel.
     R {
         panel: root.panels.dashboard

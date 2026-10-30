@@ -13,6 +13,17 @@ Item {
     id: root
 
     required property ScreenState screenState
+
+    function selectDefaultTab(preferMedia: bool): void {
+        // Match DashboardContent's enabled-filtered order, not fixed indices.
+        if (preferMedia && Config.dashboard.showMedia)
+            screenState.dashboardTab = 0;
+        else if (Config.dashboard.showDashboard)
+            screenState.dashboardTab = Config.dashboard.showMedia ? 1 : 0;
+        else
+            screenState.dashboardTab = 0;
+    }
+
     readonly property FileDialog facePicker: FileDialog {
         title: qsTr("Select a profile picture")
         filterLabel: qsTr("Image files")
@@ -29,7 +40,7 @@ Item {
         onAccepted: path => KdeConnect.action(["--share", path])
     }
 
-    readonly property real nonAnimHeight: (content.item as DashboardContent)?.nonAnimHeight ?? 0
+    readonly property real nonAnimHeight: ((content.item as DashboardContent)?.nonAnimHeight ?? 0) * dashboardScale
     readonly property bool notesActive: (content.item as DashboardContent)?.notesActive ?? false
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
     // A top taskbar can inset the dashboard below the screen edge. Include that
@@ -38,7 +49,13 @@ Item {
     property real offsetScale: shouldBeActive ? 0 : 1
     // Reveal a full-sized dashboard through a centered curtain instead of
     // squeezing its cards/text as the hover surface expands from the top.
-    readonly property real fullWidth: content.implicitWidth || 854
+    readonly property real naturalWidth: content.implicitWidth || 854
+    readonly property real naturalHeight: content.implicitHeight
+    readonly property real dashboardScale: Math.min(
+        Math.max(0.6, Math.min(1.4, (Config.dashboard.scale ?? 100) / 100)),
+        parent && parent.width > 0 ? parent.width / naturalWidth : 1.4,
+        parent && parent.height > 0 && naturalHeight > 0 ? parent.height / naturalHeight : 1.4)
+    readonly property real fullWidth: naturalWidth * dashboardScale
     // Keep the edge target generous even while the curtain is collapsed.
     readonly property real hoverWidth: Math.min(parent ? parent.width : fullWidth + 200, fullWidth + 200)
     readonly property real curtainProgress: Math.max(0, Math.min(1, 1 - offsetScale))
@@ -46,7 +63,7 @@ Item {
 
     visible: offsetScale < 1
     anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
-    implicitHeight: content.implicitHeight
+    implicitHeight: naturalHeight * dashboardScale
     implicitWidth: fullWidth * curtainWidthScale
     opacity: 1 - offsetScale
     clip: Config.dashboard.showOnHover
@@ -63,7 +80,9 @@ Item {
         id: content
 
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
+        anchors.top: parent.top
+        transformOrigin: Item.Top
+        scale: root.dashboardScale
 
         active: root.shouldBeActive || root.visible
 

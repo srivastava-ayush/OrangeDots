@@ -552,6 +552,7 @@ For example, to disable the bar on DP-1:
         "showMedia": true,
         "showPerformance": true,
         "showWeather": true,
+        "scale": 100,
         "mediaUpdateInterval": 500,
         "resourceUpdateInterval": 1000,
         "dragThreshold": 50,
