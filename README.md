@@ -31,7 +31,7 @@ This is a desktop shell and dotfiles repository, **not an operating-system insta
 - Dashboard Calendar tab with notes and optional private Google Calendar iCal integration.
 - Optional Lua-based Hyprland dotfiles, scratchpads, gestures, and overview-plugin integration.
 
-See [FEATURES.md](FEATURES.md) for the detailed feature and source inventory. The installation instructions below take precedence over the inherited upstream README for installing **this fork**.
+See [docs/FEATURES.md](docs/FEATURES.md) for the detailed feature and source inventory. The installation instructions below take precedence over the inherited upstream README for installing **this fork**.
 
 ## Before installing
 
@@ -70,7 +70,7 @@ Install the build dependencies and desktop tools:
 
 ```bash
 sudo pacman -S --needed \
-  git base-devel cmake ninja pkgconf \
+  git base-devel cmake ninja pkgconf python \
   qt6-base qt6-declarative qt6-shadertools qt6-svg qt6-wayland \
   libqalculate libpipewire aubio cava lm_sensors \
   networkmanager bluez bluez-utils upower \
@@ -171,6 +171,24 @@ Optional features have additional requirements:
 The shell does not replace these system services. Missing optional tools can make the corresponding feature unavailable without preventing the rest of the shell from working.
 
 ### 4. Clone, back up, and link the shell
+
+After cloning, the portable configuration installer can replace the manual
+link/preset commands in this step:
+
+```bash
+bash install.sh --dry-run
+bash install.sh
+```
+
+Run it from the checkout, or invoke it by its full path from any directory.
+It preserves existing preferences/private files, backs up conflicting shell
+entries, and seeds only missing JSON presets. It does **not** install packages,
+build native modules, or restart the session: continue with **step 5** below.
+For reviewed full dotfiles, use `bash install.sh --full`; preview that separately
+with `--full --dry-run`. Automatic backups are under
+`${XDG_STATE_HOME:-$HOME/.local/state}/orangedots/backups/`.
+
+The equivalent manual installation remains supported:
 
 ```bash
 git clone https://github.com/srivastava-ayush/OrangeDots.git "$HOME/OrangeDots"
@@ -324,8 +342,8 @@ Review `hypr/hyprland.lua` and the refresh-rate script before linking them:
 |---|---|---|
 | Monitor | `1920x1080@144` | A mode and scale supported by your display; inspect `hyprctl monitors`. |
 | Refresh-rate script | `eDP-1`, 60/144 Hz, origin `0x0` | Your output name, supported refresh rates, and monitor position. |
-| `SUPER+R` | `/home/ayush/OrangeDots/refresh-rate-toggle.sh` | The location of the script in your clone. |
-| IDE command | `/home/ayush/.local/bin/zed` | An installed editor command/path, such as `zed` or `code`. |
+| `SUPER+SHIFT+R` | Installed `hypr/scripts/toggle-refresh-rate.sh` | No clone path to change; adapt the hardware-specific modes in the helper. |
+| IDE command | `zed` on `PATH` | An installed editor command, such as `zed` or `code`. |
 | App commands | `kitty`, `yazi`, `helium-browser`, Spotify, Obsidian, Blueman, Pavucontrol | Install the apps you use or replace their binds. Some require AUR/third-party packages. |
 | Startup apps | `kdeconnectd`, clipboard watchers, `hyprpm reload -n` | Keep only the integrations you actually installed. |
 | Plugins | ScrollOverview; guarded Hypr3D/HyprGlass sections | Install compatible plugins or remove the corresponding references. |
@@ -538,29 +556,41 @@ Installation is **not proof that the intermittent wake bug is fixed**. Test repe
 
 ### Undoing the installation
 
-Stop the shell with `caelestia shell -k`, remove its autostart/binds, and restore the configuration entries saved in `~/.local/share/orangedots-backups/`. Remove **only the symlinks you created**, not a whole config directory or the clone they point to. Preserve live state if you want your preferences later.
+Stop the shell with `caelestia shell -k`, remove its autostart/binds, and restore the configuration entries saved in `~/.local/share/orangedots-backups/` (manual instructions) or `${XDG_STATE_HOME:-$HOME/.local/state}/orangedots/backups/` (configuration installer). Remove **only the symlinks you created**, not a whole config directory or the clone they point to. Preserve live state if you want your preferences later.
 
 The manual native-module install is separate from the symlinks. Review `quickshell/caelestia/build/install_manifest.txt` and package ownership before removing any system files; do not recursively delete Qt's QML directory or assume CMake provides an uninstall target.
 
 ## Development checks
 
+Check source paths and an isolated fresh installation without changing your real config:
+
+```bash
+python3 scripts/check-layout.py
+python3 -m unittest discover -s tests -v
+```
+
+These validate an exported checkout at a different path (including spaces),
+fresh/full installs, backups, existing preferences, legacy symlinks, and the
+actual CMake staged shell install. See [docs/STRUCTURE.md](docs/STRUCTURE.md) for
+the module map, compatibility boundary, and installed-tree checks.
+
 From the repository root, inside a Wayland session with the native modules installed:
 
 ```bash
-python3 quickshell/caelestia/tests/taskbar.test.py
+python3 quickshell/caelestia/tests/integration.py
 ```
 
 The integration checks use isolated config/state and a transparent, input-free test surface. They cover taskbar orientation/styles, shell-attached notch geometry, popout sizing/hover, notification shade, Nexus navigation, recorder settings/persistence, lock-input recovery/focus, tint/VOID, persistence, and invalid settings. A focused run is available, for example:
 
 ```bash
-python3 quickshell/caelestia/tests/taskbar.test.py --mode tint
+python3 quickshell/caelestia/tests/integration.py --mode tint
 ```
 
 Lock-screen checks require Qt's `QtTest` QML module (part of `qt6-declarative` on Arch). They deliver real Qt key events directly to the native password field in the isolated test application's window—no OS keyboard injection or clicks before typing. They cover masking, Backspace/Ctrl+Backspace, Unicode editing, Enter/button handoff, repeated resume settling, early/duplicate unlock, and disabled animations. Submission routing uses a mock backend; the real backend is checked to reject unsecured submissions. These tests never acquire the session lock or authenticate:
 
 ```bash
-python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-input
-python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-focus
+python3 quickshell/caelestia/tests/integration.py --mode lock-input
+python3 quickshell/caelestia/tests/integration.py --mode lock-focus
 ```
 
 To require the newly built native helper before installing it, build `caelestia-coreplugin` and run:
@@ -568,9 +598,9 @@ To require the newly built native helper before installing it, build `caelestia-
 ```bash
 LOCK_REQUIRE_NATIVE=1 \
   QML_IMPORT_PATH="$PWD/quickshell/caelestia/build/qml" \
-  python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-input
+  python3 quickshell/caelestia/tests/integration.py --mode lock-input
 QML_IMPORT_PATH="$PWD/quickshell/caelestia/build/qml" \
-  python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-focus
+  python3 quickshell/caelestia/tests/integration.py --mode lock-focus
 ```
 
 The native checks require supported, identical Qt build/runtime versions and verify that recovery rejects ordinary layer-shell windows and absent targets. They do **not** acquire a real session-lock surface or reproduce a stalled compositor callback.
@@ -604,12 +634,14 @@ These checks do not replace testing your real GPU, audio devices, network permis
 |---|---|
 | `hypr/hyprland.lua` | Personal Hyprland configuration; Lua syntax |
 | `hypr/scheme/current.lua` | Hyprland-side colour palette |
-| `hypr/spotify-toggle.sh` | Spotify scratchpad helper |
-| `hypr/caelestia-toggle.sh` | Toggle this shell instance |
-| `refresh-rate-toggle.sh` | Hardware-specific refresh-rate helper |
+| `hypr/scripts/` | Portable helper locations: shell toggle, Spotify scratchpad, hardware-specific refresh modes |
+| `refresh-rate-toggle.sh` | Compatibility launcher for the moved refresh helper |
+| `install.sh`, `scripts/install.py` | Safe shell/full-dotfiles config linking and preset seeding |
+| `scripts/check-layout.py`, `tests/test_installation.py` | Import/layout contract and isolated replication/install checks |
+| `docs/FEATURES.md`, `docs/STRUCTURE.md` | Feature inventory, developer module map, rename map, and compatibility rules |
 | `caelestia/*.json` | First-install shell, token, and CLI presets |
 | `quickshell/caelestia/shell.qml` | Orange OS shell entry point |
-| `quickshell/caelestia/modules/` | Bar, popouts, dashboard, Nexus, launcher, lock, and other UI |
+| `quickshell/caelestia/modules/` | Feature-named UI modules: taskbar, desktop, dashboard, settings, launcher, lockscreen, notifications |
 | `quickshell/caelestia/services/` | Runtime services, including tint, taskbar state, weather, and notifications |
 | `quickshell/caelestia/plugin/` | Native QML modules; rebuild when changing native code |
 | `quickshell/caelestia/assets/` | Bundled fallback wallpaper, Google Sans Flex font, PAM files, and helper assets |

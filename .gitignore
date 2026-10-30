@@ -1,0 +1,6 @@
+# Local Python caches created by installer and integration checks.
+__pycache__/
+*.py[cod]
+
+# Private Google Calendar credential, never a distributable preset.
+/caelestia/calendar-url

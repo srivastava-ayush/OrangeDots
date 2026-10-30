@@ -6,7 +6,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.misc
 import qs.services
-import qs.modules.nexus
+import qs.modules.settings
 
 Scope {
     id: root
@@ -20,7 +20,7 @@ Scope {
     }
 
     function dashboardTabIndex(tab: string): int {
-        // Mirrors the enabled-filtered tab order in dashboard/Content.qml.
+        // Mirrors the enabled-filtered tab order in dashboard/DashboardContent.qml.
         const screenState = root.activeScreenState();
         const conf = screenState ? GlobalConfig.forScreen(screenState.modelData.name) : GlobalConfig;
         const tabs = [
@@ -49,7 +49,7 @@ Scope {
         // qmllint enable unresolved-type
         name: "nexus"
         description: "Open nexus"
-        onPressed: WindowFactory.create()
+        onPressed: SettingsWindows.create()
     }
 
     // qmllint disable unresolved-type
@@ -187,7 +187,7 @@ Scope {
 
     IpcHandler {
         function open(): void {
-            WindowFactory.create();
+            SettingsWindows.create();
         }
 
         target: "nexus"

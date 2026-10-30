@@ -7,7 +7,7 @@ import Caelestia.Config
 import qs.components
 import qs.components.effects
 import qs.services
-import qs.modules.drawers
+import qs.modules.desktop
 
 MouseArea {
     id: root
@@ -35,7 +35,7 @@ MouseArea {
 
     parent: {
         const win = QsWindow.window;
-        const contentWin = win as ContentWindow; // If inside the drawer content window, put it inside the interaction wrapper so hover works
+        const contentWin = win as DesktopWindow; // If inside the desktop window, keep menu hover within its interaction wrapper.
         return contentWin ? contentWin.interactionWrapper : (win as QsWindow).contentItem;
     }
     anchors.fill: parent

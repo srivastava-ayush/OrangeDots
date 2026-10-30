@@ -5,10 +5,10 @@
 //@ pragma DefaultEnv QT_QUICK_FLICKABLE_WHEEL_DECELERATION=10000
 
 import "modules"
-import "modules/drawers"
+import "modules/desktop"
 import "modules/background"
-import "modules/areapicker"
-import "modules/lock"
+import "modules/screencapture"
+import "modules/lockscreen"
 import QtQuick
 import Quickshell
 import qs.services
@@ -28,9 +28,9 @@ ShellRoot {
     ServiceLoader {}
 
     Background {}
-    Drawers {}
-    AreaPicker {}
-    Lock {
+    Desktop {}
+    ScreenCapture {}
+    LockScreen {
         id: lock
     }
 

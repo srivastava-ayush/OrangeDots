@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 
-import "lock"
+import "lockscreen"
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
@@ -12,7 +12,7 @@ import qs.services
 Scope {
     id: root
 
-    required property Lock lock
+    required property LockScreen lock
     readonly property bool hasPlayer: Players.list.some(p => p.isPlaying)
     readonly property bool isCharging: !UPower.onBattery
     property var dimmedMonitors: []

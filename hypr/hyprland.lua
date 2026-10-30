@@ -16,8 +16,14 @@ hl.monitor({
 
 local terminal    = "kitty"
 local fileManager = "yazi"
-local ide         = "/home/ayush/.local/bin/zed"
+local ide         = "zed"
 local browser     = "helium-browser"
+
+-- Resolve helpers through the installed config, not a personal clone path.
+local configHome = os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")
+local function hyprScript(name)
+    return "bash " .. string.format("%q", configHome .. "/hypr/scripts/" .. name)
+end
 -------------------
 ---- AUTOSTART ----
 -------------------
@@ -232,7 +238,7 @@ local mainMod = "SUPER"
 
 -- Overview / shell toggles
 hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
-hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd("~/.config/hypr/caelestia-toggle.sh"))
+hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
@@ -241,7 +247,7 @@ hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab
 -- same trick as the SUPER+SUPER_L launcher bind so it won't fire after a
 -- chord like SUPER+ALT+2). Held down, ALT acts as a chord mod, so
 -- SUPER+ALT+[1-5] jumps straight to a tab (opens the dashboard if closed).
--- Tab order follows modules/dashboard/Content.qml, skipping disabled tabs:
+-- Tab order follows modules/dashboard/DashboardContent.qml, skipping disabled tabs:
 -- 1=Media 2=Dashboard 3=Performance 4=Phone 5=Calendar
 local dashToggle = hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard")
 hl.bind(mainMod .. " + ALT_L", dashToggle, { release = true })
@@ -266,13 +272,13 @@ end
 hl.bind(
     mainMod .. " + Q",
     hl.dsp.exec_cmd(
-        terminal .. " " .. os.getenv("HOME") .. "/.config/quickshell/caelestia/assets/wrap_term_launch.sh " .. os.getenv("SHELL")
+        terminal .. " " .. string.format("%q", configHome .. "/quickshell/caelestia/assets/wrap_term_launch.sh") .. " " .. os.getenv("SHELL")
     )
 )
 hl.bind(
     mainMod .. " + A",
     hl.dsp.exec_cmd(
-        terminal .. " " .. os.getenv("HOME") .. "/.config/quickshell/caelestia/assets/wrap_term_launch.sh yazi"
+        terminal .. " " .. string.format("%q", configHome .. "/quickshell/caelestia/assets/wrap_term_launch.sh") .. " yazi"
     )
 )
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(ide))
@@ -296,7 +302,7 @@ hl.bind(
         end
     end
 )
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("/home/ayush/OrangeDots/refresh-rate-toggle.sh"))
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(hyprScript("toggle-refresh-rate.sh")))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(browser))
 
 -- Move focus with mainMod + arrow keys (hold to repeat)
@@ -337,7 +343,7 @@ hl.window_rule({
 -- SUPER + S toggles the Spotify scratchpad (launches Spotify if not running).
 -- SUPER + SHIFT + S tosses the focused window into that scratchpad
 -- without following it (follow = false).
-hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd("~/.config/hypr/spotify-toggle.sh"))
+hl.bind(mainMod .. " + S",         hl.dsp.exec_cmd(hyprScript("toggle-spotify.sh")))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic", follow = false }))
 
 -- Miscellaneous scratchpad
