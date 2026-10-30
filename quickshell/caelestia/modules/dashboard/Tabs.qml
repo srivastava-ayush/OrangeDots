@@ -31,8 +31,11 @@ Item {
         // Clamp a stale persisted index after tabs are removed.
         currentIndex: Math.max(0, Math.min(root.screenState.dashboardTab, bar.count - 1))
         onCountChanged: {
-            if (count > 0 && root.screenState.dashboardTab >= count)
-                root.screenState.dashboardTab = count - 1;
+            // Repeater builds buttons one at a time. Clamp against the final
+            // model, not a temporary count of one while reopening a later tab.
+            const finalCount = root.tabs.length;
+            if (finalCount > 0 && root.screenState.dashboardTab >= finalCount)
+                root.screenState.dashboardTab = finalCount - 1;
         }
 
         implicitHeight: contentHeight

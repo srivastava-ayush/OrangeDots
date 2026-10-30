@@ -12,6 +12,8 @@ import qs.components.filedialog
 Item {
     id: root
 
+    objectName: "dashboardContent"
+
     required property ScreenState screenState
     required property FileDialog facePicker
     required property FileDialog phoneFilePicker
@@ -42,6 +44,12 @@ Item {
                 iconName: "smartphone",
                 text: qsTr("Phone"),
                 enabled: true
+            },
+            {
+                component: calendarComponent,
+                iconName: "event_note",
+                text: qsTr("Calendar"),
+                enabled: Config.sidebar.enabled
             }
         ];
         return allTabs.filter(tab => tab.enabled);
@@ -49,6 +57,7 @@ Item {
 
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
+    readonly property bool notesActive: (view.currentItem as Loader)?.item?.notesActive ?? false
 
     implicitWidth: nonAnimWidth
     implicitHeight: nonAnimHeight
@@ -182,6 +191,15 @@ Item {
 
                 Phone {
                     filePicker: root.phoneFilePicker
+                }
+            }
+
+            Component {
+                id: calendarComponent
+
+                Calendar {
+                    selected: root.dashboardTabs[root.screenState.dashboardTab]?.component === calendarComponent
+                    onCloseRequested: root.screenState.dashboard = false
                 }
             }
 

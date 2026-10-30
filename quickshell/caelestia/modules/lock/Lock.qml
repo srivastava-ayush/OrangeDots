@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Caelestia
 import Caelestia.Services
 import qs.components.misc
 
@@ -12,6 +13,15 @@ Scope {
 
     property alias lock: lock
     property bool animateEntrance
+    property bool wakeTracing: false
+    property var wakeSamples: []
+
+    function recordWake(details: var): void {
+        if (wakeTracing) {
+            wakeSamples = [...wakeSamples, details].slice(-64);
+            console.info("LOCK_WAKE_TRACE " + JSON.stringify(details));
+        }
+    }
 
     function requestLock(animate: bool): void {
         if (!lock.locked)
@@ -25,14 +35,18 @@ Scope {
         signal unlock
 
         onLockedChanged: {
-            if (!locked)
+            if (!locked) {
                 root.animateEntrance = false;
+                root.wakeTracing = false;
+            }
         }
 
         LockSurface {
             lock: lock
             pam: pam
             animateEntrance: root.animateEntrance
+            wakeTracing: root.wakeTracing
+            onWakeSample: details => root.recordWake(details)
         }
     }
 
@@ -95,6 +109,24 @@ Scope {
 
         function isLocked(): bool {
             return lock.locked;
+        }
+
+        function traceWake(): string {
+            root.wakeSamples = [];
+            root.wakeTracing = true;
+            return "Wake tracing armed; no password text or lengths are recorded.";
+        }
+
+        function wakeTrace(): string {
+            return JSON.stringify(root.wakeSamples, null, 2);
+        }
+
+        function stopWakeTrace(): void {
+            root.wakeTracing = false;
+        }
+
+        function renderRecoveryStatus(): string {
+            return JSON.stringify(typeof LockRenderRecovery === "undefined" ? { supported: false, reason: "native plugin not rebuilt" } : LockRenderRecovery.state(null));
         }
 
         target: "lock"

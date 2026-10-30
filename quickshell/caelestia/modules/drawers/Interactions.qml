@@ -21,7 +21,6 @@ CustomMouseArea {
     property point dragStart
     property bool dashboardShortcutActive
     property bool osdShortcutActive
-    property bool utilityShortcutActive
     property bool launcherShortcutActive
 
     function inBarPopout(x: real, y: real): bool {
@@ -90,18 +89,6 @@ CustomMouseArea {
         return y > height - Math.max(Config.border.minThickness, Config.border.thickness + panelHeight) - (isCorner ? Config.border.rounding : 0) && withinPanelWidth(panel, x, y);
     }
 
-    // Bottom-right corner strip that toggles the utility sidebar.
-    function inUtilitySidebarCorner(x: real, y: real): bool {
-        return Config.sidebar.enabled && x > width - Config.sidebar.minHoverThreshold && y > height - Math.max(Config.border.minThickness, Config.border.thickness) - Config.notifs.expandThreshold;
-    }
-
-    // Body of the utility sidebar itself, so hovering into the open sidebar
-    // keeps it open. Only matches while it is actually slid on screen.
-    function inUtilitySidebarPanel(x: real, y: real): bool {
-        const p = root.panels.utilitySidebar;
-        return p.visible && x >= panels.x + p.x && x <= panels.x + p.x + p.width && y >= panels.y + p.y && y <= panels.y + p.y + p.height;
-    }
-
     function onWheel(event: WheelEvent): void {
         if (fullscreen)
             return;
@@ -123,16 +110,12 @@ CustomMouseArea {
                 root.panels.osd.hovered = false;
             }
 
-            if (!dashboardShortcutActive)
+            if (!dashboardShortcutActive && !root.panels.dashboard.notesActive)
                 screenState.dashboard = false;
 
             // Only hide the launcher if not opened by keyboard/drag/IPC
             if (!launcherShortcutActive)
                 screenState.launcher = false;
-
-            // Keep the sidebar while the user is typing in its notes field
-            if (!utilityShortcutActive && !root.panels.utilitySidebar.notesActive)
-                screenState.utilitySidebar = false;
 
             popouts.anchorHovered = false;
             popouts.pointerInHoverRegion = false;
@@ -187,7 +170,7 @@ CustomMouseArea {
         }
 
         // Show/hide session on drag
-        if (pressed && !inUtilitySidebarCorner(dragStart.x, dragStart.y) && !inUtilitySidebarPanel(x, y) && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
+        if (pressed && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
             if (dragX < -Config.session.dragThreshold)
                 screenState.session = true;
             else if (dragX > Config.session.dragThreshold)
@@ -195,7 +178,7 @@ CustomMouseArea {
         }
 
         // Show/hide launcher on hover, or show/hide on drag if hover is disabled
-        const showLauncher = inBottomPanel(panels.launcher, x, y) && !inUtilitySidebarCorner(x, y) && !inUtilitySidebarPanel(x, y);
+        const showLauncher = inBottomPanel(panels.launcher, x, y);
 
         if (Config.launcher.showOnHover) {
             // Always update visibility based on hover if not in shortcut mode
@@ -205,7 +188,7 @@ CustomMouseArea {
                 // If hovering over the launcher zone while in shortcut mode, transition to hover control
                 launcherShortcutActive = false;
             }
-        } else if (pressed && !inUtilitySidebarCorner(dragStart.x, dragStart.y) && !inUtilitySidebarPanel(x, y) && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
+        } else if (pressed && inBottomPanel(panels.launcher, dragStart.x, dragStart.y) && withinPanelWidth(panels.launcher, x, y)) {
             if (dragY < -Config.launcher.dragThreshold)
                 screenState.launcher = true;
             else if (dragY > Config.launcher.dragThreshold)
@@ -213,12 +196,15 @@ CustomMouseArea {
         }
 
         // Show dashboard on hover
-        const overBarEntry = bar.horizontal && y < bar.thickness && bar.hasEntryAt(x, y);
-        const showDashboard = Config.dashboard.showOnHover && !overBarEntry && inTopPanel(panels.dashboard, x, y);
+        const overBarEntry = bar.horizontal && y < bar.thickness && bar.blocksDashboardHover(x, y);
+        const calendarOpen = bar.horizontal && popouts.hasCurrent && popouts.currentName === "clock";
+        const showDashboard = Config.dashboard.showOnHover && !overBarEntry && !calendarOpen && inTopPanel(panels.dashboard, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!dashboardShortcutActive) {
-            screenState.dashboard = showDashboard;
+            // A focused scratchpad stays open even if the pointer leaves the
+            // dashboard. Click-away focus handling dismisses it explicitly.
+            screenState.dashboard = showDashboard || panels.dashboard.notesActive;
         } else if (showDashboard) {
             // If hovering over dashboard area while in shortcut mode, transition to hover control
             dashboardShortcutActive = false;
@@ -230,26 +216,6 @@ CustomMouseArea {
                 screenState.dashboard = true;
             else if (dragY < -Config.dashboard.dragThreshold)
                 screenState.dashboard = false;
-        }
-
-        // Show/hide utility sidebar on hover of the bottom-right corner or the sidebar itself
-        // (stays open while the notes field holds keyboard focus)
-        const showSidebar = Config.sidebar.enabled && ((Config.sidebar.showOnHover && inUtilitySidebarCorner(x, y)) || inUtilitySidebarPanel(x, y) || root.panels.utilitySidebar.notesActive);
-
-        // Always update visibility based on hover if not in shortcut mode
-        if (!utilityShortcutActive) {
-            screenState.utilitySidebar = showSidebar;
-        } else if (showSidebar) {
-            // If hovering over the sidebar zone while in shortcut mode, transition to hover control
-            utilityShortcutActive = false;
-        }
-
-        // Show/hide utility sidebar on vertical drag from the bottom-right corner
-        if (Config.sidebar.enabled && pressed && inUtilitySidebarCorner(dragStart.x, dragStart.y)) {
-            if (dragY < -Config.sidebar.dragThreshold)
-                screenState.utilitySidebar = true;
-            else if (dragY > Config.sidebar.dragThreshold)
-                screenState.utilitySidebar = false;
         }
 
         updatePopoutHover(x, y);
@@ -269,15 +235,6 @@ CustomMouseArea {
                 root.screenState.bar = false;
             else
                 root.bar.isHovered = false;
-        }
-    }
-
-    Connections {
-        target: Config.sidebar
-
-        function onEnabledChanged() {
-            if (!Config.sidebar.enabled)
-                root.screenState.utilitySidebar = false;
         }
     }
 
@@ -315,7 +272,7 @@ CustomMouseArea {
                 const inDashboardArea = root.inTopPanel(root.panels.dashboard, root.mouseX, root.mouseY);
                 const inOsdArea = root.inRightPanel(root.panels.osdWrapper, root.mouseX, root.mouseY);
 
-                if (!inDashboardArea) {
+                if (!inDashboardArea && !root.panels.dashboard.notesActive) {
                     root.screenState.dashboard = false;
                 }
                 if (!inOsdArea) {
@@ -348,20 +305,6 @@ CustomMouseArea {
             } else {
                 // OSD hidden, clear shortcut flag
                 root.osdShortcutActive = false;
-            }
-        }
-
-        function onUtilitySidebarChanged() {
-            if (root.screenState.utilitySidebar) {
-                // Sidebar became visible without the pointer in a hover zone
-                // (drag or IPC), so keep it open until hovered or dismissed
-                const inSidebarZone = root.inUtilitySidebarCorner(root.mouseX, root.mouseY) || root.inUtilitySidebarPanel(root.mouseX, root.mouseY);
-                if (!inSidebarZone) {
-                    root.utilityShortcutActive = true;
-                }
-            } else {
-                // Sidebar hidden, clear shortcut flag
-                root.utilityShortcutActive = false;
             }
         }
 

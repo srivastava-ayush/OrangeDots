@@ -15,6 +15,8 @@ StyledRect {
     readonly property bool horizontal: Taskbar.horizontal
     readonly property bool showDate: Config.bar.clock.showDate || Taskbar.notched
 
+    signal clicked
+
     implicitWidth: horizontal ? horizontalLayout.implicitWidth + padding * 2 : Tokens.sizes.bar.innerWidth
     implicitHeight: (horizontal ? horizontalLayout.implicitHeight : layout.implicitHeight) + padding * 2
 
@@ -150,5 +152,13 @@ StyledRect {
             font: root.font.build()
             color: root.colour
         }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.horizontal
+        acceptedButtons: Qt.LeftButton
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
     }
 }

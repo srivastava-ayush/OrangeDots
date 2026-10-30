@@ -1,73 +1,39 @@
+pragma ComponentBehavior: Bound
+
 import "center"
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
-import qs.components
-import qs.services
 
 ColumnLayout {
     id: root
 
     required property var lock
-    readonly property real centerScale: Math.min(1, (lock.screen?.height ?? 1440) / 1440)
-    readonly property int centerWidth: Tokens.sizes.lock.centerWidth * centerScale
+    readonly property alias passwordInput: passwordInput
+    readonly property alias stateMessage: stateMessage
+    readonly property real centerScale: Math.min(1, lock.screenHeight / 1440)
+    readonly property int centerWidth: Math.max(0, Math.min(Tokens.sizes.lock.centerWidth * centerScale, lock.width - Tokens.padding.extraLargeIncreased))
 
     Layout.preferredWidth: centerWidth
     Layout.fillWidth: false
     Layout.fillHeight: true
-
     spacing: Tokens.spacing.largeIncreased
 
-    Connections {
-        function onRevealContent(): void {
-            curtainAnim.start();
-        }
-
-        function onSettleContent(): void {
-            curtainAnim.stop();
-            clockSlide.y = 0;
-            passwordSlide.y = 0;
-        }
-
-        target: root.lock
-    }
-
-    ParallelAnimation {
-        id: curtainAnim
-
-        Anim {
-            target: clockSlide
-            property: "y"
-            to: 0
-            type: Anim.SlowSpatial
-        }
-        Anim {
-            target: passwordSlide
-            property: "y"
-            to: 0
-            type: Anim.SlowSpatial
-        }
-    }
-
     Clock {
+        objectName: "lockClock"
         Layout.alignment: Qt.AlignHCenter
         centerScale: root.centerScale
-
         transform: Translate {
-            id: clockSlide
-
-            y: -(root.lock.screen?.height ?? 1440) * 0.75
+            y: -root.lock.screenHeight * 0.75 * (1 - root.lock.contentProgress)
         }
     }
 
     RowLayout {
+        objectName: "lockPasswordRow"
         Layout.alignment: Qt.AlignHCenter
         spacing: Tokens.spacing.medium
-
         transform: Translate {
-            id: passwordSlide
-
-            y: (root.lock.screen?.height ?? 1440) * 0.75
+            y: root.lock.screenHeight * 0.75 * (1 - root.lock.contentProgress)
         }
 
         ProfilePic {
@@ -85,6 +51,7 @@ ColumnLayout {
     }
 
     StateMessage {
+        id: stateMessage
         Layout.fillWidth: true
         pam: root.lock.pam
     }

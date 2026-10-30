@@ -61,12 +61,6 @@ Region {
         height: panel.visible ? panel.height + root.panels.y : 0
     }
 
-    // Follows the utility sidebar as it slides up from below the screen.
-    R {
-        panel: root.panels.utilitySidebar
-        height: panel.height + root.borderThickness
-    }
-
     R {
         panel: root.panels.popoutsWrapper
         y: panel.y + root.panels.y + root.panels.popoutsWrapper.hoverY

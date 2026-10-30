@@ -2,175 +2,170 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 import M3Shapes
 import Caelestia.Config
-import Caelestia.Services
 import qs.components
 import qs.components.controls
 import qs.services
+import qs.modules.lock
 
-StyledRect {
+FocusScope {
     id: root
+    objectName: "lockPasswordInput"
 
     required property real centerScale
     required property int centerWidth
     required property var lock
+    readonly property alias input: field
+    readonly property bool windowActive: Window.active
+    readonly property bool editable: !lock.unlocking && !lock.pam.passwd.active && lock.pam.state !== Pam.MaxTries
+    readonly property real controlSize: Math.ceil(arrow.implicitHeight + Tokens.padding.extraSmall * 2)
+    signal pointerPressed
 
-    implicitWidth: {
-        const w = centerWidth * 0.8;
-        return lock.pam.buffer ? w : Math.min(w, inputField.placeholderWidth + iconWrapper.implicitWidth + enterButton.implicitWidth + input.spacing * 2 + Tokens.padding.medium * 2);
-    }
-    implicitHeight: input.implicitHeight + Tokens.padding.small
-
-    color: Colours.tPalette.m3surfaceContainer
-    radius: Tokens.rounding.full
 
     focus: true
-    onActiveFocusChanged: {
-        if (!activeFocus)
-            forceActiveFocus();
+    implicitWidth: field.length > 0 ? centerWidth * 0.8 : Math.min(centerWidth * 0.8, field.placeholderWidth + leading.implicitWidth + submit.implicitWidth + row.spacing * 2 + Tokens.padding.medium * 2)
+    implicitHeight: controlSize + Tokens.padding.extraSmall * 2
+
+    function activateInput(): void {
+        if (visible && !lock.unlocking)
+            field.forceActiveFocus(Qt.OtherFocusReason);
+    }
+
+    function submitPassword(): void {
+        if (!lock.unlocking && (editable || (field.length === 0 && lock.pam.howdy.canAttempt)))
+            lock.pam.submitPassword(field.text);
+    }
+
+    Component.onCompleted: Qt.callLater(root.activateInput)
+    onWindowActiveChanged: {
+        if (windowActive)
+            activateInput();
+    }
+    onVisibleChanged: {
+        if (visible)
+            Qt.callLater(root.activateInput);
     }
 
     Connections {
-        function onResumed(): void {
-            Qt.callLater(root.forceActiveFocus);
-        }
-
-        target: SessionManager
+        target: root.lock
+        function onInputRequested(): void { root.activateInput(); }
     }
 
-    Keys.onPressed: event => {
-        if (root.lock.unlocking)
-            return;
-
-        if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return)
-            inputField.placeholder.animate = false;
-
-        root.lock.pam.handleKey(event);
+    Connections {
+        target: root.lock.pam
+        function onClearInput(): void { field.clear(); }
     }
 
     Behavior on implicitWidth {
-        Anim {}
+        Anim { type: Anim.FastSpatial }
     }
 
-    StateLayer {
-        hoverEnabled: false
-        cursorShape: Qt.IBeamCursor
-        onClicked: parent.forceActiveFocus()
+    StyledRect {
+        anchors.fill: parent
+        radius: Tokens.rounding.full
+        color: Colours.tPalette.m3surfaceContainer
+
+        StateLayer {
+            hoverEnabled: false
+            cursorShape: Qt.IBeamCursor
+            onClicked: root.activateInput()
+        }
     }
 
     RowLayout {
-        id: input
+        id: row
 
         anchors.fill: parent
         anchors.margins: Tokens.padding.extraSmall
         spacing: Tokens.spacing.medium
 
         Item {
-            id: iconWrapper
+            id: leading
 
             Layout.fillHeight: true
-            implicitWidth: height
+            implicitWidth: root.controlSize
 
             AnimLoader {
                 anchors.centerIn: parent
-                anchors.verticalCenterOffset: sourceComponent === iconComp ? 1 : 0
-                sourceComp: root.lock.pam.passwd.active || root.lock.pam.howdy.active ? loadingComp : iconComp
+                sourceComp: root.lock.pam.passwd.active || root.lock.pam.howdy.active ? spinner : lockIcon
             }
 
             Component {
-                id: iconComp
-
-                MaterialIcon {
-                    animate: true
-                    text: {
-                        if (root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries) {
-                            if (root.lock.pam.howdy.canAttempt)
-                                return "face";
-                            return "fingerprint_off";
-                        }
-                        if (root.lock.pam.fprint.active)
-                            return "fingerprint";
-                        if (root.lock.pam.howdy.canAttempt)
-                            return "face";
-                        return "lock";
-                    }
-                    color: !root.lock.pam.howdy.canAttempt && root.lock.pam.fprint.tries >= GlobalConfig.lock.maxFprintTries ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-                    fontStyle: Tokens.font.icon.builders.medium.scale(root.centerScale).build()
-                    fill: text === "face"
+                id: spinner
+                LoadingIndicator {
+                    implicitSize: leading.height - Tokens.padding.small * 2
                 }
             }
 
             Component {
-                id: loadingComp
-
-                LoadingIndicator {
-                    implicitSize: iconWrapper.height - Tokens.padding.small * 2
+                id: lockIcon
+                MaterialIcon {
+                    animate: true
+                    text: root.lock.pam.fprint.active ? "fingerprint" : root.lock.pam.howdy.canAttempt ? "face" : "lock"
+                    color: Colours.palette.m3onSurfaceVariant
+                    fontStyle: Tokens.font.icon.builders.medium.scale(root.centerScale).build()
+                    fill: 1
                 }
             }
         }
 
         InputField {
-            id: inputField
+            id: field
+            objectName: "lockPasswordField"
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-
             centerScale: root.centerScale
-            pam: root.lock.pam
+            wakeTracing: root.lock.wakeTracing
+            onPointerPressed: root.pointerPressed()
+            readOnly: !root.editable
+            placeholderText: root.lock.pam.passwd.active ? qsTr("Loading…") : root.lock.pam.howdy.active ? qsTr("Scanning face…") : root.lock.pam.state === Pam.MaxTries ? qsTr("Max tries reached") : qsTr("Enter your password")
+            onAccepted: root.submitPassword()
+            onTextEdited: {
+                if (root.lock.pam.howdy.active)
+                    root.lock.pam.howdy.abort();
+            }
         }
 
         Item {
-            id: enterButton
+            id: submit
 
-            implicitWidth: implicitHeight
-            implicitHeight: {
-                const h = enterIcon.implicitHeight + Tokens.padding.extraSmall * 2;
-                return h % 2 === 0 ? h : h + 1;
-            }
+            implicitWidth: root.controlSize
+            implicitHeight: root.controlSize
 
             MaterialShape {
                 anchors.fill: parent
-
-                color: root.lock.pam.buffer ? Colours.palette.m3primary : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
-                shape: root.lock.pam.buffer ? MaterialShape.Arrow : MaterialShape.Circle
-                scale: !root.lock.pam.buffer ? 1 : mouse.pressed ? 0.6 : mouse.containsMouse ? 0.8 : 0.7
+                color: field.length > 0 ? Colours.palette.m3primary : Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                shape: field.length > 0 ? MaterialShape.Arrow : MaterialShape.Circle
                 rotation: 90
+                scale: field.length === 0 ? 1 : mouse.pressed ? 0.6 : mouse.containsMouse ? 0.8 : 0.7
 
-                Behavior on scale {
-                    Anim {
-                        type: Anim.FastSpatial
-                    }
-                }
-
-                Behavior on color {
-                    CAnim {}
-                }
-
-                MouseArea {
-                    id: mouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: root.lock.pam.buffer ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    onClicked: root.lock.pam.buffer && root.lock.pam.passwd.start()
-                }
+                Behavior on scale { Anim { type: Anim.FastSpatial } }
+                Behavior on color { CAnim {} }
             }
 
             MaterialIcon {
-                id: enterIcon
+                id: arrow
 
                 anchors.centerIn: parent
                 text: "arrow_forward"
                 color: Colours.palette.m3onSurfaceVariant
                 fontStyle: Tokens.font.icon.builders.medium.scale(root.centerScale * 1.2).build()
-                opacity: root.lock.pam.buffer ? 0 : 1
+                opacity: field.length > 0 ? 0 : 1
+                Behavior on opacity { Anim { type: Anim.FastEffects } }
+            }
 
-                Behavior on opacity {
-                    Anim {
-                        type: Anim.DefaultEffects
-                    }
-                }
+            MouseArea {
+                id: mouse
+                objectName: "lockSubmitButton"
+
+                anchors.fill: parent
+                enabled: root.editable && field.length > 0
+                hoverEnabled: true
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: root.submitPassword()
             }
         }
     }

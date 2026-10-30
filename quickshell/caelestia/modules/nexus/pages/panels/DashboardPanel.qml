@@ -70,10 +70,18 @@ PageBase {
         }
 
         ToggleRow {
-            last: true
             text: qsTr("Performance")
             checked: Config.dashboard.showPerformance
             onToggled: GlobalConfig.dashboard.showPerformance = checked
+        }
+
+        NavRow {
+            objectName: "dashboardCalendarSettings"
+            last: true
+            icon: "event_note"
+            text: qsTr("Calendar & notes")
+            subtext: Config.sidebar.enabled ? qsTr("Google Calendar agenda and scratchpad") : qsTr("Disabled")
+            onClicked: root.nState.openSubPage(4)
         }
 
         SectionHeader {

@@ -18,7 +18,7 @@ PageBase {
             first: true
             icon: "dashboard"
             text: qsTr("Dashboard")
-            subtext: Config.dashboard.enabled ? qsTr("Tabs, weather, utilities") : qsTr("Disabled")
+            subtext: Config.dashboard.enabled ? qsTr("Tabs, weather, calendar, utilities") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(1)
         }
 
@@ -31,18 +31,11 @@ PageBase {
         }
 
         NavRow {
+            last: true
             icon: "apps"
             text: qsTr("Launcher")
             subtext: Config.launcher.enabled ? qsTr("Enabled") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(3)
-        }
-
-        NavRow {
-            last: true
-            icon: "event_note"
-            text: qsTr("Calendar & notes")
-            subtext: Config.sidebar.enabled ? qsTr("Enabled") : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(4)
         }
 
     }

@@ -11,32 +11,39 @@ import qs.components.controls
 import qs.services
 import qs.utils
 
-// Utility sidebar: agenda pulled from Google Calendar plus a scratchpad for
-// quick notes. Slides up from the bottom-right corner.
+// The former corner sidebar now lives in the dashboard. Its agenda source and
+// visibility settings stay compatible with existing calendar configurations.
 StyledRect {
     id: root
 
-    readonly property date today: new Date()
+    objectName: "dashboardCalendar"
+
+    property bool selected: true
+    signal closeRequested
+
+    readonly property date today: now
     // Refreshes the "ongoing" highlight once a minute while visible
     property date now: new Date()
 
-    property string notesText
-
-    readonly property real maxSidebarHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1000) * 0.62
+    readonly property real maxPanelHeight: ((QsWindow.window as QsWindow)?.screen?.height ?? 1000) * 0.62
     readonly property int agendaMaxHeight: 380
     readonly property int notesMaxHeight: 240
 
     Timer {
         interval: 60000
         repeat: true
-        running: root.visible
+        running: root.visible && root.selected
         onTriggered: root.now = new Date()
     }
 
-    readonly property bool notesActive: notesField.activeFocus
+    readonly property bool notesActive: selected && notesField.activeFocus
+    onSelectedChanged: {
+        if (!selected)
+            notesField.focus = false;
+    }
 
-    implicitWidth: Tokens.sizes.notifs.width
-    implicitHeight: Math.min(root.maxSidebarHeight, layout.implicitHeight + Tokens.padding.large * 2)
+    implicitWidth: 860
+    implicitHeight: Math.min(root.maxPanelHeight, layout.implicitHeight + Tokens.padding.large * 2)
 
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
@@ -77,6 +84,7 @@ StyledRect {
             }
 
             IconButton {
+                objectName: "calendarRefresh"
                 icon: "refresh"
                 type: IconButton.Text
                 visible: GoogleCalendar.urlConfigured
@@ -99,6 +107,7 @@ StyledRect {
             StyledListView {
                 id: view
 
+                objectName: "calendarAgenda"
                 anchors.fill: parent
 
                 StyledScrollBar.vertical: StyledScrollBar {
@@ -139,6 +148,7 @@ StyledRect {
 
                     required property var modelData
 
+                    objectName: "calendarAgendaEvent"
                     readonly property bool ongoing: !modelData.allDay && modelData.start <= root.now && root.now < modelData.end
 
                     width: view.width
@@ -177,10 +187,11 @@ StyledRect {
 
                 // Empty states
                 Loader {
+                    objectName: "calendarEmptyState"
                     asynchronous: true
                     anchors.centerIn: parent
                     active: opacity > 0
-                    opacity: GoogleCalendar.events.length === 0 ? 1 : 0
+                    opacity: !GoogleCalendar.urlConfigured || GoogleCalendar.events.length === 0 ? 1 : 0
 
                     sourceComponent: ColumnLayout {
                         spacing: Tokens.spacing.small
@@ -193,6 +204,7 @@ StyledRect {
                         }
 
                         StyledText {
+                            objectName: "calendarEmptyMessage"
                             Layout.alignment: Qt.AlignHCenter
                             Layout.maximumWidth: 300
                             horizontalAlignment: Text.AlignHCenter
@@ -254,6 +266,13 @@ StyledRect {
                 Flickable {
                     id: notesFlick
 
+                    function ensureVisible(rect: rect): void {
+                        if (contentY > rect.y)
+                            contentY = rect.y;
+                        else if (contentY + height < rect.y + rect.height)
+                            contentY = rect.y + rect.height - height;
+                    }
+
                     anchors.fill: parent
                     clip: true
 
@@ -270,10 +289,12 @@ StyledRect {
                 TextArea {
                     id: notesField
 
+                    objectName: "calendarNotes"
                     width: notesWrap.width
 
-                    text: root.notesText
-                    onTextChanged: root.notesText = text
+                    text: CalendarNotes.text
+                    onTextChanged: CalendarNotes.text = text
+                    Keys.onEscapePressed: root.closeRequested()
                     wrapMode: TextArea.Wrap
                     placeholderText: qsTr("Jot something down...")
                     placeholderTextColor: Colours.palette.m3outlineVariant
@@ -295,11 +316,5 @@ StyledRect {
                 }
             }
         }
-    }
-
-    PersistentProperties {
-        reloadableId: "utilitysidebar-notes"
-
-        property alias notesText: root.notesText
     }
 }

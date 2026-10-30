@@ -26,37 +26,31 @@ Scope {
 
     property string lockMessage
     property int state
+    // Submission-only handoff to PAM. The visible TextInput owns the draft.
     property string buffer
 
     signal flashMsg
+    signal clearInput
 
-    function handleKey(event: KeyEvent): void {
-        if (passwd.active)
+    function submitPassword(password: string): void {
+        if (!lock.locked || !lock.secure || passwd.active)
             return;
 
-        // Trigger howdy on enter while empty buffer
-        if (howdy.canAttempt && !howdy.active && (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) && buffer.length === 0)
-            return howdy.start(); // Gate on active so double enter still allows empty password
+        if (password.length === 0 && howdy.canAttempt && !howdy.active) {
+            howdy.start();
+            return;
+        }
 
+        // Exhausted password attempts must not disable another available PAM
+        // method. Empty Enter can still start face authentication above.
         if (state === Pam.MaxTries)
             return;
 
-        // Abort howdy on pwd input
         if (howdy.active)
             howdy.abort();
-
-        if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
-            passwd.start();
-        } else if (event.key === Qt.Key_Backspace) {
-            if (event.modifiers & Qt.ControlModifier) {
-                buffer = "";
-            } else {
-                buffer = buffer.slice(0, -1);
-            }
-        } else if (/^[^\x00-\x1F\x7F-\x9F]+$/.test(event.text)) {
-            // Allow anything except control characters
-            buffer += event.text;
-        }
+        buffer = password;
+        clearInput();
+        passwd.start();
     }
 
     function restartFprint(): void {
@@ -95,6 +89,7 @@ Scope {
         }
 
         onCompleted: res => {
+            root.buffer = "";
             if (res === PamResult.Success)
                 return root.lock.unlock();
 
@@ -159,15 +154,28 @@ Scope {
                 fprint.reset();
                 howdy.reset();
                 root.buffer = "";
+                root.clearInput();
                 root.state = Pam.None;
                 root.lockMessage = "";
             }
         }
 
         function onUnlock(): void {
+            root.clearInput();
             fprint.abort();
             howdy.abort();
             passwd.abort();
+        }
+
+        function onLockedChanged(): void {
+            if (!root.lock.locked) {
+                fprint.abort();
+                howdy.abort();
+                passwd.abort();
+                pwdStateReset.stop();
+                root.buffer = "";
+                root.clearInput();
+            }
         }
 
         target: root.lock
@@ -199,7 +207,7 @@ Scope {
         property int tries
         property int errorTries
         property int state
-        readonly property bool canAttempt: available && enabled && root.lock.secure && tries < maxTries
+        readonly property bool canAttempt: available && enabled && root.lock.locked && root.lock.secure && tries < maxTries
 
         readonly property alias active: pam.active
         readonly property alias message: pam.message
@@ -211,10 +219,13 @@ Scope {
         }
 
         function start(): void {
-            pam.start();
+            if (canAttempt && !pam.active)
+                pam.start();
         }
 
         function abort(): void {
+            errorRetry.stop();
+            stateReset.stop();
             pam.abort();
         }
 
@@ -266,7 +277,7 @@ Scope {
             id: errorRetry
 
             interval: 800
-            onTriggered: pam.start()
+            onTriggered: ctx.start()
         }
 
         Timer {

@@ -45,12 +45,12 @@ Item {
         (content.item as Bar)?.closeTray();
     }
 
-    function hasEntryAt(x: real, y: real): bool {
+    function blocksDashboardHover(x: real, y: real): bool {
         const bar = content.item as Bar;
         if (!bar)
             return false;
         const pos = bar.mapFromItem(root, x, y);
-        return bar.hasEntryAt(pos.x, pos.y);
+        return bar.blocksDashboardHover(pos.x, pos.y);
     }
 
     function checkPopout(x: real, y: real): void {

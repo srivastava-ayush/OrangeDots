@@ -63,16 +63,15 @@ StyledWindow {
         screenState.session = false;
         screenState.dashboard = false;
         screenState.notifShade = false;
-        screenState.utilitySidebar = false;
         panels.popouts.close();
     }
 
     name: "drawers"
     WlrLayershell.exclusionMode: ExclusionMode.Ignore
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
-    // OnDemand lets the notes field take keyboard focus on click without
-    // stealing it when the sidebar is merely hovered open
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.utilitySidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // OnDemand lets the dashboard's notes field take focus on click without
+    // stealing it when the dashboard is merely hovered open.
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -117,14 +116,15 @@ StyledWindow {
         id: focusGrab
 
         active: {
+            // There is nothing to grab before Hyprland has a monitor (or in a
+            // compositor-disconnected preview/test surface).
+            if (!root.monitor)
+                return false;
             const s = root.screenState;
             const conf = root.contentItem.Config;
             if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled))
                 return true;
-            if (!conf.dashboard.showOnHover && s.dashboard && conf.dashboard.enabled)
-                return true;
-            // Same for the sidebar, which hosts the notes text field
-            if (s.utilitySidebar && conf.sidebar.enabled && interactionWrapper.utilityShortcutActive)
+            if (s.dashboard && conf.dashboard.enabled && (!conf.dashboard.showOnHover || panels.dashboard.notesActive))
                 return true;
             if (panels.popouts.currentName.startsWith("traymenu") && (panels.popouts.current as StackView)?.depth > 1)
                 return true;
@@ -136,7 +136,6 @@ StyledWindow {
             root.screenState.session = false;
             root.screenState.dashboard = false;
             root.screenState.notifShade = false;
-            root.screenState.utilitySidebar = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
         }
@@ -259,12 +258,6 @@ StyledWindow {
         }
 
         PanelBg {
-            id: utilitySidebarBg
-
-            panel: panels.utilitySidebar
-        }
-
-        PanelBg {
             id: popoutBg
 
             readonly property bool shellAttached: bar.notched && !panels.popouts.isDetached
@@ -333,9 +326,6 @@ StyledWindow {
             }
             notifications.transform: Matrix4x4 {
                 matrix: notifsBg.deformMatrix
-            }
-            utilitySidebar.transform: Matrix4x4 {
-                matrix: utilitySidebarBg.deformMatrix
             }
             popouts.transform: Matrix4x4 {
                 matrix: popoutBg.deformMatrix

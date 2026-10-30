@@ -2,8 +2,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtTest as QtTest
 import Quickshell
 import Quickshell.Wayland
+import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.services
@@ -12,11 +14,15 @@ import qs.modules.bar.popouts as BarPopouts
 import qs.modules.nexus
 import qs.modules.nexus.pages.panels
 import qs.modules.drawers
+import qs.modules.lock as Lock
+import qs.modules as Modules
 
 // Transparent, input-free test surface. taskbar.test.py isolates all settings
 // and removes the Hyprland IPC connection, so the desktop is left unchanged.
 ShellRoot {
     id: root
+
+    settings.watchFiles: false
 
     property int step
     property point bannerPosition
@@ -31,10 +37,20 @@ ShellRoot {
         { orientation: "left", name: "network" },
         { orientation: "left", name: "notifications" }
     ]
+    readonly property var clockCenterCases: {
+        const cases = [];
+        for (const style of ["unified", "notches", "center"])
+            for (const width of [1024, 1281, 1920, 2560])
+                cases.push({ style, width });
+        return cases;
+    }
     property point hoverAnchor
     property var nexusStack
     property var tintBaseline
     property real unifiedStatusInset
+    property var calendarIpc
+    readonly property string calendarNote: "Calendar integration scratchpad — keep this draft"
+    property int calendarWaitTicks
     readonly property NexusState navigationState: NexusState {
         screen: window.screen
     }
@@ -80,15 +96,121 @@ ShellRoot {
         return null;
     }
 
+    QtTest.TestEvent {
+        id: pointerEvents
+    }
+
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "styles", "attachments", "center"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: ContentWindow {
+            readonly property alias testEvents: sceneEvents
+
             screen: window.screen
             contentItem.opacity: 0.001
             mask: Region {}
             WlrLayershell.layer: WlrLayer.Background
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+            QtTest.TestEvent {
+                id: sceneEvents
+            }
+        }
+    }
+
+    Loader {
+        id: calendarShortcuts
+        active: Quickshell.env("TASKBAR_TEST_MODE") === "calendar"
+        sourceComponent: Modules.Shortcuts {
+            // The fixture deliberately has no Hyprland connection/focused
+            // monitor. Route the real IPC controller to its isolated screen.
+            function activeScreenState(): ScreenState {
+                return fullSceneLoader.item.screenState;
+            }
+        }
+    }
+
+    // Real Qt key events, sent only inside this test application's input-free
+    // window. This fixture never acquires a session lock or authenticates.
+    Loader {
+        id: lockInputFixture
+        active: ["lock-input", "lock-focus"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        parent: window.contentItem
+        width: 800
+        height: 700
+        sourceComponent: Item {
+            id: passwordFixture
+            readonly property WlSessionLock testLock: WlSessionLock {
+                signal unlock
+            }
+            readonly property Lock.Pam testPam: Lock.Pam {
+                lock: passwordFixture.testLock
+            }
+            // UI submission spy only. Never calls a native PAM method or
+            // records credentials; the unsecured real backend is tested first.
+            readonly property Lock.Pam submissionSpy: Lock.Pam {
+                lock: passwordFixture.testLock
+                property int submissions
+                property int submittedLength
+                function submitPassword(password: string): void {
+                    submissions++;
+                    submittedLength = password.length;
+                    clearInput();
+                }
+            }
+            readonly property alias view: view
+            readonly property var editor: view.passwordInput
+            readonly property var field: view.passwordInput.input
+            readonly property alias events: events
+            readonly property alias accepted: accepted
+            property int exits
+            property int earlyExits
+            property var extraView
+            property var traceSamples: []
+            readonly property alias wakeTrace: wakeTrace
+
+            Lock.WakeTrace {
+                id: wakeTrace
+                lockView: view
+                enabled: view.wakeTracing
+                screenName: "test"
+                onSample: details => passwordFixture.traceSamples = [...passwordFixture.traceSamples, details]
+            }
+            readonly property alias motionView: motionView
+
+            Component {
+                id: motionView
+                Lock.LockView {
+                    pam: passwordFixture.testPam
+                    width: 800
+                    height: 700
+                    visible: false
+                }
+            }
+            readonly property alias secureAdapter: secureAdapter
+            Component {
+                id: secureAdapter
+                Lock.LockSurface {
+                    lock: passwordFixture.testLock
+                    pam: passwordFixture.testPam
+                    animateEntrance: false
+                }
+            }
+
+            Lock.LockView {
+                id: view
+                anchors.fill: parent
+                animateEntrance: false
+                pam: passwordFixture.testPam
+                onExitFinished: passwordFixture.exits++
+            }
+
+            QtTest.TestEvent { id: events }
+            QtTest.SignalSpy {
+                id: accepted
+                target: view.passwordInput.input
+                signalName: "accepted"
+            }
         }
     }
 
@@ -158,7 +280,7 @@ ShellRoot {
     }
 
     Timer {
-        interval: ["hover", "attachments"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
+        interval: ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
         running: true
         repeat: true
 
@@ -166,6 +288,163 @@ ShellRoot {
             try {
                 if (!Taskbar.loaded)
                     return;
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "lock-focus") {
+                    const fixture = lockInputFixture.item;
+                    const editor = fixture.editor;
+                    const field = fixture.field;
+                    switch (root.step++) {
+                    case 0:
+                        const surface = fixture.secureAdapter.createObject(fixture);
+                        root.check(!!surface && !surface.visible && !fixture.testLock.locked, "The secure adapter must instantiate without creating a lock or an on-screen surface");
+                        surface.destroy();
+                        GlobalConfig.appearance.anim.durations.scale = 1;
+                        fixture.view.progress = 0;
+                        window.contentItem.forceActiveFocus();
+                        fixture.view.settle();
+                        break;
+                    case 1:
+                        root.check(fixture.view.progress === 1 && field.activeFocus, "Resume settling must restore the native field's focus without a click");
+                        root.check(root.find(fixture, "lockClock").transform[0].y === 0 && root.find(fixture, "lockPasswordRow").transform[0].y === 0, "One progress value must bring the clock and password controls fully on screen");
+                        root.check(fixture.events.keyClickChar("a", Qt.NoModifier, 0), "Qt must deliver a key event to the test input");
+                        break;
+                    case 2:
+                        root.check(field.length === 1 && field.displayText === "\u2022" && fixture.testPam.buffer === "", "A real keyboard event must update the visible native mask, not a separate PAM draft");
+                        window.contentItem.forceActiveFocus();
+                        fixture.view.settle();
+                        fixture.events.keyClickChar("a", Qt.NoModifier, 0);
+                        break;
+                    case 3:
+                        root.check(field.length === 2 && field.displayText.length === 2 && field.activeFocus, "Repeated resume must preserve the draft and immediately accept keys without clicking");
+                        fixture.testPam.state = Lock.Pam.Failed;
+                        fixture.testPam.flashMsg();
+                        fixture.view.unlock();
+                        window.contentItem.forceActiveFocus();
+                        break;
+                    case 4:
+                        root.check(fixture.view.unlocking && field.readOnly && field.length === 0 && fixture.exits === 1, "The exit must clear drafts, block editing and emit exactly one completion");
+                        root.check(!field.activeFocus && !fixture.testLock.locked, "An exit must not steal focus or acquire a real session lock");
+                        fixture.view.unlock();
+                        break;
+                    case 5:
+                        root.check(fixture.exits === 1, "A duplicate unlock must not restart the exit or emit another completion");
+                        fixture.extraView = fixture.motionView.createObject(fixture);
+                        root.check(!!fixture.extraView, "A fresh animated lock view must instantiate independently of a secure surface");
+                        fixture.extraView.exitFinished.connect(() => fixture.earlyExits++);
+                        fixture.extraView.unlock();
+                        break;
+                    case 6:
+                        root.check(fixture.earlyExits === 1 && fixture.extraView.progress === 0, "A fast unlock during entrance must finish without competing animations");
+                        fixture.extraView.destroy();
+                        GlobalConfig.appearance.anim.durations.scale = 0;
+                        fixture.extraView = fixture.motionView.createObject(fixture);
+                        fixture.extraView.exitFinished.connect(() => fixture.earlyExits++);
+                        break;
+                    case 7:
+                        root.check(fixture.extraView.progress === 1, "Disabling animations must leave the new lock view fully revealed");
+                        fixture.extraView.unlock();
+                        break;
+                    case 8:
+                        root.check(fixture.earlyExits === 2 && fixture.extraView.progress === 0 && !fixture.testLock.locked, "A zero-duration exit must finish exactly once without acquiring a session lock");
+                        fixture.extraView.destroy();
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                    }
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "lock-input") {
+                    const fixture = lockInputFixture.item;
+                    const field = fixture.field;
+                    switch (root.step++) {
+                    case 0:
+                        GlobalConfig.appearance.anim.durations.scale = 1;
+                        if (Quickshell.env("LOCK_REQUIRE_NATIVE") === "1") {
+                            root.check(typeof LockRenderRecovery !== "undefined", "The test must load the rebuilt native rendering helper");
+                            const native = LockRenderRecovery.state(field);
+                            root.check(native.supported && native.qtBuild === native.qtRuntime, "Native recovery must match the running Qt version");
+                            root.check(!native.lockWindow && !LockRenderRecovery.afterResume(field) && !LockRenderRecovery.ifStalled(field), "Recovery must refuse ordinary layer-shell windows");
+                            root.check(!LockRenderRecovery.afterResume(null) && !LockRenderRecovery.ifStalled(null), "Recovery must safely reject absent windows");
+                        }
+                        fixture.view.settle();
+                        for (let i = 0; i < 4; i++)
+                            root.check(fixture.events.keyClickChar("a", Qt.NoModifier, 0), "Qt must deliver native typing events");
+                        break;
+                    case 1:
+                        root.check(field.length === 4 && field.displayText === "\u2022".repeat(4) && fixture.testPam.buffer === "", "Native password masking must be visible and PAM must not mirror the draft");
+                        root.check(field.echoMode === TextInput.Password && (field.inputMethodHints & Qt.ImhSensitiveData) !== 0, "The real text input must mask passwords and disable predictive input");
+                        fixture.events.keyClick(Qt.Key_Backspace, Qt.NoModifier, 0);
+                        break;
+                    case 2:
+                        root.check(field.length === 3 && field.displayText.length === 3, "Native Backspace must update both editing and masking");
+                        fixture.events.keyClick(Qt.Key_Backspace, Qt.ControlModifier, 0);
+                        break;
+                    case 3:
+                        root.check(field.length === 0, "Ctrl+Backspace must clear the native password field");
+                        GlobalConfig.appearance.anim.durations.scale = 0;
+                        fixture.events.keyClickChar("x", Qt.NoModifier, 0);
+                        field.insert(field.length, "é🎵");
+                        break;
+                    case 4:
+                        root.check(field.length > 1 && field.displayText.length > 1 && field.scale > 0 && field.color.a > 0, "Unicode input and visible masking must work with animations disabled");
+                        fixture.events.keyClick(Qt.Key_Return, Qt.NoModifier, 0);
+                        break;
+                    case 5:
+                        root.check(fixture.accepted.count === 1 && !fixture.testPam.passwd.active && fixture.testPam.buffer === "" && !fixture.testLock.locked, "Enter must use the native accepted signal, but never authenticate an unsecured fixture");
+                        fixture.testPam.state = Lock.Pam.MaxTries;
+                        break;
+                    case 6:
+                        root.check(field.readOnly && fixture.view.stateMessage.msg.includes("Maximum"), "Maximum-attempt state must block native editing and display feedback");
+                        fixture.testPam.state = Lock.Pam.None;
+                        fixture.testPam.clearInput();
+                        break;
+                    case 7:
+                        root.check(field.length === 0 && field.displayText.length === 0, "The shared clear signal must erase the native draft");
+                        fixture.view.pam = fixture.submissionSpy;
+                        fixture.events.keyClickChar("s", Qt.NoModifier, 0);
+                        fixture.events.keyClick(Qt.Key_Return, Qt.NoModifier, 0);
+                        break;
+                    case 8:
+                        root.check(fixture.submissionSpy.submissions === 1 && fixture.submissionSpy.submittedLength === 1 && field.length === 0, "Native Enter must hand the draft to the UI spy exactly once and clear the editor");
+                        fixture.events.keyClickChar("t", Qt.NoModifier, 0);
+                        break;
+                    case 9: {
+                        const button = root.find(fixture.editor, "lockSubmitButton");
+                        root.check(fixture.events.mouseClick(button, button.width / 2, button.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Qt must deliver a local submit-button mouse event");
+                        break;
+                    }
+                    case 10:
+                        root.check(fixture.submissionSpy.submissions === 2 && field.length === 0, "The submit button must use the same handoff as Enter");
+                        fixture.submissionSpy.state = Lock.Pam.MaxTries;
+                        fixture.events.keyClick(Qt.Key_Return, Qt.NoModifier, 0);
+                        break;
+                    case 11:
+                        root.check(fixture.submissionSpy.submissions === 2 && !fixture.testLock.locked, "A max-attempt or unsecured input must not submit credentials or acquire a lock");
+                        fixture.submissionSpy.state = Lock.Pam.None;
+                        fixture.view.wakeTracing = true;
+                        fixture.wakeTrace.resumed();
+                        fixture.editor.activateInput();
+                        fixture.events.keyClickChar("a", Qt.NoModifier, 0);
+                        break;
+                    case 12:
+                        root.check(fixture.traceSamples.some(sample => sample.event === "edit-before-click"), "Opt-in tracing must observe the first key before any click");
+                        // A background software-rendered test window may be
+                        // occluded. Exercise the notification handler directly;
+                        // this is not a claim that a GPU frame was presented.
+                        fixture.wakeTrace.framePresented();
+                        root.check(fixture.traceSamples.some(sample => sample.event === "frame-for-before-click"), "Tracing must correlate edit and frame notifications");
+                        fixture.events.mouseClick(field, field.width / 2, field.height / 2, Qt.LeftButton, Qt.NoModifier, 0);
+                        fixture.events.keyClickChar("b", Qt.NoModifier, 0);
+                        break;
+                    case 13:
+                        root.check(fixture.traceSamples.some(sample => sample.event === "pointer-press") && fixture.traceSamples.some(sample => sample.event === "edit-after-click"), "Passive tracing must distinguish typing before and after a click");
+                        root.check(fixture.traceSamples.every(sample => !("text" in sample) && !("password" in sample) && !("length" in sample)), "Wake traces must not record credentials or password lengths");
+                        fixture.view.wakeTracing = false;
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                    }
+                    return;
+                }
 
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "center") {
                     const scene = fullSceneLoader.item;
@@ -554,9 +833,18 @@ ShellRoot {
                         break;
                     case 8:
                         root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Back from Utilities should return to Dashboard");
-                        root.navigationState.closeSubPage();
+                        root.find(root.nexusStack.currentItem, "dashboardCalendarSettings").clicked(null);
                         break;
                     case 9:
+                        root.check(root.nexusStack.depth === 3 && root.nexusStack.currentItem.title === qsTr("Calendar & notes"), "Calendar settings must be nested beneath Dashboard");
+                        root.check(!root.nexusStack.currentItem.contentChild.children.some(child => child.text === qsTr("Show on hover") || child.label === qsTr("Corner width")), "Calendar settings must not advertise the removed corner interactions");
+                        root.navigationState.closeSubPage();
+                        break;
+                    case 10:
+                        root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Back from Calendar settings should return to Dashboard");
+                        root.navigationState.closeSubPage();
+                        break;
+                    case 11:
                         root.check(root.nexusStack.currentItem.title === qsTr("Panels"), "Back from Dashboard should return to Panels");
                         root.nexusStack.destroy();
                         root.nexusStack = PageCompRegistry.pageComps[PageRegistry.pages.findIndex(page => page.id === "about")].createObject(window.contentItem, {
@@ -566,7 +854,7 @@ ShellRoot {
                             visible: false
                         });
                         break;
-                    case 10: {
+                    case 12: {
                         const about = root.nexusStack.currentItem;
                         root.check(root.find(about, "aboutShellName").text === "Orange OS", "About should show the Orange OS name");
                         root.check(root.find(about, "aboutShellVersion").text === "AYUSH_GOAT_V4", "About should show the custom release version");
@@ -577,6 +865,169 @@ ShellRoot {
                         Qt.quit();
                     }
                     }
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "calendar") {
+                    const scene = fullSceneLoader.item;
+                    const interactions = scene.interactionWrapper;
+                    const dashboard = interactions.panels.dashboard;
+                    const calendar = root.find(scene.contentItem, "dashboardCalendar");
+                    const notes = calendar ? root.find(calendar, "calendarNotes") : null;
+                    if ((root.step === 1 || root.step === 14) && (!calendar || root.find(calendar, "calendarAgenda").count !== 2)) {
+                        root.check(++root.calendarWaitTicks < 10, "The local iCal fixture and agenda model must finish loading");
+                        return;
+                    }
+                    root.calendarWaitTicks = 0;
+                    switch (root.step++) {
+                    case 0:
+                        Taskbar.orientation = "top";
+                        GlobalConfig.sidebar.enabled = true;
+                        GlobalConfig.sidebar.showAgenda = true;
+                        GlobalConfig.sidebar.showNotes = true;
+                        root.calendarIpc = calendarShortcuts.item.drawers;
+                        root.check(!!root.calendarIpc, "The real drawer IPC handler must be available");
+                        root.calendarIpc.setTab("calendar");
+                        break;
+                    case 1: {
+                        root.check(!!calendar && scene.screenState.dashboard, "Named calendar IPC must open the new dashboard tab");
+                        const agenda = root.find(calendar, "calendarAgenda");
+                        root.check(agenda.count === 2 && GoogleCalendar.events.length === 2, "The dashboard must display all-day and timed events from the isolated local iCal fixture, excluding cancelled events");
+                        root.check(root.find(calendar, "calendarRefresh").visible, "A configured calendar must retain its refresh control");
+                        const timed = GoogleCalendar.events.find(event => !event.allDay);
+                        calendar.now = new Date((timed.start.getTime() + timed.end.getTime()) / 2);
+                        root.check(scene.testEvents.mouseClick(notes, notes.width / 2, notes.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Qt must deliver a local click into the calendar scratchpad");
+                        notes.insert(0, root.calendarNote);
+                        break;
+                    }
+                    case 2: {
+                        root.check(CalendarNotes.text === root.calendarNote && dashboard.notesActive, `The dashboard must retain keyboard focus while editing the shared scratchpad (saved=${CalendarNotes.text === root.calendarNote}, open=${scene.screenState.dashboard}, selected=${calendar?.selected}, fieldFocus=${notes?.activeFocus}, fieldVisible=${notes?.visible})`);
+                        const agenda = root.find(calendar, "calendarAgenda");
+                        root.check(agenda.contentItem.children.some(child => child.objectName === "calendarAgendaEvent" && child.ongoing), "Current-event highlighting must survive the move into the dashboard");
+                        scene.testEvents.mouseMove(interactions, interactions.width - 1, interactions.height - 1, 0, Qt.NoButton, Qt.NoModifier);
+                        root.check(scene.screenState.dashboard, "Pointer departure must not close a focused notes editor");
+                        root.calendarIpc.setTab("dashboard");
+                        break;
+                    }
+                    case 3:
+                        root.check(!dashboard.notesActive && CalendarNotes.text === root.calendarNote, "Switching tabs must release the notes focus without losing the draft");
+                        root.calendarIpc.setTab("calendar");
+                        break;
+                    case 4:
+                        root.check(notes.text === root.calendarNote, "The scratchpad must survive lazy tab unloading and reloading");
+                        scene.screenState.dashboard = false;
+                        break;
+                    case 5:
+                        root.check(!dashboard.visible && !calendar && CalendarNotes.text === root.calendarNote, "Closing the dashboard must unload its UI but preserve the scratchpad");
+                        root.calendarIpc.toggle("utilitySidebar");
+                        break;
+                    case 6:
+                        root.check(!!calendar && notes.text === root.calendarNote && root.calendarIpc.isOpen("utilitySidebar") === "1", "The legacy sidebar IPC name must open the Calendar tab rather than a corner panel");
+                        root.calendarIpc.toggle("utilitySidebar");
+                        break;
+                    case 7:
+                        root.check(!scene.screenState.dashboard && root.calendarIpc.isOpen("utilitySidebar") === "0", "The legacy sidebar command must toggle the Calendar tab closed");
+                        root.check(typeof interactions.inUtilitySidebarCorner === "undefined" && typeof interactions.panels.utilitySidebar === "undefined", "The obsolete bottom-right trigger and separate sidebar must be removed");
+                        scene.testEvents.mouseMove(interactions, interactions.width - 1, interactions.height - 1, 0, Qt.NoButton, Qt.NoModifier);
+                        root.check(!scene.screenState.dashboard, "Hovering the former bottom-right corner must not reopen the calendar");
+                        root.calendarIpc.setTab("calendar");
+                        GlobalConfig.sidebar.showAgenda = false;
+                        break;
+                    case 8:
+                        root.check(!root.find(calendar, "calendarAgenda").visible && notes.visible, "The existing agenda visibility preference must work in the dashboard");
+                        GlobalConfig.sidebar.showAgenda = true;
+                        GlobalConfig.sidebar.showNotes = false;
+                        break;
+                    case 9:
+                        root.check(root.find(calendar, "calendarAgenda").visible && !notes.visible, "The existing notes visibility preference must remain independent of the agenda");
+                        GlobalConfig.sidebar.enabled = false;
+                        break;
+                    case 10: {
+                        const content = root.find(scene.contentItem, "dashboardContent");
+                        root.check(!content.dashboardTabs.some(tab => tab.text === qsTr("Calendar")) && calendarShortcuts.item.dashboardTabIndex("calendar") === -1, "Disabling Calendar must remove it from both the tab row and named IPC mapping");
+                        scene.screenState.dashboard = false;
+                        root.calendarIpc.setTab("calendar");
+                        root.check(!scene.screenState.dashboard, "IPC must not open a disabled Calendar tab");
+                        GlobalConfig.sidebar.enabled = true;
+                        GlobalConfig.sidebar.showNotes = true;
+                        GlobalConfig.dashboard.showDashboard = false;
+                        GlobalConfig.dashboard.showPerformance = false;
+                        break;
+                    }
+                    case 11:
+                        // Let the native per-screen configuration mirror the
+                        // preference changes before invoking a named shortcut.
+                        root.calendarIpc.setTab("calendar");
+                        break;
+                    case 12:
+                        root.check(scene.screenState.dashboardTab === 1 && !!calendar && notes.text === root.calendarNote, "Calendar selection must follow the filtered tab order when other tabs are disabled");
+                        GoogleCalendar._url = "";
+                        GoogleCalendar._rawIcs = "";
+                        break;
+                    case 13:
+                        root.check(root.find(calendar, "calendarAgenda").count === 0 && !root.find(calendar, "calendarRefresh").visible, "An unconfigured calendar must not display stale events or a refresh button");
+                        root.check(root.find(calendar, "calendarEmptyMessage").text.includes("calendar-url"), "The unconfigured state must explain the unchanged private URL setup");
+                        GoogleCalendar.refresh();
+                        break;
+                    case 14:
+                        root.check(root.find(calendar, "calendarAgenda").count === 2, "Manual refresh must reload the original iCal source inside the dashboard");
+                        scene.testEvents.mouseClick(notes, notes.width / 2, notes.height / 2, Qt.LeftButton, Qt.NoModifier, 0);
+                        root.check(scene.testEvents.keyClick(Qt.Key_Escape, Qt.NoModifier, 0), "Qt must deliver Escape locally to the notes editor");
+                        break;
+                    case 15:
+                        root.check(!scene.screenState.dashboard && CalendarNotes.text === root.calendarNote, "Escape must close the focused Calendar tab without erasing notes");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                    }
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "clock-center") {
+                    const index = Math.floor(root.step / 3);
+                    const phase = root.step % 3;
+                    if (index >= root.clockCenterCases.length) {
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        return;
+                    }
+                    const entry = root.clockCenterCases[index];
+                    if (phase === 0) {
+                        Taskbar.orientation = "top";
+                        Taskbar.style = entry.style;
+                        // Exercise synthetic monitor widths without changing
+                        // the desktop's real screen geometry or input region.
+                        bar.width = entry.width;
+                        GlobalConfig.bar.clock.showDate = true;
+                        GlobalConfig.bar.workspaces.shown = 3;
+                        GlobalConfig.services.useTwelveHourClock = false;
+                    } else {
+                        const clock = root.find(bar, "taskbarClock");
+                        const center = clock.mapToItem(bar, clock.width / 2, clock.height / 2);
+                        root.check(Math.abs(center.x - entry.width / 2) < 0.001, `${entry.style}/${entry.width}: clock/date must be at the exact screen midpoint, not between unequal side groups (${center.x})`);
+                        if (Taskbar.notched) {
+                            const range = clock.parent.parent.notchRanges[1];
+                            root.check(Math.abs(range.start + range.length / 2 - entry.width / 2) < 0.001, `${entry.style}/${entry.width}: the clock's notch background must share the exact screen midpoint`);
+                        }
+                        const clockLeft = center.x - clock.width / 2;
+                        const clockRight = center.x + clock.width / 2;
+                        for (const name of ["taskbarLogo", "taskbarWorkspaces", "taskbarActiveWindow", "taskbarTray", "taskbarStatusIcons"]) {
+                            const item = root.find(bar, name);
+                            if (!item)
+                                continue;
+                            const left = item.mapToItem(bar, 0, 0).x;
+                            const right = item.mapToItem(bar, item.width, 0).x;
+                            root.check(right <= clockLeft || left >= clockRight, `${entry.style}/${entry.width}: ${name} must not overlap the centered clock/date`);
+                        }
+                        if (phase === 1) {
+                            GlobalConfig.bar.workspaces.shown = 7;
+                            GlobalConfig.services.useTwelveHourClock = true;
+                        } else if (index === root.clockCenterCases.length - 1) {
+                            // Leave the shared isolated state in its default
+                            // style before the next integration test starts.
+                            Taskbar.style = "unified";
+                        }
+                    }
+                    root.step++;
                     return;
                 }
 
@@ -609,9 +1060,37 @@ ShellRoot {
                             icon = status.items.children.find(child => child.name === entry.name);
                         }
                         root.check(!!icon, `Missing hover-test icon ${entry.name}`);
+                        if (entry.name === "clock" && realBar.horizontal) {
+                            const center = icon.mapToItem(scene.contentItem, icon.width / 2, icon.height / 2);
+                            root.check(Math.abs(center.x - scene.width / 2) <= 0.5, `Top clock/date must be centered on the screen in ${Taskbar.style} style: ${center.x} vs ${scene.width / 2}`);
+                            for (const fraction of [0.01, 0.24, 0.26, 0.5, 0.74, 0.76, 0.99]) {
+                                popup.close();
+                                const point = icon.mapToItem(interactions, icon.width * fraction, icon.height / 2);
+                                interactions.updatePopoutHover(point.x, point.y);
+                                root.check(!popup.hasCurrent && !popup.anchorHovered, `Top clock: hovering must never open the calendar (${fraction})`);
+                                root.check(!realBar.blocksDashboardHover(point.x, point.y), "The click-only top clock must not block dashboard hover");
+                            }
+                            GlobalConfig.dashboard.showOnHover = true;
+                            const point = icon.mapToItem(interactions, icon.width / 2, icon.height / 2);
+                            root.check(pointerEvents.mouseMove(icon, icon.width / 2, icon.height / 2, 0, Qt.NoButton, Qt.NoModifier), "Qt must deliver a local clock hover event");
+                            if (interactions.inTopPanel(interactions.panels.dashboard, point.x, point.y))
+                                root.check(scene.screenState.dashboard, "Hovering the clock inside the dashboard trigger must open the dashboard instead of the calendar");
+                            for (const shouldOpen of [true, false, true]) {
+                                root.check(pointerEvents.mouseClick(icon, icon.width / 2, icon.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Qt must deliver a local clock click");
+                                root.check(popup.hasCurrent === shouldOpen, "Clicking the top clock must toggle the calendar");
+                                if (shouldOpen)
+                                    root.check(!scene.screenState.dashboard, "Opening the calendar by click must hide the dashboard");
+                                else {
+                                    interactions.updatePopoutHover(point.x, point.y);
+                                    root.check(!popup.hasCurrent, "Hover must not reopen a calendar dismissed by click");
+                                }
+                            }
+                            root.check(pointerEvents.mouseMove(icon, icon.width / 2 + 1, icon.height / 2, 0, Qt.NoButton, Qt.NoModifier), "Qt must deliver hover over the clicked-open calendar anchor");
+                            root.check(!scene.screenState.dashboard, "Dashboard hover must not cover a calendar explicitly opened by click");
+                        }
                         root.hoverAnchor = icon.mapToItem(interactions, icon.width / 2, icon.height / 2);
                         interactions.updatePopoutHover(root.hoverAnchor.x, root.hoverAnchor.y);
-                        root.check(popup.hasCurrent && popup.currentName === entry.name, `${entry.orientation}/${entry.name}: icon should open its popout`);
+                        root.check(popup.hasCurrent && popup.currentName === entry.name, `${entry.orientation}/${entry.name}: popout must be open after activation`);
                         // Walk every pixel from the icon through the bar padding.
                         // The old exact-icon hit test closed the popout here.
                         const start = realBar.horizontal ? root.hoverAnchor.y : root.hoverAnchor.x;
@@ -804,7 +1283,8 @@ ShellRoot {
                     }
                     const clock = root.find(window.contentItem, "taskbarClock");
                     const point = clock.mapToItem(bar, clock.width / 2, clock.height / 2);
-                    root.check(bar.hasEntryAt(point.x, 0), "Top clock's column should take priority over screen-edge hover panels");
+                    root.check(Math.abs(point.x - bar.width / 2) <= 0.5, `Top clock/date must be exactly screen-centered: ${point.x} vs ${bar.width / 2}`);
+                    root.check(!bar.blocksDashboardHover(point.x, 0), "The click-only top clock must leave screen-edge dashboard hover available");
                     root.check(root.find(settings, "taskbarOrientation").active === settings.orientationItems[1], "Nexus should show Top as selected");
                     const status = root.find(window.contentItem, "taskbarStatusIcons");
                     const bluetooth = status.items.children.find(child => child.name === "bluetooth")?.item;
@@ -817,10 +1297,12 @@ ShellRoot {
                     root.check(status.parent.Layout.rightMargin === Tokens.padding.large, "Unified status icons must have trailing padding even with an unsupported power entry");
                     root.check(Math.abs(bar.width - status.mapToItem(bar, status.width, 0).x - Tokens.padding.large) <= 1, "Unified status icons must not stick to the screen's right edge");
                     bar.checkPopout(point.x, point.y);
+                    root.check(!popouts.content.hasCurrent, "Hovering the top clock must leave the calendar closed");
+                    root.check(pointerEvents.mouseClick(clock, clock.width / 2, clock.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Qt must deliver a local clock click");
                     break;
                 }
                 case 3:
-                    root.check(popouts.content.hasCurrent && popouts.content.currentName === "clock", "Top clock hit testing did not open its popout");
+                    root.check(popouts.content.hasCurrent && popouts.content.currentName === "clock", "Clicking the top clock did not open its popout");
                     root.check(popouts.y === 0 && popouts.height > 0, "Top popout should expand downwards");
                     root.check(popouts.x >= 0 && popouts.x + popouts.width <= panelArea.width, "Top popout should stay within the screen");
                     popouts.content.close();

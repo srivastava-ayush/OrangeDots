@@ -29,6 +29,15 @@ Item {
 
     readonly property int maxLength: {
         const otherModules = bar.children.filter(c => c.entryId && c.item !== this && c.entryId !== "spacer");
+        if (horizontal) {
+            // The top clock owns the screen midpoint. Elide long titles inside
+            // the left half instead of pushing the clock towards the status tray.
+            const start = otherModules.filter(c => bar.entryGroup(c.entryId) === 0);
+            const startLength = start.reduce((acc, curr) => acc + curr.item.implicitWidth, 0);
+            const clock = otherModules.find(c => c.entryId === "clock");
+            const available = bar.width / 2 - (clock?.item.implicitWidth ?? 0) / 2 - startLength - bar.vPadding - bar.spacing * (start.length + 2);
+            return Math.max(0, Math.min(480, available));
+        }
         const otherLength = otherModules.reduce((acc, curr) => acc + (horizontal ? (curr.item.nonAnimWidth ?? curr.width) : (curr.item.nonAnimHeight ?? curr.height)), 0);
         const available = (horizontal ? bar.width : bar.height) - otherLength - bar.spacing * (bar.children.length - 1) - bar.vPadding * 2;
         return Math.max(0, Math.min(horizontal ? 480 : Infinity, available));

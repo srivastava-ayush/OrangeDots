@@ -158,11 +158,11 @@ PageBase {
             first: true
             last: true
             label: qsTr("Center of taskbar")
-            subtext: Taskbar.notched ? qsTr("The notched style uses date and time in its center notch") : qsTr("Choose what appears between the two spacers")
-            enabled: !Taskbar.notched
+            subtext: Taskbar.horizontal ? qsTr("The top bar keeps time and date centered on the screen") : Taskbar.notched ? qsTr("The notched style uses date and time in its center notch") : qsTr("Choose what appears between the two spacers")
+            enabled: !Taskbar.horizontal && !Taskbar.notched
             opacity: enabled ? 1 : 0.5
             menuItems: root.centerItems
-            active: root.centerItems[Taskbar.notched || (root.clockIndex !== -1 && root.clockIndex < root.activeWindowIndex) ? 1 : 0]
+            active: root.centerItems[Taskbar.horizontal || Taskbar.notched || (root.clockIndex !== -1 && root.clockIndex < root.activeWindowIndex) ? 1 : 0]
             onSelected: item => {
                 const showClock = root.centerItems.indexOf(item) === 1;
                 root.setCenterClock(showClock);

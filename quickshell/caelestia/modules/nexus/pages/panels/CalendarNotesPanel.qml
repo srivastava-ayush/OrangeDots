@@ -24,38 +24,11 @@ PageBase {
 
         ToggleRow {
             first: true
+            last: true
             text: qsTr("Enabled")
-            subtext: qsTr("Show the calendar agenda and notes panel")
+            subtext: qsTr("Show the Calendar tab in the dashboard")
             checked: Config.sidebar.enabled
             onToggled: GlobalConfig.sidebar.enabled = checked
-        }
-
-        ToggleRow {
-            text: qsTr("Show on hover")
-            subtext: qsTr("Open from the bottom-right screen corner")
-            checked: Config.sidebar.showOnHover
-            onToggled: GlobalConfig.sidebar.showOnHover = checked
-        }
-
-        StepperRow {
-            label: qsTr("Corner width")
-            subtext: qsTr("Width of the bottom-right activation area")
-            value: Config.sidebar.minHoverThreshold
-            from: 20
-            to: 500
-            stepSize: 10
-            onMoved: v => GlobalConfig.sidebar.minHoverThreshold = v
-        }
-
-        StepperRow {
-            last: true
-            label: qsTr("Drag threshold")
-            subtext: qsTr("Pixels swiped up before the panel opens")
-            value: Config.sidebar.dragThreshold
-            from: 0
-            to: 200
-            stepSize: 5
-            onMoved: v => GlobalConfig.sidebar.dragThreshold = v
         }
 
         SectionHeader {

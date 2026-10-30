@@ -7,6 +7,7 @@ zone, no Hyprland IPC connection, and isolated settings/state directories.
 
 import json
 import argparse
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 import shutil
@@ -33,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "background", "notifications", "hover", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "notifications", "hover", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     args = parser.parse_args()
     mode = args.mode
@@ -48,7 +49,8 @@ def main():
         config.mkdir()
         for directory in ("modules", "components", "services", "utils"):
             (config / directory).symlink_to(SHELL / directory, target_is_directory=True)
-        (config / "shell.qml").symlink_to(SHELL / "tests/taskbar.qml")
+        fixture = "calendar-notes.qml" if mode == "calendar-notes" else "taskbar.qml"
+        (config / "shell.qml").symlink_to(SHELL / "tests" / fixture)
 
         env = os.environ.copy()
         for variable in ("HYPRLAND_INSTANCE_SIGNATURE", "DISPLAY", "DBUS_SESSION_BUS_ADDRESS"):
@@ -77,6 +79,26 @@ def main():
         }))
         state = base / "state/caelestia/taskbar.json"
 
+        # Test only a local feed; never read a real private calendar URL or make
+        # requests to Google while exercising the dashboard integration.
+        now = datetime.now(timezone.utc)
+        tomorrow = datetime.now().date() + timedelta(days=1)
+        calendar = base / "calendar.ics"
+        calendar.write_text("\n".join([
+            "BEGIN:VCALENDAR", "VERSION:2.0",
+            "BEGIN:VEVENT", "UID:calendar-test-timed",
+            f"DTSTART:{now - timedelta(minutes=30):%Y%m%dT%H%M%SZ}",
+            f"DTEND:{now + timedelta(minutes=30):%Y%m%dT%H%M%SZ}",
+            "SUMMARY:Calendar integration meeting", "END:VEVENT",
+            "BEGIN:VEVENT", "UID:calendar-test-all-day",
+            f"DTSTART;VALUE=DATE:{tomorrow:%Y%m%d}",
+            "SUMMARY:All-day integration event", "END:VEVENT",
+            "BEGIN:VEVENT", "UID:calendar-test-cancelled", "STATUS:CANCELLED",
+            f"DTSTART;VALUE=DATE:{tomorrow:%Y%m%d}",
+            "SUMMARY:Cancelled event", "END:VEVENT", "END:VCALENDAR", "",
+        ]))
+        (base / "config/caelestia/calendar-url").write_text(calendar.as_uri())
+
         if mode:
             if args.style:
                 state.write_text(json.dumps({"orientation": "left", "style": args.style}))
@@ -97,14 +119,20 @@ def main():
         print("PASS: Left/Top layout, popouts, auto-hide, fullscreen, and saving")
         run(config, env, "top")
         print("PASS: orientation survives restarting the shell")
+        run(config, env, "top", mode="clock-center")
+        print("PASS: exact screen-centered clock/date across top-bar styles, odd/even screen widths, workspace counts, and 12/24-hour formats")
         run(config, env, "top", mode="background")
         print("PASS: calendar and system popout background sizing in Top and Left modes")
         run(config, env, "left", mode="notifications")
         print("PASS: taskbar notification shade, hover settings, drawer IPC, auto-hide, and unchanged banners")
         run(config, env, "top", mode="hover")
-        print("PASS: icon-to-popout hover handoff, padding, persistence, and dismissal for Top and Left bars")
+        print("PASS: click-only Top calendar, dashboard hover, and icon-to-popout handoff, padding, persistence, and dismissal for Top and Left bars")
         run(config, env, "left", mode="nexus")
         print("PASS: Nexus nested navigation, Orange OS About/version, and removal of empty pages")
+        run(config, env, "left", mode="lock-input")
+        print("PASS: native password key events, masking, editing, Enter/button submission, clearing, and maximum-attempt gating without authenticating")
+        run(config, env, "left", mode="lock-focus")
+        print("PASS: native lock focus without clicks, repeated resume, fast unlock during entrance, duplicate unlock, and disabled animations")
 
         cli = base / "config/caelestia/cli.json"
         cli.write_text(json.dumps({
@@ -204,6 +232,16 @@ def main():
             size = 320 if ':320' in contents else 1200 if ':9999' in contents else 0
             run(config, {**env, "TASKBAR_EXPECT_STYLE": expected_style, "TASKBAR_EXPECT_NOTCH_SIZE": str(size)}, expected)
         print("PASS: saved Left and malformed/unsupported values")
+
+        run(config, env, "left", mode="calendar")
+        print("PASS: dashboard Calendar tab, local iCal agenda, notes focus/persistence, visibility preferences, filtered IPC selection, legacy alias, and removal of the corner trigger")
+
+        notes_config = base / "notes-shell"
+        notes_config.mkdir()
+        (notes_config / "services").symlink_to(SHELL / "services", target_is_directory=True)
+        (notes_config / "shell.qml").symlink_to(SHELL / "tests/calendar-notes.qml")
+        run(notes_config, env, "left", mode="calendar-notes")
+        print("PASS: shared Calendar notes survive a real Quickshell reload without a window or compositor focus")
 
 
 if __name__ == "__main__":

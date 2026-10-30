@@ -28,7 +28,7 @@ This is a desktop shell and dotfiles repository, **not an operating-system insta
 - **VOID** tint preset: pure black at 100% tint strength. Transparency remains a separate setting.
 - Dashboard weather, recording controls, utility cards, performance information, and optional phone integration.
 - Recording captures at the display or selected region's native resolution with the `ultra` quality preset; `-s 0x0` prevents downscaling. Quality, codec, frame rate, tune, and cursor are configurable in **Services → Screen recorder**.
-- Calendar/notes sidebar and optional private Google Calendar iCal integration.
+- Dashboard Calendar tab with notes and optional private Google Calendar iCal integration.
 - Optional Lua-based Hyprland dotfiles, scratchpads, gestures, and overview-plugin integration.
 
 See [FEATURES.md](FEATURES.md) for the detailed feature and source inventory. The installation instructions below take precedence over the inherited upstream README for installing **this fork**.
@@ -39,7 +39,7 @@ See [FEATURES.md](FEATURES.md) for the detailed feature and source inventory. Th
 
 - **Arch Linux**, a working **Hyprland Wayland session**, and a normal user account with `sudo` access.
 - **Quickshell's git version** (`quickshell-git`), not just an older tagged release.
-- **Qt 6.9 or newer** for the native modules, with Quickshell and the modules built against compatible Qt versions.
+- **Qt 6.9 or newer** for the native modules, with Quickshell and the modules built against compatible Qt versions. The lock-screen frame-callback recovery currently supports **Qt 6.12 only**, with identical build/runtime versions; see [sleep/wake recovery](#lock-screen-rendering-after-sleep).
 - Internet access for package installation, the CLI, and CMake's pinned M3Shapes download.
 
 The current development machine uses Hyprland **0.56.2** and `quickshell-git`. Other distributions are not covered by this guide. The bundled Hyprland config uses the **Lua `hl.*` API**; do not paste it into an older classic `hyprland.conf` setup.
@@ -213,7 +213,7 @@ The QML itself is interpreted by Quickshell. This step compiles its **native dep
 Check that the required development libraries are discoverable:
 
 ```bash
-pkg-config --modversion Qt6Core libqalculate libpipewire-0.3 aubio
+pkg-config --modversion Qt6Core Qt6WaylandClient wayland-client libqalculate libpipewire-0.3 aubio
 pkg-config --exists libcava || pkg-config --exists cava
 ```
 
@@ -238,6 +238,8 @@ sudo cmake --install "$repo/quickshell/caelestia/build"
 - `extras;plugin;m3shapes` installs the native helpers and QML modules without installing a second QML shell over the symlinked source.
 - M3Shapes is fetched from its pinned Git revision during configuration; network access is required.
 - With this prefix, native files are installed under `/usr/lib/caelestia` and `/usr/lib/qt6/qml`. A different library location requires the matching `CAELESTIA_LIB_DIR` at launch; custom QML import locations also need to be discoverable by Qt.
+- The core module uses `Qt::WaylandClientPrivate` for lock rendering recovery. Qt's private-API warning is intentional: rebuild after **every Qt upgrade**, and review the workaround before enabling it for a new Qt minor. The runtime version guard is not a substitute for rebuilding an ABI-incompatible library.
+- When updating an existing installation, stop the shell **while unlocked** before replacing its native libraries. The [targeted recovery installer](#lock-screen-rendering-after-sleep) handles this for the core module only; it is not a first-install or full-module updater.
 
 ### 6. Start the shell and check it
 
@@ -378,7 +380,7 @@ Open Nexus with `caelestia shell nexus open`, or `SUPER+X` when using the bundle
 | Weather visibility, location, units, refresh | **Panels → Dashboard** |
 | Utility cards and overview hot corner | **Panels → Dashboard → Utilities** |
 | Recorder resolution, quality, codec, frame rate, cursor, reset | **Services → Screen recorder** |
-| Calendar/notes sidebar | **Panels → Calendar & notes** |
+| Dashboard Calendar tab and notes | **Panels → Dashboard → Calendar & notes** |
 | Orange OS release label and system details | **About** |
 
 Settings apply live where supported. Tint does not replace the Material accent scheme. To make VOID fully opaque rather than wallpaper-tinted black, disable **Transparency** separately.
@@ -410,6 +412,7 @@ caelestia shell nexus open               # Open Nexus
 caelestia shell drawers toggle dashboard
 caelestia shell drawers toggle launcher
 caelestia shell drawers toggle notifShade
+caelestia shell drawers setTab calendar   # Google agenda and notes in the dashboard
 ```
 
 Useful shortcuts in the **bundled** `hyprland.lua`:
@@ -423,7 +426,7 @@ Useful shortcuts in the **bundled** `hyprland.lua`:
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence |
 | `SUPER+SHIFT+T` | Cycle taskbar style: Unified → Three notches → Center notch |
 | `SUPER+SHIFT+T+O` | Toggle taskbar orientation: Left ↔ Top (hold T, then press O) |
-| `SUPER+ALT+1..4` | Media / Dashboard / Performance / Phone, subject to enabled tabs |
+| `SUPER+ALT+1..5` | Media / Dashboard / Performance / Phone / Calendar, subject to enabled tabs |
 | `SUPER+Q` / `SUPER+A` | Terminal / Yazi through the bundled wrapper |
 | `SUPER+S` | Spotify scratchpad |
 | `SUPER+Escape` | ScrollOverview, when installed |
@@ -493,6 +496,7 @@ After native-source, Qt, or Quickshell ABI changes, repeat [the native-module bu
 | Icons are squares or literal symbol names | Check Material Symbols Rounded and Nerd Font family resolution; refresh the font cache and restart. |
 | Wallpaper/scheme errors | Choose an existing wallpaper using the CLI. Restore/regenerate state rather than copying another user's absolute wallpaper path. |
 | Login/config parsing errors with the full dotfiles | Confirm Lua-compatible Hyprland, adapt monitor/app paths, and check ScrollOverview references. Return to your backed-up config if necessary. |
+| Password feedback is missing after wake until you click the field | A pending Wayland frame callback can strand lock rendering across sleep even while input/authentication work. Check `caelestia shell lock renderRecoveryStatus`, then follow [sleep/wake recovery](#lock-screen-rendering-after-sleep). A restart alone is not a confirmed fix. Do not kill/restart the shell while locked. |
 | Recording does not start | Install/check `gpu-screen-recorder`, GPU support, available audio devices, and the CLI's recording command. |
 | Recording is downscaled or lower quality | Open **Services → Screen recorder** and choose **Reset to highest quality**, or ensure `~/.config/caelestia/cli.json` has `"record": {"extraArgs": ["-s", "0x0", "-q", "ultra", "-tune", "quality"]}`, then restart the recording. Resolution is always native. |
 | Calendar is empty | Check the private iCal URL file and network access. The calendar parser does not expand all recurring-event rules. |
@@ -509,6 +513,29 @@ hyprctl configerrors
 
 Before sharing logs, remove credentials, private calendar URLs, notification text, and machine-specific information you do not want public.
 
+### Lock-screen rendering after sleep
+
+`LockRenderRecovery` discards a pending frame callback once after resume, restores Qt's exposure bookkeeping, and requests a frame. Later password edits trigger recovery **only if Qt reports a callback timeout**. It is restricted to Quickshell session-lock windows: it never hides/recreates the surface, changes its protocol role, or unlocks/relocks the session. The password widget and PAM verification are unchanged by this native recovery.
+
+The private Qt layout has been reviewed for **6.12**. `supported:true` requires matching Qt build/runtime versions within that minor; other versions refuse recovery. Rebuild all affected native modules after any Qt upgrade, and review the implementation before supporting a new Qt minor. Do not suppress the private-API compatibility warning.
+
+For an **existing, manually installed** `/usr/lib/qt6/qml/Caelestia` module, run from a terminal in your **unlocked Wayland desktop**, as your normal user:
+
+```bash
+repo="$HOME/OrangeDots"
+bash "$repo/quickshell/caelestia/scripts/install-lock-render-recovery.sh" --check
+bash "$repo/quickshell/caelestia/scripts/install-lock-render-recovery.sh"
+caelestia shell lock renderRecoveryStatus
+```
+
+The installer requires this checkout's build configured with prefix `/usr`. It rebuilds `caelestia-coreplugin`, stages CMake's install/RPATH changes without root, and backs up only `lib/libcaelestia-core.so`, `libcaelestia-coreplugin.so`, `qmldir`, and `caelestia-core.qmltypes`. Backups are under `${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/native-backups/lock-render-*`. It refuses package-owned target files, prompts for sudo **locally in your terminal**, stops the unlocked shell, installs those four files, restarts, verifies native support, and arms temporary wake tracing. Qt/Hyprland packages and other QML modules are not replaced. `--check` does not build, install, stop the shell, or request privileges.
+
+On installation/verification failure, it attempts rollback only after confirming no named shell remains running. If a relaunched shell has locked, or its state is unavailable, it refuses to stop/overwrite it and prints the backup path for later recovery. Do not manually restore libraries under a running shell.
+
+Successful status includes `"supported":true` and identical `qtBuild`/`qtRuntime` values. `lockWindow:false` is expected for this status query, which does not target a window. `"reason":"native plugin not rebuilt"` means the running process has not loaded the helper yet.
+
+Installation is **not proof that the intermittent wake bug is fixed**. Test repeated real suspend/resume and hibernate/resume cycles, typing before any click, and inspect the opt-in trace described below. Re-arm tracing before each cycle; it disables itself on unlock. Never share your password.
+
 ### Undoing the installation
 
 Stop the shell with `caelestia shell -k`, remove its autostart/binds, and restore the configuration entries saved in `~/.local/share/orangedots-backups/`. Remove **only the symlinks you created**, not a whole config directory or the clone they point to. Preserve live state if you want your preferences later.
@@ -523,11 +550,45 @@ From the repository root, inside a Wayland session with the native modules insta
 python3 quickshell/caelestia/tests/taskbar.test.py
 ```
 
-The integration checks use isolated config/state and a transparent, input-free test surface. They cover taskbar orientation/styles, shell-attached notch geometry, popout sizing/hover, notification shade, Nexus navigation, recorder settings/persistence, tint/VOID, persistence, and invalid settings. A focused run is available, for example:
+The integration checks use isolated config/state and a transparent, input-free test surface. They cover taskbar orientation/styles, shell-attached notch geometry, popout sizing/hover, notification shade, Nexus navigation, recorder settings/persistence, lock-input recovery/focus, tint/VOID, persistence, and invalid settings. A focused run is available, for example:
 
 ```bash
 python3 quickshell/caelestia/tests/taskbar.test.py --mode tint
 ```
+
+Lock-screen checks require Qt's `QtTest` QML module (part of `qt6-declarative` on Arch). They deliver real Qt key events directly to the native password field in the isolated test application's window—no OS keyboard injection or clicks before typing. They cover masking, Backspace/Ctrl+Backspace, Unicode editing, Enter/button handoff, repeated resume settling, early/duplicate unlock, and disabled animations. Submission routing uses a mock backend; the real backend is checked to reject unsecured submissions. These tests never acquire the session lock or authenticate:
+
+```bash
+python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-input
+python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-focus
+```
+
+To require the newly built native helper before installing it, build `caelestia-coreplugin` and run:
+
+```bash
+LOCK_REQUIRE_NATIVE=1 \
+  QML_IMPORT_PATH="$PWD/quickshell/caelestia/build/qml" \
+  python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-input
+QML_IMPORT_PATH="$PWD/quickshell/caelestia/build/qml" \
+  python3 quickshell/caelestia/tests/taskbar.test.py --mode lock-focus
+```
+
+The native checks require supported, identical Qt build/runtime versions and verify that recovery rejects ordinary layer-shell windows and absent targets. They do **not** acquire a real session-lock surface or reproduce a stalled compositor callback.
+
+After changing the lock screen, also manually check normal lock/unlock, suspend, and hibernate. On resume, type before clicking the password field. Verify visible typing feedback, Backspace/Ctrl+Backspace, incorrect-password feedback, and successful unlock; test each attached display if you use multiple monitors. Automated focus simulation cannot reproduce a GPU/compositor's actual sleep cycle.
+
+For the resume-only typing-feedback issue, temporary opt-in diagnostics compare Qt focus, application state, masked-input presence, frame notifications, and native `framePending`/`callbackTimedOut`/exposure metadata before/after a click. Tracing itself never records password text or password length and does not request focus or repaints. The recovery runs independently of tracing. After replacing a native library, restart **while unlocked**; live QML reloads do not replace a loaded native plugin.
+
+```bash
+# Arm before the manual sleep/wake test.
+caelestia shell lock traceWake
+# After reproducing and unlocking, retrieve the captured metadata.
+caelestia shell lock wakeTrace
+qs --no-color log -c caelestia -t 150
+caelestia shell lock stopWakeTrace
+```
+
+Trace records named `render-recovery` include before/after native state; native recovery messages use the `caelestia.lock.render` log category. Re-arm `traceWake` before each new sleep test because unlocking disables it.
 
 Weather helper tests require Node.js:
 

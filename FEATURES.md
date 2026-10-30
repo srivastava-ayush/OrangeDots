@@ -2,7 +2,7 @@
 
 OrangeShell is the custom [Caelestia](https://github.com/caelestia-dots/shell) fork vendored in **`quickshell/caelestia/`**. It is the live desktop shell for OrangeDots, running on **Quickshell, Qt 6, Wayland, and Hyprland**.
 
-This is an inventory of the source in this checkout, including the custom dashboard, Game mode and weather cards, notification shade, calendar/notes sidebar, phone integration, and Nexus settings. It documents implemented capabilities, not a promise that every optional feature is enabled or that every external dependency is installed. Unfinished and disconnected UI is identified separately.
+This is an inventory of the source in this checkout, including the custom dashboard, Game mode and weather cards, notification shade, Calendar/notes tab, phone integration, and Nexus settings. It documents implemented capabilities, not a promise that every optional feature is enabled or that every external dependency is installed. Unfinished and disconnected UI is identified separately.
 
 ## Contents
 
@@ -53,7 +53,7 @@ Additional UI is opened on demand: **Nexus** is the settings interface, and **Wi
 - A left-side vertical taskbar surrounded by a configurable, rounded desktop border.
 - Sliding panels attached to the top, bottom, and right edges rather than separate applications for every utility.
 - Material 3 colours, translucent surfaces, shadows, animated state changes, and deformable/blob-style panel backgrounds.
-- Configurable hover activation and drag thresholds for supported panels; launcher, dashboard, shade, sidebar, and session visibility can also be controlled through IPC.
+- Configurable hover activation and drag thresholds for supported panels; launcher, dashboard, shade, and session visibility can also be controlled through IPC.
 - Click-away and Escape dismissal where supported, with keyboard focus handling that avoids stealing input for incidental corner hovers.
 - Fullscreen-aware hiding, input regions, border transitions, and notification/toast policies, including special-workspace handling.
 - A configurable **top-left overview hot corner** with activation size and delay. It calls the external Hyprland ScrollOverview plugin; it is not a built-in overview renderer.
@@ -76,7 +76,7 @@ Additional UI is opened on demand: **Nexus** is the settings interface, and **Wi
 
 ### Dashboard
 
-The current tab order is **Media → Dashboard → Performance → Phone**. The first three tabs can be hidden in configuration; Phone is currently always included. Tabs support buttons, horizontal swipes, and named IPC selection.
+The current tab order is **Media → Dashboard → Performance → Phone → Calendar**. Media, Dashboard, Performance, and Calendar can be hidden in configuration; Phone is currently always included. Tabs support buttons, horizontal swipes, and named IPC selection.
 
 #### Dashboard tab
 
@@ -150,14 +150,14 @@ The current tab order is **Media → Dashboard → Performance → Phone**. The 
 - Optional event toasts for configuration loading, charging changes, Game mode, DND, input/output device changes, keyboard-lock/layout changes, VPN changes, and now-playing events.
 - Configuration parse/save failures and unknown options are surfaced as diagnostic toasts.
 
-### Calendar and notes sidebar
+### Calendar and notes dashboard tab
 
-- A bottom-right utility sidebar, opened through hover, an upward corner drag, or IPC.
+- A dashboard tab opened through its tab button, `SUPER+ALT+5`, or `caelestia shell drawers setTab calendar`. The former bottom-right hover/drag trigger has been removed.
 - A seven-day Google Calendar agenda read from a private iCalendar URL, without an OAuth login flow.
 - All-day and timed events, day grouping, current-event highlighting, manual refresh, scheduled refresh, and empty/error states.
 - A multiline notes scratchpad with wrapping, text selection, scrolling, and keyboard focus that keeps the panel open while editing.
-- Independent agenda and notes visibility, configurable activation thresholds, and a screen-relative height cap.
-- Notes survive Quickshell reloads through `PersistentProperties`; they are **not** a durable notes-file or cloud-sync feature.
+- Independent agenda and notes visibility and a screen-relative height cap, configured under **Nexus → Panels → Dashboard → Calendar & notes**. Existing `sidebar.enabled`, `sidebar.showAgenda`, and `sidebar.showNotes` settings are reused, so no native plugin rebuild is needed.
+- Notes are held in a shared singleton so tab switching and closing/reopening the dashboard do not lose the draft. They survive Quickshell reloads through `PersistentProperties`; they are **not** a durable notes-file or cloud-sync feature.
 - Calendar parsing does not expand recurring-event `RRULE`s, and `TZID`-qualified times are treated as local wall time. It is a read-only agenda, not a calendar editor.
 
 ### Application and action launcher
@@ -193,7 +193,7 @@ Nexus can be opened as a floating window or expanded from supported taskbar popo
 | **Connected devices** | Bluetooth adapter control, discovery/pairing, saved devices, connect/disconnect/forget, discoverable/pairable settings, trust/block/wake permissions, and device battery/address information. |
 | **Audio** | Default output/input device selection, volume/mute, and individual application-stream volumes/mutes. |
 | **Power & sleep** | Idle dim/lock/sleep stages, dim brightness, timeouts, suspend/hibernate/suspend-then-hibernate action, lock-before-sleep, audio/charging inhibition, and critical-battery threshold. Systemd sleep/lid settings are displayed read-only. |
-| **Panels** | Dashboard tabs/widgets and weather visibility/location/units/refresh, taskbar behaviour/components, launcher behaviour/search, calendar/notes sidebar, notification shade, and utility-card settings. Some inherited utility switches have no corresponding live quick-toggle grid. |
+| **Panels** | Dashboard tabs/widgets and weather visibility/location/units/refresh, taskbar behaviour/components, launcher behaviour/search, Calendar/notes tab, notification shade, and utility-card settings. Some inherited utility switches have no corresponding live quick-toggle grid. |
 | **Taskbar subpages** | Workspace rendering, active-window presentation, tray styling/compactness, status-icon selection, clock, hover popouts, and scroll actions. |
 | **Apps** | Default application commands, application library, favourites, hidden apps, and desktop-entry details. Regex-based favourite/hidden rules are identified rather than silently overwritten. |
 | **Services** | Media/resource/network polling, lyrics backend, preferred player, volume/brightness increments, volume limit, visualiser bar count, smart wallpaper-derived schemes, and GPU backend. |
@@ -262,7 +262,7 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | `SUPER+SUPER_L` on release | Toggle launcher. |
 | `SUPER+D` on release | Toggle dashboard. |
 | Tap `SUPER+ALT` | Toggle dashboard. |
-| `SUPER+ALT+1..4` | Select Media / Dashboard / Performance / Phone by name. Disabled dashboard tabs are omitted from the visible strip. |
+| `SUPER+ALT+1..5` | Select Media / Dashboard / Performance / Phone / Calendar by name. Disabled dashboard tabs are omitted from the visible strip. |
 | `SUPER+P` | Open Performance. |
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence. |
 | `SUPER+L` | Lock session. |
@@ -279,7 +279,7 @@ Use **`caelestia shell <target> <function> [arguments…]`**. `caelestia shell -
 
 | Target | Functions implemented in QML |
 |---|---|
-| `drawers` | `list()`, `toggle(drawer)`, `isOpen(drawer)`, `toggleBarPersistent()`, `setTab(tab)`; tab names are `media`, `dashboard`, `performance`, `phone`. |
+| `drawers` | `list()`, `toggle(drawer)`, `isOpen(drawer)`, `toggleBarPersistent()`, `setTab(tab)`; tab names are `media`, `dashboard`, `performance`, `phone`, `calendar`. |
 | `nexus` | `open()`. |
 | `wallpapers` | `pick()` — open the launcher's wallpaper browser. |
 | `wallpaper` | `get()`, `set(path)`, `list()` — current selection and discovered files. |
@@ -300,7 +300,7 @@ Examples:
 
 ```bash
 caelestia shell drawers toggle notifShade
-caelestia shell drawers toggle utilitySidebar
+caelestia shell drawers setTab calendar
 caelestia shell drawers setTab phone
 caelestia shell gameMode toggle
 caelestia shell idleInhibitor toggle
@@ -309,7 +309,7 @@ caelestia shell mpris getActive trackTitle
 caelestia shell nexus open
 ```
 
-The shared `ScreenState` exposes these drawer names: `bar`, `osd`, `session`, `launcher`, `dashboard`, `notifShade`, and `utilitySidebar`. Opening a disabled panel does not override its configuration; fullscreen guards also apply to several drawer actions.
+The shared `ScreenState` exposes these drawer names: `bar`, `osd`, `session`, `launcher`, `dashboard`, and `notifShade`. The legacy `drawers toggle utilitySidebar` and `isOpen utilitySidebar` commands remain aliases for the dashboard's Calendar tab. Opening a disabled panel does not override its configuration; fullscreen guards also apply to several drawer actions.
 
 Registered global-shortcut names include `nexus`, `showall`, `dashboard`, `session`, `launcher`, `launcherInterrupt`, `lock`, `unlock`, `screenshot`, `screenshotFreeze`, `screenshotClip`, `screenshotFreezeClip`, `clearNotifs`, `mediaToggle`, `mediaPrev`, `mediaNext`, `mediaStop`, `brightnessUp`, `brightnessDown`, and `refreshDevices`.
 
@@ -328,7 +328,7 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/bar/components/workspaces/` | `SpecialWorkspaces.qml`, `Workspace.qml`, `Workspaces.qml` | Normal/special workspace indicators and window icons. |
 | `modules/bar/popouts/` | `ActiveWindow.qml`, `AudioPopout.qml`, `Battery.qml`, `Bluetooth.qml`, `CalendarPopout.qml`, `ClipWrapper.qml`, `Content.qml`, `LockStatus.qml`, `Network.qml`, `PopoutState.qml`, `TrayMenu.qml`, `WirelessPassword.qml`, `Wrapper.qml` | Popout content, clipping, state, password entry, menus, and detached views. |
 | `modules/bar/popouts/kblayout/` | `KbLayout.qml`, `KbLayoutModel.qml` | Keyboard-layout display/model. |
-| `modules/dashboard/` | `Content.qml`, `Dash.qml`, `Media.qml`, `Performance.qml`, `Phone.qml`, `Tabs.qml`, `Wrapper.qml` | Dashboard panel, tab composition, and the four main panes. |
+| `modules/dashboard/` | `Calendar.qml`, `Content.qml`, `Dash.qml`, `Media.qml`, `Performance.qml`, `Phone.qml`, `Tabs.qml`, `Wrapper.qml` | Dashboard panel, tab composition, and the five main panes. |
 | `modules/dashboard/dash/` | `User.qml`, `WeatherCard.qml` | Profile, updates, uptime, clock, power actions, and the recorder-adjacent weather card. |
 | `modules/dashboard/media/` | `ClickWheel.qml`, `Details.qml`, `EqBars.qml`, `LyricList.qml`, `LyricsAndSelector.qml`, `LyricsInfo.qml` | OrangePod controls, metadata, visualiser, synced lyrics, and player selection. |
 | `modules/dashboard/performance/` | `BatteryTank.qml`, `HeroCard.qml`, `MemoryCard.qml`, `NetworkCard.qml`, `StorageCard.qml` | Performance and battery cards. |
@@ -356,7 +356,6 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/notifshade/` | `Notif.qml`, `NotifActionList.qml`, `NotifDockList.qml`, `NotifGroup.qml`, `NotifGroupList.qml`, `Props.qml`, `Shade.qml`, `Wrapper.qml` | Notification shade, grouped/docked lists, actions, and expansion state. |
 | `modules/osd/` | `Content.qml`, `Wrapper.qml` | Volume/microphone/brightness OSD and change-driven visibility. |
 | `modules/session/` | `Content.qml`, `Wrapper.qml` | Session buttons, animated image, keyboard navigation, and panel visibility. |
-| `modules/sidebar/` | `Sidebar.qml`, `Wrapper.qml` | Google Calendar agenda and notes panel. |
 | `modules/windowinfo/` | `Buttons.qml`, `Details.qml`, `Preview.qml`, `WindowInfo.qml` | Expanded window preview, metadata, workspace moves, and window actions. |
 
 ## Shared QML components
@@ -432,6 +431,7 @@ All paths are relative to **`quickshell/caelestia/`**. Most of these are singlet
 | `services/Colours.qml` | Runtime Material 3 palettes, preview colours, light/dark mode, transparency/luminance helpers, and Hyprland blur rules. |
 | `services/GameMode.qml` | Compositor performance options, restoration/reapplication on reload, state, toasts, and IPC. |
 | `services/GoogleCalendar.qml` | Private iCalendar URL loading, fetching/parsing, seven-day agenda, refresh, and error state. |
+| `services/CalendarNotes.qml` | Shared, reload-persistent scratchpad for the dashboard Calendar tab; survives lazy tab loading and dashboard close/open cycles. |
 | `services/HotCorner.qml` | Overview hot-corner enablement, size/delay, and JSON state persistence. |
 | `services/Hypr.qml` | Hyprland monitors/workspaces/windows, Lua-aware dispatch, dynamic options, devices, and special-workspace IPC. |
 | `services/IdleInhibitor.qml` | Wayland idle inhibition, enabled-since timestamp, reload-persistent state, and IPC. |

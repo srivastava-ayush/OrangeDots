@@ -20,12 +20,13 @@ GridLayout {
     required property bool fullscreen
     readonly property int vPadding: Tokens.padding.large
     readonly property bool horizontal: Taskbar.horizontal
+    readonly property bool centeredClock: horizontal || Taskbar.notched
     readonly property int spacing: Tokens.spacing.medium
     readonly property int notchPadding: Tokens.padding.medium
     readonly property var entryItems: children.filter(child => child.entryId && child.item)
 
-    function notchGroup(id: string): int {
-        if (id === "logo" || id === "workspaces")
+    function entryGroup(id: string): int {
+        if (id === "logo" || id === "workspaces" || (id === "activeWindow" && !Taskbar.notched))
             return 0;
         if (id === "clock")
             return 1;
@@ -34,12 +35,12 @@ GridLayout {
         return -1;
     }
 
-    readonly property var notchMetrics: {
+    readonly property var groupMetrics: {
         const lengths = [0, 0, 0];
         const counts = [0, 0, 0];
-        if (Taskbar.notched) {
+        if (centeredClock) {
             for (const entry of entryItems) {
-                const group = notchGroup(entry.entryId);
+                const group = entryGroup(entry.entryId);
                 if (group < 0)
                     continue;
                 lengths[group] += horizontal ? entry.item.implicitWidth : entry.item.implicitHeight;
@@ -53,10 +54,12 @@ GridLayout {
 
     function spacerLength(side: string): real {
         const half = (horizontal ? width : height) / 2;
-        const centerHalf = notchMetrics.lengths[1] / 2;
+        const centerHalf = groupMetrics.lengths[1] / 2;
         const group = side === "start" ? 0 : 2;
-        const gaps = notchMetrics.counts[group] > 0 ? 2 : 1;
-        return Math.max(0, half - centerHalf - notchMetrics.lengths[group] - vPadding - spacing * gaps);
+        const gaps = groupMetrics.counts[group] > 0 ? 2 : 1;
+        // Balance each half independently, not with two equal expanding gaps:
+        // asymmetric workspace/title/tray widths must never shift the clock.
+        return Math.max(0, half - centerHalf - groupMetrics.lengths[group] - vPadding - spacing * gaps);
     }
 
     // Main-axis ranges shared by the shell's SDF backgrounds. The notch itself
@@ -68,10 +71,10 @@ GridLayout {
         const starts = [Infinity, Infinity, Infinity];
         const ends = [-Infinity, -Infinity, -Infinity];
         for (const entry of entryItems) {
-            const group = notchGroup(entry.entryId);
+            const group = entryGroup(entry.entryId);
             if (group < 0)
                 continue;
-            const start = horizontal ? entry.x : entry.y;
+            const start = horizontal ? (group === 1 ? (width - entry.width) / 2 : entry.x) : entry.y;
             const length = horizontal ? entry.width : entry.height;
             starts[group] = Math.min(starts[group], start);
             ends[group] = Math.max(ends[group], start + length);
@@ -101,11 +104,12 @@ GridLayout {
         return horizontal ? center.x : center.y;
     }
 
-    function hasEntryAt(x: real, y: real): bool {
+    function blocksDashboardHover(x: real, y: real): bool {
         // Include the padding above/below a horizontal entry so edge gestures
-        // cannot open another panel while reaching for its clock or status icon.
+        // cannot open another panel while reaching for a status icon. The top
+        // clock is click-only, so its column remains a dashboard hover target.
         const entry = entryAt(horizontal ? x : width / 2, horizontal ? height / 2 : y);
-        return !!entry?.item;
+        return !!entry?.item && (!horizontal || entry.entryId !== "clock");
     }
 
     function entryAt(x: real, y: real): Item {
@@ -215,7 +219,9 @@ GridLayout {
             }
         } else if (id === "activeWindow" && Config.bar.popouts.activeWindow && Config.bar.activeWindow.showOnHover) {
             showPopout(id.toLowerCase(), ch.item);
-        } else if (id === "clock") {
+        } else if (id === "clock" && (!horizontal || (popouts.hasCurrent && popouts.currentName === "clock"))) {
+            // Top calendars open only by click. Hover can retain an already
+            // opened calendar while crossing the bar padding into its popout.
             showPopout(id.toLowerCase(), ch.item);
         } else
             popouts.scheduleClose();
@@ -263,12 +269,13 @@ GridLayout {
                 // real widget from receiving its screen-edge padding.
                 const supported = ["logo", "workspaces", "spacer", "activeWindow", "tray", "clock", "statusIcons"];
                 const enabled = configured.filter(e => e.enabled && supported.includes(e.id));
-                if (!Taskbar.notched)
+                if (!root.centeredClock)
                     return enabled;
-                const start = enabled.filter(e => root.notchGroup(e.id) === 0);
-                const end = enabled.filter(e => root.notchGroup(e.id) === 2);
-                // This style has a dedicated date/time notch. Unified restores
-                // the user's original entry ordering and active-window choice.
+                const start = enabled.filter(e => root.entryGroup(e.id) === 0);
+                const end = enabled.filter(e => root.entryGroup(e.id) === 2);
+                // Top bars and notches center the clock on the screen itself.
+                // Unified Top keeps the active title in the start group; Left
+                // Unified restores the user's original entry ordering/choice.
                 const clock = configured.find(e => e.id === "clock" && e.enabled) ?? { id: "clock", enabled: true };
                 return [...start, { id: "spacer", side: "start" }, clock, { id: "spacer", side: "end" }, ...end];
             }
@@ -280,16 +287,16 @@ GridLayout {
             DelegateChoice {
                 roleValue: "spacer"
                 delegate: EntryWrapper {
-                    readonly property real mainLength: Taskbar.notched ? root.spacerLength(modelData.side) : 0
+                    readonly property real mainLength: root.centeredClock ? root.spacerLength(modelData.side) : 0
 
-                    Layout.fillWidth: root.horizontal && !Taskbar.notched
-                    Layout.fillHeight: !root.horizontal && !Taskbar.notched
+                    Layout.fillWidth: root.horizontal && !root.centeredClock
+                    Layout.fillHeight: !root.horizontal && !root.centeredClock
                     Layout.preferredWidth: root.horizontal ? mainLength : 0
                     Layout.preferredHeight: root.horizontal ? 0 : mainLength
-                    Layout.minimumWidth: root.horizontal && Taskbar.notched ? mainLength : 0
-                    Layout.maximumWidth: root.horizontal && Taskbar.notched ? mainLength : Infinity
-                    Layout.minimumHeight: !root.horizontal && Taskbar.notched ? mainLength : 0
-                    Layout.maximumHeight: !root.horizontal && Taskbar.notched ? mainLength : Infinity
+                    Layout.minimumWidth: root.horizontal && root.centeredClock ? mainLength : 0
+                    Layout.maximumWidth: root.horizontal && root.centeredClock ? mainLength : Infinity
+                    Layout.minimumHeight: !root.horizontal && root.centeredClock ? mainLength : 0
+                    Layout.maximumHeight: !root.horizontal && root.centeredClock ? mainLength : Infinity
                 }
             }
             DelegateChoice {
@@ -332,7 +339,24 @@ GridLayout {
                 roleValue: "clock"
                 delegate: EntryWrapper {
                     Clock {
+                        id: clock
+
                         objectName: "taskbarClock"
+                        // GridLayout rounds cells to logical pixels. Correct
+                        // that rounding so the date/time stays at the exact
+                        // screen midpoint, including odd widths and scaling.
+                        transform: Translate {
+                            x: root.horizontal ? root.width / 2 - clock.parent.x - clock.x - clock.width / 2 : 0
+                        }
+
+                        onClicked: {
+                            if (root.popouts.hasCurrent && root.popouts.currentName === "clock") {
+                                root.popouts.close();
+                            } else {
+                                root.screenState.dashboard = false;
+                                root.showPopout("clock", clock);
+                            }
+                        }
                     }
                 }
             }
@@ -355,7 +379,7 @@ GridLayout {
         required property int index
         default property Item item
         readonly property string entryId: modelData.id
-        readonly property bool wallpaperContrast: Taskbar.centerOnly && (root.notchGroup(entryId) === 0 || root.notchGroup(entryId) === 2)
+        readonly property bool wallpaperContrast: Taskbar.centerOnly && (root.entryGroup(entryId) === 0 || root.entryGroup(entryId) === 2)
 
         // White silhouettes with a dark halo remain legible over light, dark,
         // and busy wallpaper without introducing another pill/notch background.

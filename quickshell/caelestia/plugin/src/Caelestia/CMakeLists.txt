@@ -2,6 +2,7 @@ qml_module(caelestia-core
     URI Caelestia
     SOURCES
         cutils.cpp
+        lockrenderrecovery.cpp
         qalculator.cpp
         appdb.cpp
         requests.cpp
@@ -12,6 +13,8 @@ qml_module(caelestia-core
         Qt::Quick
         Qt::Concurrent
         Qt::Sql
+        Qt::WaylandClientPrivate
+        PkgConfig::WaylandClient
         PkgConfig::Qalculate
 )
 

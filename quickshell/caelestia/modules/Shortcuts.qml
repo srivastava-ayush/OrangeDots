@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import Caelestia
 import Caelestia.Config
+import qs.components
 import qs.components.misc
 import qs.services
 import qs.modules.nexus
@@ -11,10 +12,29 @@ Scope {
     id: root
 
     property bool launcherInterrupted
+    readonly property alias drawers: drawers
     readonly property bool hasFullscreen: Hypr.focusedWorkspace?.toplevels.values.some(t => t.lastIpcObject.fullscreen > 1) ?? false
 
+    function activeScreenState(): ScreenState {
+        return ShellState.forActive();
+    }
+
+    function dashboardTabIndex(tab: string): int {
+        // Mirrors the enabled-filtered tab order in dashboard/Content.qml.
+        const screenState = root.activeScreenState();
+        const conf = screenState ? GlobalConfig.forScreen(screenState.modelData.name) : GlobalConfig;
+        const tabs = [
+            ["media", conf.dashboard.showMedia],
+            ["dashboard", conf.dashboard.showDashboard],
+            ["performance", conf.dashboard.showPerformance],
+            ["phone", true],
+            ["calendar", conf.sidebar.enabled]
+        ];
+        return tabs.filter(t => t[1]).findIndex(t => t[0] === tab);
+    }
+
     function openLauncherAt(query: string, attempts: int): void {
-        const screenState = ShellState.forActive();
+        const screenState = root.activeScreenState();
         screenState.launcher = true;
 
         const search = ShellState.componentsForActive()?.find("launcherSearch");
@@ -40,7 +60,7 @@ Scope {
         onPressed: {
             if (root.hasFullscreen)
                 return;
-            const v = ShellState.forActive();
+            const v = root.activeScreenState();
             v.launcher = v.dashboard = v.osd = !(v.launcher || v.dashboard || v.osd);
         }
     }
@@ -53,7 +73,7 @@ Scope {
         onPressed: {
             if (root.hasFullscreen)
                 return;
-            const screenState = ShellState.forActive();
+            const screenState = root.activeScreenState();
             screenState.dashboard = !screenState.dashboard;
         }
     }
@@ -66,7 +86,7 @@ Scope {
         onPressed: {
             if (root.hasFullscreen)
                 return;
-            const screenState = ShellState.forActive();
+            const screenState = root.activeScreenState();
             screenState.session = !screenState.session;
         }
     }
@@ -79,7 +99,7 @@ Scope {
         onPressed: root.launcherInterrupted = false
         onReleased: {
             if (!root.launcherInterrupted && !root.hasFullscreen) {
-                const screenState = ShellState.forActive();
+                const screenState = root.activeScreenState();
                 screenState.launcher = !screenState.launcher;
             }
             root.launcherInterrupted = false;
@@ -95,6 +115,8 @@ Scope {
     }
 
     IpcHandler {
+        id: drawers
+
         function cycleBarStyle(): void {
             Taskbar.cycleStyle();
         }
@@ -106,48 +128,56 @@ Scope {
         function toggleBarPersistent(): void {
             GlobalConfig.bar.persistent = !GlobalConfig.bar.persistent;
             if (!GlobalConfig.bar.persistent)
-                ShellState.forActive().bar = false;
+                root.activeScreenState().bar = false;
         }
 
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
                 if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade", "utilitySidebar"].includes(drawer))
                     return;
-                const screenState = ShellState.forActive();
-                screenState[drawer] = !screenState[drawer];
+                const screenState = root.activeScreenState();
+                if (drawer === "utilitySidebar") {
+                    // Compatibility for scripts using the former corner drawer.
+                    const index = root.dashboardTabIndex("calendar");
+                    if (index < 0 || !GlobalConfig.forScreen(screenState.modelData.name).dashboard.enabled)
+                        return;
+                    if (screenState.dashboard && screenState.dashboardTab === index)
+                        screenState.dashboard = false;
+                    else {
+                        screenState.dashboardTab = index;
+                        screenState.dashboard = true;
+                    }
+                } else {
+                    screenState[drawer] = !screenState[drawer];
+                }
             } else {
                 console.warn(lc, `Drawer "${drawer}" does not exist`);
             }
         }
 
         function list(): string {
-            const screenState = ShellState.forActive();
-            return Object.keys(screenState).filter(k => typeof screenState[k] === "boolean").join("\n");
+            const screenState = root.activeScreenState();
+            return [...Object.keys(screenState).filter(k => typeof screenState[k] === "boolean"), "utilitySidebar"].join("\n");
         }
 
         function isOpen(drawer: string): string {
-            const screenState = ShellState.forActive();
+            const screenState = root.activeScreenState();
+            if (drawer === "utilitySidebar")
+                return screenState.dashboard && screenState.dashboardTab === root.dashboardTabIndex("calendar") ? "1" : "0";
             if (typeof screenState[drawer] !== "boolean")
                 return "unknown";
             return screenState[drawer] ? "1" : "0";
         }
 
         function setTab(tab: string): void {
-            // Mirrors the enabled-filtered tab order of modules/dashboard/Content.qml
-            const tabs = [
-                ["media", Config.dashboard.showMedia],
-                ["dashboard", Config.dashboard.showDashboard],
-                ["performance", Config.dashboard.showPerformance],
-                ["phone", true]
-            ];
-            const index = tabs.filter(t => t[1]).findIndex(t => t[0] === tab);
+            const index = root.dashboardTabIndex(tab);
             if (index === -1) {
                 console.warn(lc, `Dashboard tab "${tab}" does not exist`);
                 return;
             }
             if (root.hasFullscreen)
                 return;
-            const screenState = ShellState.forActive();
+            const screenState = root.activeScreenState();
             screenState.dashboard = true;
             screenState.dashboardTab = index;
         }

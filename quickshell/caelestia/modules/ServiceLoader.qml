@@ -14,6 +14,7 @@ Scope {
         Players;
         Brightness;
         GoogleCalendar;
+        CalendarNotes;
         KdeConnect;
 
         if (GlobalConfig.utilities.vpn.enabled)

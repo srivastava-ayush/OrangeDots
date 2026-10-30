@@ -30,6 +30,7 @@ Item {
     }
 
     readonly property real nonAnimHeight: (content.item as Content)?.nonAnimHeight ?? 0
+    readonly property bool notesActive: (content.item as Content)?.notesActive ?? false
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
     // A top taskbar can inset the dashboard below the screen edge. Include that
     // gap in the slide-out distance so no background remains inside the screen.
