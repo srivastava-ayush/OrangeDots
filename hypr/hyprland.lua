@@ -236,14 +236,6 @@ hl.device({
 
 local mainMod = "SUPER"
 
--- Toggle compositor shortcuts off/on; ordinary typing and app shortcuts still work.
--- Only the restore chord is registered in this submap (including no media binds).
--- See https://wiki.hypr.land/Configuring/Binds/#submaps
-hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("keybinds-locked"))
-hl.define_submap("keybinds-locked", function()
-    hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("reset"))
-end)
-
 -- Overview / shell toggles
 --hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
 hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
@@ -406,6 +398,14 @@ hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = tr
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+
+-- Toggle compositor shortcuts off/on; ordinary typing and app shortcuts still work.
+-- Only the restore chord is registered in this submap (including no media binds).
+-- See https://wiki.hypr.land/Configuring/Binds/#submaps
+hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("keybinds-locked"))
+hl.define_submap("keybinds-locked", function()
+    hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("reset"))
+end)
 
 
 --------------------------------
