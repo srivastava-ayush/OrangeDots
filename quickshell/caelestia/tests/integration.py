@@ -34,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "notifications", "hover", "media-island", "media-dashboard", "overview", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     parser.add_argument("--shell-root", type=Path, default=SHELL, help="Load QML modules from a staged/installed shell tree")
     args = parser.parse_args()
@@ -51,7 +51,7 @@ def main():
         config.mkdir()
         for directory in ("modules", "components", "services", "utils"):
             (config / directory).symlink_to(shell_root / directory, target_is_directory=True)
-        fixture = "calendar-notes.qml" if mode == "calendar-notes" else "integration.qml"
+        fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml"}.get(mode, "integration.qml")
         (config / "shell.qml").symlink_to(SHELL / "tests" / fixture)
 
         env = os.environ.copy()
@@ -62,6 +62,11 @@ def main():
             (target / "caelestia").mkdir(parents=True)
             env[f"XDG_{directory.upper()}_HOME"] = str(target)
         env.update(QT_QPA_PLATFORM="wayland", QT_QUICK_BACKEND="software", QS_NO_RELOAD_POPUP="1")
+        if mode == "wallpaper-transition":
+            for name, rgb in (("FIRST", (220, 70, 40)), ("SECOND", (40, 90, 220)), ("THIRD", (60, 180, 110))):
+                image = base / f"wallpaper-{name.lower()}.ppm"
+                image.write_bytes(b"P6\n32 32\n255\n" + bytes(rgb) * 32 * 32)
+                env[f"WALLPAPER_TEST_{name}"] = str(image)
 
         (base / "config/caelestia/shell.json").write_text(json.dumps({
             "bar": {
@@ -118,7 +123,15 @@ def main():
                 (recordings / "recording_20261030_12-30-00 test.mp4").write_text("disposable recording fixture")
                 (recordings / "keep.mp4").write_text("keep this file")
                 env["CAELESTIA_RECORDINGS_DIR"] = str(recordings)
+            if mode == "media-dashboard":
+                helpers = base / "config/hypr/scripts"
+                helpers.mkdir(parents=True)
+                (helpers / "toggle-spotify.sh").write_text(
+                    '#!/usr/bin/env bash\nprintf "toggled\\n" > "$XDG_CONFIG_HOME/spotify-toggle-test"\n'
+                )
             run(config, env, "left", mode=mode)
+            if mode == "media-dashboard":
+                assert (base / "config/spotify-toggle-test").read_text() == "toggled\n"
             if mode == "recorder-delete":
                 assert not (recordings / "recording_20261030_12-30-00 test.mp4").exists()
                 assert (recordings / "keep.mp4").read_text() == "keep this file"

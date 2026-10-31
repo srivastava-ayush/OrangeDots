@@ -14,6 +14,10 @@ Item {
     property string source: Wallpapers.current
     property CachingImage current
     property bool completed
+    readonly property real transitionDuration: Tokens.anim.durations.expressiveSlowSpatial * 1.2
+
+    // Keep the zoom inside each output's surface.
+    clip: true
 
     Component.onCompleted: {
         completed = true;
@@ -105,6 +109,7 @@ Item {
 
         CachingImage {
             id: img
+            objectName: "wallpaperImage"
 
             width: parent.width
             height: parent.height
@@ -126,13 +131,24 @@ Item {
                     property: "opacity"
                     from: 0
                     to: 1
-                    type: Anim.FastSpatial
+                    duration: root.transitionDuration
+                    easing.type: Easing.InOutCubic
+                }
+
+                Anim {
+                    target: img
+                    property: "scale"
+                    from: 1.035
+                    to: 1
+                    duration: root.transitionDuration
+                    easing.type: Easing.OutCubic
                 }
             }
 
             Timer {
                 running: root.current !== img && root.current?.status === Image.Ready
-                interval: Tokens.anim.durations.expressiveSlowSpatial
+                // Never retire the old image before the replacement is opaque.
+                interval: root.transitionDuration + 16
                 onTriggered: img.destroy()
             }
         }

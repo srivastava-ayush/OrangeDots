@@ -17,7 +17,7 @@ ColumnLayout {
     Layout.preferredWidth: centerWidth
     Layout.fillWidth: false
     Layout.fillHeight: true
-    spacing: Tokens.spacing.largeIncreased
+    spacing: Tokens.spacing.medium
 
     Clock {
         objectName: "lockClock"

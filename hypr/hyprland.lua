@@ -51,7 +51,7 @@ hl.env("HYPRCURSOR_SIZE", "24")
 
 hl.config({
     general = {
-        gaps_in  = 5,
+        gaps_in  = 4,
         gaps_out = 8,
 
         border_size = 1,
@@ -63,8 +63,8 @@ hl.config({
     },
 
     decoration = {
-        rounding       = 20,
-        rounding_power = 2,
+        rounding       = 22,
+        rounding_power = 4,
 
         active_opacity   = 0.9,
         inactive_opacity = 0.9,
@@ -236,8 +236,16 @@ hl.device({
 
 local mainMod = "SUPER"
 
+-- Toggle compositor shortcuts off/on; ordinary typing and app shortcuts still work.
+-- Only the restore chord is registered in this submap (including no media binds).
+-- See https://wiki.hypr.land/Configuring/Binds/#submaps
+hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("keybinds-locked"))
+hl.define_submap("keybinds-locked", function()
+    hl.bind(mainMod .. " + ALT + L", hl.dsp.submap("reset"))
+end)
+
 -- Overview / shell toggles
-hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+--hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
 hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
 hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
 hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })

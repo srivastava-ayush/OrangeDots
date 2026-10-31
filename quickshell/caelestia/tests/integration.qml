@@ -126,7 +126,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -525,6 +525,36 @@ ShellRoot {
                     return;
                 }
 
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "launcher-gloss") {
+                    const scene = fullSceneLoader.item;
+                    const launcher = scene.interactionWrapper.panels.launcher;
+                    const gloss = root.find(launcher, "launcherGloss");
+                    switch (root.step) {
+                    case 0:
+                        scene.screenState.launcher = true;
+                        break;
+                    case 1:
+                    case 3:
+                        if ((!launcher.visible || !gloss.available || gloss.width <= 0 || gloss.height <= 0) && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(launcher.visible && gloss.visible && gloss.available && gloss.width > 0 && gloss.height > 0, `Launcher gloss must be ready and visible when the launcher opens (visible=${launcher.visible}/${gloss.visible}, available=${gloss.available}, size=${gloss.width}x${gloss.height}, open=${scene.screenState.launcher})`);
+                        root.check(gloss.z > 0 && gloss.opacity === 0.25 && gloss.rotation === 180, "Launcher gloss must render above content at the shared strength and correct orientation");
+                        const pixel = gloss.getContext("2d").getImageData(5, Math.floor(gloss.height / 2), 1, 1).data;
+                        root.check(pixel[3] > 0, "Launcher gloss must paint a nontransparent edge after opening/reopening");
+                        scene.screenState.launcher = false;
+                        break;
+                    case 2:
+                        scene.screenState.launcher = true;
+                        break;
+                    case 4:
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "recorder-delete") {
                     const scene = fullSceneLoader.item;
                     const card = root.find(scene.contentItem, "overviewRecorder")?.item;
@@ -632,6 +662,8 @@ ShellRoot {
                         if (!root.find(scene.contentItem, "overviewSessionControls") && root.mediaWaitTicks++ < 10)
                             return;
                         const overview = root.find(scene.contentItem, "dashboardOverview");
+                        const gloss = root.find(scene.interactionWrapper.panels.dashboard, "dashboardGloss");
+                        root.check(!!gloss && gloss.opacity === 0.25 && gloss.width === scene.interactionWrapper.panels.dashboard.width && gloss.height === scene.interactionWrapper.panels.dashboard.height, "Dashboard must share the island's edge-to-edge gloss and strength");
                         const profile = root.find(overview, "overviewProfileCard");
                         root.check(overview.width === Tokens.sizes.dashboard.mediaTabWidth && profile.width <= 260, "Overview must use a compact profile panel within the Media tab footprint");
                         for (const name of ["overviewAvatar", "overviewClock", "overviewUpdates", "overviewSessionControls"]) {
@@ -701,6 +733,11 @@ ShellRoot {
                             const position = control.mapToItem(scene.interactionWrapper.panels.dashboard, 0, 0);
                             root.check(position.y >= 0 && position.y + control.height <= scene.interactionWrapper.panels.dashboard.height, `${name} must fit within the dashboard height (y=${position.y}, height=${control.height}, dashboard=${scene.interactionWrapper.panels.dashboard.height})`);
                         }
+                        const artwork = root.find(scene.contentItem, "dashboardMediaArtwork");
+                        root.check(scene.testEvents.mouseClick(artwork, artwork.width / 2, artwork.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Artwork click must reach the media card's Spotify scratchpad action");
+                        break;
+                    case 3:
+                        root.check(!scene.screenState.dashboard, "Opening Spotify's scratchpad must dismiss the dashboard");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                         break;
@@ -725,6 +762,7 @@ ShellRoot {
                         break;
                     case 1:
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
+                        root.check(root.find(island, "mediaIslandGloss").opacity === 0.25, "Island must retain the subtle shared gloss strength");
                         const islandVisualizer = root.find(island, "mediaIslandVisualizer");
                         root.check(!!islandVisualizer && islandVisualizer.height === 12 && islandVisualizer.width > 0 && islandVisualizer.playing, "Island must show a compact live spectrum while playing");
                         const background = root.findBackground(scene.contentItem, island);

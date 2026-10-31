@@ -7,6 +7,7 @@ import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
 import qs.components.controls
+import qs.components.effects
 import qs.modules.dashboard.media as DashboardMedia
 import qs.services
 
@@ -95,6 +96,11 @@ Item {
         id: pill
         objectName: "mediaIslandCurtain"
         anchors.fill: parent
+
+        InsetGloss {
+            objectName: "mediaIslandGloss"
+            anchors.fill: parent
+        }
 
         RowLayout {
             objectName: "mediaIslandContent"

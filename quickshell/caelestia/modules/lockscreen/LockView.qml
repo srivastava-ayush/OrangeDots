@@ -90,7 +90,9 @@ FocusScope {
 
         anchors.centerIn: parent
         width: centerWidth
-        height: root.screenHeight * Tokens.sizes.lock.heightMult - Tokens.padding.extraLargeIncreased
+        // Keep clock/input together instead of distributing spare screen height
+        // between the rows of the center column.
+        height: implicitHeight
         lock: root
         opacity: root.contentProgress
         scale: 0.9 + 0.1 * root.contentProgress

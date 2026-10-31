@@ -6,6 +6,7 @@ import Caelestia
 import Caelestia.Config
 import qs.components
 import qs.components.filedialog
+import qs.components.effects
 import qs.services
 import qs.utils
 
@@ -74,6 +75,11 @@ Item {
             type: Anim.FastSpatial
             easing.type: Easing.OutCubic
         }
+    }
+
+    InsetGloss {
+        objectName: "dashboardGloss"
+        anchors.fill: parent
     }
 
     Loader {

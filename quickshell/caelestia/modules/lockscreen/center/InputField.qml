@@ -27,7 +27,7 @@ TextInput {
     horizontalAlignment: TextInput.AlignHCenter
     verticalAlignment: TextInput.AlignVCenter
     color: Colours.palette.m3onSurface
-    font: Tokens.font.body.builders.medium.scale(centerScale).width(110).build()
+    font: Tokens.font.body.builders.medium.scale(centerScale * 2).weight(Font.Bold).width(110).build()
     cursorVisible: activeFocus && !readOnly && length > 0
 
     TapHandler {
@@ -59,7 +59,8 @@ TextInput {
         anchors.centerIn: parent
         visible: root.length === 0
         text: root.placeholderText
-        font: root.font
+        // Keep the hint compact while making the native password dots larger.
+        font: Tokens.font.body.builders.medium.scale(root.centerScale).width(110).build()
         color: Colours.palette.m3outline
     }
 

@@ -110,6 +110,9 @@
             ]
         }
     },
+    "launcher": {
+        "dragThreshold": 20
+    },
     "services": {
         "gpuType": "GENERIC",
         "visualiserBars": 70

@@ -1,6 +1,7 @@
 import "media"
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
@@ -10,6 +11,12 @@ Item {
     id: root
 
     required property ScreenState screenState
+
+    function toggleSpotifyScratchpad(): void {
+        const configHome = Quickshell.env("XDG_CONFIG_HOME") || `${Quickshell.env("HOME")}/.config`;
+        screenState.dashboard = false;
+        Quickshell.execDetached(["bash", `${configHome}/hypr/scripts/toggle-spotify.sh`]);
+    }
 
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
     implicitHeight: Tokens.sizes.dashboard.mediaTabHeight
@@ -134,6 +141,15 @@ Item {
                         color: Colours.tPalette.m3surfaceContainer
                         radius: Tokens.rounding.extraLarge
                         clip: true
+
+                        // Behind the content: buttons/seek consume their own clicks,
+                        // while artwork, metadata and free space toggle Super+S.
+                        MouseArea {
+                            objectName: "dashboardMediaSpotifyToggle"
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.toggleSpotifyScratchpad()
+                        }
 
                         RowLayout {
                             anchors.fill: parent

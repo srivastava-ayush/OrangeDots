@@ -4,6 +4,7 @@ import QtQuick
 import Quickshell
 import Caelestia.Config
 import qs.components
+import qs.components.effects
 import qs.modules.launcher.services
 
 Item {
@@ -41,6 +42,14 @@ Item {
 
     Behavior on offsetScale {
         Anim {}
+    }
+
+    InsetGloss {
+        objectName: "launcherGloss"
+        anchors.fill: parent
+        z: 1 // Keep the sheen above app rows/search backgrounds, without taking input.
+        // The launcher joins the bottom shell edge, opposite to the dashboard.
+        rotation: 180
     }
 
     Loader {
