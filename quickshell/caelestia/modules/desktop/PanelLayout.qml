@@ -65,6 +65,7 @@ Item {
         screenState: root.screenState
         osdPanel: osdWrapper
         sessionPanel: sessionWrapper
+        popoutPanel: popoutsWrapper
 
         anchors.top: parent.top
         anchors.right: parent.right

@@ -158,6 +158,10 @@ for _, ws in ipairs({ "1", "2" }) do
     hl.workspace_rule({ workspace = ws, layout = "scrolling" })
 end
 
+for _, ws in ipairs({ "3", "4" }) do
+    hl.workspace_rule({ workspace = ws, layout = "monocle" })
+end
+
 
 ----------------
 ----  MISC  ----
