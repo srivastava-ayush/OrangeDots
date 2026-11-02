@@ -17,7 +17,9 @@ ln -s "$PWD/quickshell" ~/.config/quickshell
 
 ```
 hypr/
-  hyprland.lua        Main Hyprland config — LUA-based, not .conf syntax
+  hyprland.lua        Lua entry point — explicit module loader, not .conf syntax
+  modules/            Settings, monitors, startup, appearance, animations, layouts,
+                      input, keybindings, window rules, and plugins (see README.md)
   scheme/current.lua  Active Material 3 colour palette (Lua table of hex colours)
   scripts/            toggle-shell.sh, toggle-spotify.sh, toggle-refresh-rate.sh
 quickshell/
@@ -36,16 +38,17 @@ docs/STRUCTURE.md     Source map, rename map, and runtime compatibility boundary
 
 ## Critical facts
 
-1. **Hyprland config is Lua** (`hypr/hyprland.lua`, ~490 lines). Uses an `hl.*` API: `hl.bind()`, `hl.config()`, `hl.window_rule()`, `hl.workspace_rule()`, `hl.gesture()`, `hl.dsp.*` (dispatchers as functions taking tables), `hl.exec_cmd()`. When editing keybinds/rules, mimic the existing Lua call style — do NOT paste classic `.conf` syntax.
+1. **Hyprland config is Lua** (`hypr/hyprland.lua` loads `hypr/modules/`). Uses an `hl.*` API: `hl.bind()`, `hl.config()`, `hl.window_rule()`, `hl.workspace_rule()`, `hl.gesture()`, `hl.dsp.*` (dispatchers as functions taking tables), `hl.exec_cmd()`. When editing keybinds/rules, mimic the existing Lua call style — do NOT paste classic `.conf` syntax.
 2. **No Tide Island, no hyprpaper/hypridle config**: the old `hyprland.conf` stub (which sourced `~/.config/tide-island/hyprland-shortcuts.conf`) and the `hypridle/hyprlock/hyprpaper/monitors/workspaces` `.conf` files were all deleted. Everything now lives in `hyprland.lua`; the Caelestia shell handles lock (`SUPER+L`) and wallpapers (`caelestia wallpaper`). If you ever reintroduce Tide Island binds, add them to `hyprland.lua` with `hl.bind(...)`.
-3. **Single shell**: the full Caelestia fork, launched via `caelestia shell -d` (autostarted from `hyprland.lua` `hyprland.start` handler). `hypr/scripts/toggle-shell.sh` toggles only this named shell; there is no alternate Dynamic Island shell.
+3. **Single shell**: the full Caelestia fork, launched via `caelestia shell -d` (autostarted from `hypr/modules/autostart.lua` `hyprland.start` handler). `hypr/scripts/toggle-shell.sh` toggles only this named shell; there is no alternate Dynamic Island shell.
 4. **Colours**: Material 3 scheme. `services/Colours.qml` reads scheme state from `${Paths.state}/scheme.json` at runtime; `hypr/scheme/current.lua` mirrors the active palette (dark teal/orange theme) as Lua. Changing theme means updating both consistently.
 5. **Licensing matters**: everything under `quickshell/caelestia/` keeps its GPL-3.0 LICENSE (upstream Caelestia). Top-level dotfiles are unrestricted. Keep the vendored tree's license headers intact.
 6. **Portability and runtime names**: helpers resolve through `$XDG_CONFIG_HOME/hypr/scripts` (fallback `~/.config`). Keep `quickshell/caelestia`, native `Caelestia.*` imports, config/state names, JSON keys, IPC targets, and persistent identities stable. Source module folders were renamed for DX; see `docs/STRUCTURE.md`. Hardware modes/app choices still need review on another machine.
 
-## Keybinds cheat-sheet (from hyprland.lua)
+## Keybinds cheat-sheet (from hypr/modules/keybindings.lua)
 
 - Main mod: `SUPER`. Launcher `SUPER+SUPER_L`(release), dashboard `SUPER+D`, lock `SUPER+L`.
+- Window switcher: `ALT+TAB` / `ALT+SHIFT+TAB`, release Alt to select, Escape to cancel. UI/state/controller live in `quickshell/caelestia/modules/switcher/`; compositor binds in `hypr/modules/keybindings.lua`.
 - Dashboard tabs: tap `SUPER+ALT` toggles the dashboard; `SUPER+ALT+1..5` selects Media/Dashboard/Performance/Phone/Calendar by name via IPC `drawers setTab <name>` (handler in `modules/Shortcuts.qml`).
 - Apps: kitty `SUPER+Q`, Zed `SUPER+E`, Yazi `SUPER+A`, Helium `SUPER+W` (see Lua for current choices).
 - Spotify scratchpad: `SUPER+S` toggles `special:magic` (launches if not running); `SUPER+SHIFT+S` throws window there. Misc scratchpad: `SUPER+Z` / `SUPER+SHIFT+Z` → `special:misc`.
@@ -62,6 +65,6 @@ docs/STRUCTURE.md     Source map, rename map, and runtime compatibility boundary
 
 ## Common tasks
 
-- **Add/change a keybind** → edit `hypr/hyprland.lua` using `hl.bind(...)`; check for collisions with existing binds above.
+- **Add/change a keybind** → edit `hypr/modules/keybindings.lua` using `hl.bind(...)`; check for collisions. Plugin binds live in `hypr/modules/plugins.lua`.
 - **Change theme colour** → update `hypr/scheme/current.lua` and regenerate/set the matching Material 3 scheme so `Colours.qml` picks it up.
 - **Tweak taskbar/dashboard/launcher UI** → look in `quickshell/caelestia/modules/<area>/`; shared widgets in `components/`. Use feature-specific `*Content.qml` / `*Wrapper.qml` names, not ambiguous bare `Content.qml` / `Wrapper.qml`.

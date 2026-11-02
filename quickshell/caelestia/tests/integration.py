@@ -34,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus", "switcher"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     parser.add_argument("--shell-root", type=Path, default=SHELL, help="Load QML modules from a staged/installed shell tree")
     args = parser.parse_args()
@@ -51,7 +51,7 @@ def main():
         config.mkdir()
         for directory in ("modules", "components", "services", "utils"):
             (config / directory).symlink_to(shell_root / directory, target_is_directory=True)
-        fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml"}.get(mode, "integration.qml")
+        fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml", "switcher": "switcher.qml"}.get(mode, "integration.qml")
         (config / "shell.qml").symlink_to(SHELL / "tests" / fixture)
 
         env = os.environ.copy()
@@ -151,6 +151,8 @@ def main():
         print("PASS: taskbar notification shade, hover settings, drawer IPC, auto-hide, and unchanged banners")
         run(config, env, "top", mode="hover")
         print("PASS: click-only Top calendar, dashboard hover, and icon-to-popout handoff, padding, persistence, and dismissal for Top and Left bars")
+        run(config, env, "top", mode="switcher")
+        print("PASS: window switcher MRU, native keyboard handling, closed windows, lock gating, and many-window layout")
         run(config, env, "left", mode="nexus")
         print("PASS: Nexus nested navigation, Orange OS About/version, and removal of empty pages")
         run(config, env, "left", mode="lock-input")

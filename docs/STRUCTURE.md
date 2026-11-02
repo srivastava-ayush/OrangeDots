@@ -5,7 +5,12 @@
 | Working on… | Open… |
 |---|---|
 | A first installation or config links | `install.sh`, `scripts/install.py`, and the root `README.md` |
-| Hyprland keybinds, rules, or gestures | `hypr/hyprland.lua` — **Lua**, not `.conf` syntax |
+| Hyprland entry point / module load order | `hypr/hyprland.lua` — **Lua**, not `.conf` syntax |
+| Apps and helper paths | `hypr/modules/settings.lua` |
+| Alt+Tab overlay / MRU selection / keyboard handling | `quickshell/caelestia/modules/switcher/` |
+| Keybinds / input and gestures / window rules | `hypr/modules/keybindings.lua`, `input.lua`, `rules.lua` |
+| Appearance / animations / workspace layouts | `hypr/modules/appearance.lua`, `animations.lua`, `layouts.lua` |
+| Monitor / startup / environment / plugins | `hypr/modules/monitors.lua`, `autostart.lua`, `environment.lua`, `plugins.lua` |
 | Scratchpad / shell / refresh helpers | `hypr/scripts/` |
 | First-run preferences | `caelestia/*.json` — committed presets, not private live state |
 | Taskbar layout / clock / status icons | `quickshell/caelestia/modules/taskbar/` |
