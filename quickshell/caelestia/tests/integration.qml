@@ -26,6 +26,21 @@ ShellRoot {
 
     property int step
     property int mediaWaitTicks
+    readonly property QtObject phoneFixture: QtObject {
+        property var devices: [{ id: "phone-one", name: "Test phone" }, { id: "phone-two", name: "Second phone" }]
+        property string selectedId: "phone-one"
+        readonly property var selectedDevice: devices.find(device => device.id === selectedId) ?? null
+        property bool connected: true
+        property int battery: 76
+        property var plugins: []
+        property string lastResult: ""
+        property string actionError: ""
+        property var lastArgs: []
+        property int browseCount: 0
+        function action(args: var): void { lastArgs = args; lastResult = "Test action sent"; }
+        function browse(): void { browseCount++; }
+        function refresh(): void {}
+    }
     readonly property QtObject recorderFixture: QtObject {
         property bool running: false
         property bool paused: false
@@ -126,7 +141,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -525,6 +540,62 @@ ShellRoot {
                     return;
                 }
 
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "phone") {
+                    const scene = fullSceneLoader.item;
+                    const phone = root.find(scene.contentItem, "dashboardPhone");
+                    switch (root.step) {
+                    case 0:
+                        scene.screenState.dashboardTab = 2;
+                        scene.screenState.dashboard = true;
+                        break;
+                    case 1:
+                        if (!phone && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(!!phone, "Redesigned Phone tab must load");
+                        phone.phone = root.phoneFixture;
+                        break;
+                    case 2:
+                        root.check(root.find(phone, "phoneDeviceName").text === "Test phone" && root.find(phone, "phoneConnectionStatus").text === qsTr("Connected"), "Phone panel must show selected device and connection state");
+                        root.check(root.find(phone, "phoneDeviceSelector").visible, "Multiple devices must retain a selector");
+                        for (const action of phone.actions) {
+                            const tile = root.find(phone, `phoneAction_${action.id}`);
+                            root.check(!!tile && !tile.disabled && tile.width > 0 && tile.height === 76, "All eight actions must appear as usable tiles when connected");
+                        }
+                        root.find(phone, "phoneAction_ring").clicked();
+                        root.check(JSON.stringify(root.phoneFixture.lastArgs) === '["--ring"]', "Ring action must retain its command using only a mock service");
+                        root.find(phone, "phoneAction_browse").clicked();
+                        root.check(root.phoneFixture.browseCount === 1, "Browse files must reach the mock service");
+                        root.find(phone, "phoneShareInput").text = "https://example.com";
+                        break;
+                    case 3:
+                        root.find(phone, "phoneShareSend").clicked();
+                        root.check(JSON.stringify(root.phoneFixture.lastArgs) === '["--share-text","https://example.com"]' && root.find(phone, "phoneShareInput").text === "", "Send must share text and clear the field without touching a real phone");
+                        const selector = root.find(phone, "phoneDeviceSelector");
+                        selector.menu.itemSelected(selector.menuItems[1]);
+                        root.check(root.phoneFixture.selectedId === "phone-two", "Device selection must still work");
+                        root.phoneFixture.plugins = ["kdeconnect_ping"];
+                        break;
+                    case 4:
+                        root.check(root.find(phone, "phoneAction_ring").disabled && !root.find(phone, "phoneAction_ping").disabled, "Unsupported plugins must disable the correct actions");
+                        root.phoneFixture.connected = false;
+                        break;
+                    case 5:
+                        root.check(root.find(phone, "phoneConnectionStatus").text === qsTr("Offline") && root.find(phone, "phoneAction_file").disabled && root.find(phone, "phoneShareSend").disabled, "Offline devices must disable sharing and show their state");
+                        root.phoneFixture.devices = [];
+                        root.phoneFixture.selectedId = "";
+                        break;
+                    case 6:
+                        root.check(root.find(phone, "phoneConnectionStatus").text === qsTr("Not paired") && !root.find(phone, "phoneDeviceSelector").visible, "Unpaired state must be clear and hide the device selector");
+                        for (const action of phone.actions)
+                            root.check(root.find(phone, `phoneAction_${action.id}`).disabled, "Unpaired state must disable all remote actions");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
+                    return;
+                }
+
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "launcher-gloss") {
                     const scene = fullSceneLoader.item;
                     const launcher = scene.interactionWrapper.panels.launcher;
@@ -665,8 +736,17 @@ ShellRoot {
                         const gloss = root.find(scene.interactionWrapper.panels.dashboard, "dashboardGloss");
                         root.check(!!gloss && gloss.opacity === 0.25 && gloss.width === scene.interactionWrapper.panels.dashboard.width && gloss.height === scene.interactionWrapper.panels.dashboard.height, "Dashboard must share the island's edge-to-edge gloss and strength");
                         const profile = root.find(overview, "overviewProfileCard");
-                        root.check(overview.width === Tokens.sizes.dashboard.mediaTabWidth && profile.width <= 260, "Overview must use a compact profile panel within the Media tab footprint");
-                        for (const name of ["overviewAvatar", "overviewClock", "overviewUpdates", "overviewSessionControls"]) {
+                        if (root.find(profile, "overviewAvatar").width <= 0 && root.mediaWaitTicks++ < 10)
+                            return;
+                        root.check(overview.width === Tokens.sizes.dashboard.mediaTabWidth && overview.scale === 1 && profile.width <= 260, "Overview must retain its normal width and scale while matching Performance's height");
+                        const performance = root.find(scene.contentItem, "dashboardPerformance");
+                        root.check(!!performance && Math.abs(overview.implicitHeight - performance.implicitHeight) < 0.1, `Overview must match the actual Performance tab height without clipping its contents (overview=${overview.implicitHeight}, performance=${performance?.implicitHeight}, preferred=${overview.preferredHeight})`);
+                        const avatar = root.find(profile, "overviewAvatar");
+                        root.check(avatar.width >= 160 && Math.abs(avatar.width - avatar.height) < 0.01, "Profile picture must remain a large, unscaled cover-art-style square");
+                        const avatarPosition = avatar.mapToItem(profile, 0, 0);
+                        root.check(Math.abs(avatarPosition.x + avatar.width / 2 - profile.width / 2) < 0.01, "Large profile artwork must remain horizontally centered");
+                        root.check(!root.find(profile, "overviewClock"), "Overview must save height by removing the clock instead of scaling the card");
+                        for (const name of ["overviewAvatar", "overviewUpdates", "overviewSessionControls"]) {
                             const item = root.find(profile, name);
                             root.check(!!item, `Compact profile must retain ${name}`);
                             const pos = item.mapToItem(profile, 0, 0);
@@ -693,10 +773,17 @@ ShellRoot {
                         root.check(forecast.children.filter(child => child.objectName === "overviewWeatherForecastDay").length === 3, "Weather must retain the compact three-day forecast");
                         const forecastPosition = forecast.mapToItem(weatherCard, 0, 0);
                         root.check(forecastPosition.y >= 0 && forecastPosition.y + forecast.height <= weatherCard.height, "Weather forecast must fit inside the redesigned card");
-                        Weather.weather = null;
+                        const sky = root.find(weatherCard, "overviewWeatherSky");
+                        root.check(sky.visible && sky.isDay && sky.width === weatherCard.width && sky.height === weatherCard.height && sky.radius === weatherCard.radius, "Daytime sky must fill the weather card and match its rounded corners");
+                        Weather.weather = Object.assign({}, Weather.weather, { isDay: false });
                         break;
                     case 3:
+                        root.check(!root.find(scene.contentItem, "overviewWeatherSky").isDay, "Illustrated sky must follow the weather location's nighttime status");
+                        Weather.weather = null;
+                        break;
+                    case 4:
                         root.check(root.find(scene.contentItem, "overviewWeatherStatus").visible, "Weather must retain its setup and unavailable-data state");
+                        root.check(!root.find(scene.contentItem, "overviewWeatherSky").visible, "Weather without data must retain its neutral setup background");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                         break;

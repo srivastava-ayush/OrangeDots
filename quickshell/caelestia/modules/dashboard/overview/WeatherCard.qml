@@ -18,6 +18,15 @@ StyledRect {
 
     Ref { service: Weather }
 
+    WeatherSky {
+        objectName: "overviewWeatherSky"
+        anchors.fill: parent
+        radius: root.radius
+        visible: Weather.hasData
+        isDay: Weather.weather?.isDay ?? true
+        cloudy: (Weather.weather?.code ?? 0) > 0
+    }
+
     ColumnLayout {
         id: layout
         anchors.fill: parent

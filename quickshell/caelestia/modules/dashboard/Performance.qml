@@ -9,6 +9,7 @@ import qs.services
 
 Item {
     id: root
+    objectName: "dashboardPerformance"
 
     implicitWidth: placeholder.active ? Tokens.sizes.dashboard.perfPlaceholderWidth : content.implicitWidth
     implicitHeight: placeholder.active ? placeholder.implicitHeight + Tokens.padding.extraLarge * 2 : content.implicitHeight

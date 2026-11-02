@@ -22,6 +22,7 @@ Item {
 
     required property ScreenState screenState
     required property FileDialog facePicker
+    property real preferredHeight: Tokens.sizes.dashboard.mediaTabHeight
 
     // Shared UI state for the recorder card and its recording list
     readonly property var props: dashProps
@@ -36,11 +37,10 @@ Item {
         reloadableId: "dashboard-recording"
     }
 
-    // Match Media's footprint instead of widening the shell for one tab.
-    // Content can still grow vertically for recorder history or active utilities.
+    // Match Performance's height through layout, without scaling text/controls.
     readonly property int weatherCardWidth: Math.max(360, Tokens.sizes.dashboard.weatherWidth)
     implicitWidth: Tokens.sizes.dashboard.mediaTabWidth
-    implicitHeight: layout.implicitHeight
+    implicitHeight: preferredHeight
 
     ColumnLayout {
         id: layout
@@ -51,13 +51,16 @@ Item {
         RowLayout {
             id: row
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.max(288, userCard.implicitHeight, utilCards.implicitHeight)
+            Layout.fillHeight: true
+            Layout.minimumHeight: 0
             spacing: Tokens.spacing.medium
 
             Rect {
                 id: userCard
                 objectName: "overviewProfileCard"
                 Layout.preferredWidth: Math.min(260, Tokens.sizes.dashboard.userWidth)
+                Layout.minimumWidth: Layout.preferredWidth
+                Layout.maximumWidth: Layout.preferredWidth
                 Layout.fillHeight: true
                 implicitHeight: userContent.implicitHeight
 
@@ -74,6 +77,8 @@ Item {
                 id: utilCards
 
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumWidth: 0
                 Layout.alignment: Qt.AlignTop
                 spacing: Tokens.spacing.medium
 
@@ -107,6 +112,7 @@ Item {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     visible: recorderCard.active || weatherCard.active
                     spacing: Tokens.spacing.medium
 

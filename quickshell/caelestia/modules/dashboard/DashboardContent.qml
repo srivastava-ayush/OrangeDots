@@ -58,6 +58,8 @@ Item {
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
     readonly property bool notesActive: (view.currentItem as Loader)?.item?.notesActive ?? false
+    readonly property bool overviewSelected: dashboardTabs[screenState.dashboardTab]?.component === dashComponent
+    property real performanceHeight: Tokens.sizes.dashboard.mediaTabHeight
 
     implicitWidth: nonAnimWidth
     implicitHeight: nonAnimHeight
@@ -155,6 +157,10 @@ Item {
                         Component.onCompleted: active = Qt.binding(() => {
                             if (index === view.currentIndex)
                                 return true;
+                            // Measure the existing Performance pane, not a duplicate,
+                            // so Overview can match its actual configured height.
+                            if (modelData.component === performanceComponent && root.overviewSelected)
+                                return true;
                             const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
                             const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
                             return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
@@ -169,6 +175,7 @@ Item {
                 Overview {
                     screenState: root.screenState
                     facePicker: root.facePicker
+                    preferredHeight: root.performanceHeight
                 }
             }
 
@@ -183,7 +190,10 @@ Item {
             Component {
                 id: performanceComponent
 
-                Performance {}
+                Performance {
+                    Component.onCompleted: root.performanceHeight = implicitHeight
+                    onImplicitHeightChanged: root.performanceHeight = implicitHeight
+                }
             }
 
             Component {
