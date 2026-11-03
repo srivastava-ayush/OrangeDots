@@ -9,6 +9,9 @@
 #include <qloggingcategory.h>
 #include <qqmlengine.h>
 #include <qregularexpression.h>
+#include <qsavefile.h>
+#include <qtemporaryfile.h>
+#include <cstdio>
 
 Q_LOGGING_CATEGORY(lcCUtils, "caelestia.cutils", QtInfoMsg)
 
@@ -111,14 +114,51 @@ bool CUtils::copyFile(const QUrl& source, const QUrl& target, bool overwrite) {
         return false;
     }
 
-    if (overwrite && QFile::exists(target.toLocalFile())) {
-        if (!QFile::remove(target.toLocalFile())) {
-            qCWarning(lcCUtils) << "copyFile: overwrite was specified but failed to remove" << target.toLocalFile();
+    const QString sourcePath = source.toLocalFile();
+    const QString targetPath = target.toLocalFile();
+    if (!overwrite)
+        return QFile::copy(sourcePath, targetPath);
+
+    QFile input(sourcePath);
+    if (!input.open(QIODevice::ReadOnly) || QFileInfo(sourcePath).isDir())
+        return false;
+
+    const QFileInfo sourceInfo(sourcePath);
+    const QFileInfo targetInfo(targetPath);
+    if (!sourceInfo.canonicalFilePath().isEmpty()
+        && sourceInfo.canonicalFilePath() == targetInfo.canonicalFilePath())
+        return true;
+
+    // Stage beside the destination, then rename only after a complete, atomic
+    // QSaveFile commit. Using a fresh staging path also preserves the previous
+    // behavior of replacing a destination symlink, not modifying its referent.
+    QTemporaryFile staging(targetInfo.absolutePath() + QStringLiteral("/.copy-XXXXXX"));
+    if (!staging.open())
+        return false;
+    staging.close();
+    QSaveFile output(staging.fileName());
+    output.setDirectWriteFallback(false);
+    if (!output.open(QIODevice::WriteOnly) || !output.setPermissions(input.permissions()))
+        return false;
+
+    char buffer[64 * 1024];
+    for (;;) {
+        const qint64 count = input.read(buffer, sizeof(buffer));
+        if (count < 0)
             return false;
+        if (count == 0)
+            break;
+        qint64 written = 0;
+        while (written < count) {
+            const qint64 result = output.write(buffer + written, count - written);
+            if (result <= 0)
+                return false;
+            written += result;
         }
     }
-
-    return QFile::copy(source.toLocalFile(), target.toLocalFile());
+    if (!output.commit())
+        return false;
+    return std::rename(QFile::encodeName(staging.fileName()).constData(), QFile::encodeName(targetPath).constData()) == 0;
 }
 
 bool CUtils::deleteFile(const QUrl& path) {
