@@ -141,6 +141,9 @@ QtObject {
                     // Taskbar → Notification shade (index 11).
                     NotificationShadePanel {}
                 }
+                Component {
+                    AiPanel {}
+                }
             }
         },
         Component {

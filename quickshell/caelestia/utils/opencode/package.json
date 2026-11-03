@@ -1,0 +1,8 @@
+{
+  "name": "orangeshell-opencode-bridge",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opencode/client": "2.2.1"
+  }
+}

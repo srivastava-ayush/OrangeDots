@@ -1,5 +1,6 @@
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.services
 import qs.modules.settings.common
 
 PageBase {
@@ -31,11 +32,19 @@ PageBase {
         }
 
         NavRow {
-            last: true
             icon: "apps"
             text: qsTr("Launcher")
             subtext: Config.launcher.enabled ? qsTr("Enabled") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(3)
+        }
+
+        NavRow {
+            objectName: "panelsAi"
+            last: true
+            icon: "forum"
+            text: qsTr("AI panel")
+            subtext: AiConfig.enabled ? AiConfig.providerName : qsTr("Disabled")
+            onClicked: root.nState.openSubPage(12)
         }
 
     }

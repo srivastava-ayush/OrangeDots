@@ -53,16 +53,19 @@ StyledWindow {
             return 0;
 
         const thresholds = [];
-        for (const panel of ["dashboard", "launcher", "session"])
+        for (const panel of ["dashboard", "launcher"])
             if (contentItem.Config[panel].enabled)
                 thresholds.push(contentItem.Config[panel].dragThreshold);
-        return Math.max(...thresholds);
+        return Math.max(20, ...thresholds);
     }
 
     onHasFullscreenChanged: {
+        if (!monitor)
+            return;
         screenState.launcher = false;
         screenState.session = false;
         screenState.dashboard = false;
+        screenState.ai = false;
         screenState.notifShade = false;
         panels.popouts.close();
     }
@@ -72,7 +75,7 @@ StyledWindow {
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // OnDemand lets the dashboard's notes field take focus on click without
     // stealing it when the dashboard is merely hovered open.
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.ai ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -123,7 +126,7 @@ StyledWindow {
                 return false;
             const s = root.screenState;
             const conf = root.contentItem.Config;
-            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled))
+            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || s.ai)
                 return true;
             if (s.dashboard && conf.dashboard.enabled && (!conf.dashboard.showOnHover || panels.dashboard.notesActive))
                 return true;
@@ -136,6 +139,7 @@ StyledWindow {
             root.screenState.launcher = false;
             root.screenState.session = false;
             root.screenState.dashboard = false;
+            root.screenState.ai = false;
             root.screenState.notifShade = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
@@ -244,6 +248,11 @@ StyledWindow {
             id: launcherBg
 
             panel: panels.launcher
+            deformAmount: 0.1
+        }
+
+        PanelBg {
+            panel: panels.ai
             deformAmount: 0.1
         }
 

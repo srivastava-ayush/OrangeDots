@@ -35,6 +35,15 @@ ShellRoot {
         id: lock
     }
 
+    Connections {
+        target: lock.lock
+        function onLockedChanged(): void {
+            if (lock.lock.locked)
+                for (const screen of Quickshell.screens)
+                    ShellState.forScreen(screen).ai = false;
+        }
+    }
+
     ConfigToasts {}
     Shortcuts {}
     WindowSwitcher {

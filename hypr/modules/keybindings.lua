@@ -19,6 +19,7 @@ return function(settings)
     hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
     hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
     hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab performance"), { release = false })
+    hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle ai"))
     -- Dashboard: tap SUPER+ALT to toggle it (either Alt key; release-triggered,
     -- same trick as the SUPER+SUPER_L launcher bind so it won't fire after a
     -- chord like SUPER+ALT+2). Held down, ALT acts as a chord mod, so

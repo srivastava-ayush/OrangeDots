@@ -4,3 +4,6 @@ __pycache__/
 
 # Private Google Calendar credential, never a distributable preset.
 /caelestia/calendar-url
+
+# Installed locally for the optional, on-demand OpenCode sidebar bridge.
+/quickshell/caelestia/utils/opencode/node_modules/

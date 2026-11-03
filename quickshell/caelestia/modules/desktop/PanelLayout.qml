@@ -6,6 +6,7 @@ import qs.services
 import qs.modules.taskbar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
+import qs.modules.ai as Ai
 import qs.modules.notifications.banners as Notifications
 import qs.modules.onscreendisplay as Osd
 import qs.modules.sessionmenu as Session
@@ -26,6 +27,7 @@ Item {
     readonly property alias session: session
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
+    readonly property alias ai: ai
     readonly property alias dashboard: dashboard
     readonly property alias mediaIsland: mediaIsland
     readonly property alias popouts: popoutsWrapper.content
@@ -100,6 +102,28 @@ Item {
         panels: root
 
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+    }
+
+    Ai.AiSidebarWrapper {
+        id: ai
+        screenState: root.screenState
+        // Reserve the attached popout's destination rectangle, not its sliding
+        // position, to keep the chat stable while crossing from icon to menu.
+        topClearance: {
+            const popout = popoutsWrapper.content;
+            if (!popout.hasCurrent || popout.isDetached)
+                return 0;
+            const popoutWidth = Math.max(popout.width, popout.nonAnimWidth);
+            const popoutHeight = Math.max(popout.height, popout.nonAnimHeight);
+            const left = popoutsWrapper.x;
+            const top = popoutsWrapper.y;
+            const naturalTop = AiConfig.fullHeight ? 0 : root.height - Math.min(AiConfig.panelHeight, root.height);
+            if (left + popoutWidth <= root.width - ai.implicitWidth || left >= root.width || top + popoutHeight <= naturalTop)
+                return 0;
+            return top + popoutHeight + root.Tokens.spacing.small;
+        }
+        anchors.right: parent.right
         anchors.bottom: parent.bottom
     }
 

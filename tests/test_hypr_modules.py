@@ -69,6 +69,43 @@ class HyprModuleTests(unittest.TestCase):
         ):
             self.assertIn(expected, first)
 
+    def test_compositor_motion_matches_shell_animation_families(self):
+        harness = r'''
+local curves, animations = {}, {}
+hl = {
+    curve = function(name, curve) curves[name] = curve end,
+    animation = function(animation) animations[animation.leaf] = animation end,
+}
+dofile(arg[1])({})
+assert(curves.ShellPanel.points[1][1] == 1 / 3 and curves.ShellPanel.points[1][2] == 1)
+assert(curves.ShellPanel.points[2][1] == 2 / 3 and curves.ShellPanel.points[2][2] == 1)
+for _, leaf in ipairs({"windowsIn", "windowsOut", "workspacesIn", "workspacesOut", "specialWorkspace"}) do
+    assert(animations[leaf].bezier == "ShellPanel" and animations[leaf].speed == 3.5)
+end
+assert(animations.windowsIn.style == "popin 96%")
+assert(animations.windowsOut.style == "popin 96%")
+assert(animations.workspacesIn.style == "slidefadevert" and animations.workspacesOut.style == "slidefadevert")
+assert(animations.windowsMove.bezier == "ShellSpatial" and animations.windowsMove.speed == 5)
+assert(curves.ShellSpatial.points[1][1] == 0.38 and curves.ShellSpatial.points[1][2] == 1.21)
+assert(curves.ShellSpatial.points[2][1] == 0.22 and curves.ShellSpatial.points[2][2] == 1)
+for _, leaf in ipairs({"fadeIn", "fadeOut"}) do
+    assert(animations[leaf].bezier == "ShellEffects" and animations[leaf].speed == 2)
+end
+assert(curves.ShellEffects.points[1][1] == 0.34 and curves.ShellEffects.points[1][2] == 0.8)
+assert(curves.ShellEffects.points[2][1] == 0.34 and curves.ShellEffects.points[2][2] == 1)
+for _, leaf in ipairs({"layersIn", "layersOut"}) do
+    assert(animations[leaf].bezier == "ShellFastEffects" and animations[leaf].speed == 1.5)
+    assert(animations[leaf].style == "fade")
+end
+assert(curves.ShellFastEffects.points[1][1] == 0.31 and curves.ShellFastEffects.points[1][2] == 0.94)
+assert(curves.ShellFastEffects.points[2][1] == 0.34 and curves.ShellFastEffects.points[2][2] == 1)
+assert(animations.border.bezier == "ShellLinear" and animations.border.speed == 2)
+'''
+        subprocess.run(
+            ["lua", "-", str(REPO / "hypr/modules/animations.lua")],
+            input=harness, text=True, capture_output=True, check=True,
+        )
+
     def test_relocated_config_and_module_edits_on_reload(self):
         with tempfile.TemporaryDirectory(dir="/tmp/opencode" if Path("/tmp/opencode").is_dir() else None) as temp:
             root = Path(temp) / "config with spaces"

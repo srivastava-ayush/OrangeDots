@@ -29,6 +29,7 @@ This is a desktop shell and dotfiles repository, **not an operating-system insta
 - Dashboard weather, recording controls, utility cards, performance information, and optional phone integration.
 - Recording captures at the display or selected region's native resolution with the `ultra` quality preset; `-s 0x0` prevents downscaling. Quality, codec, frame rate, tune, and cursor are configurable in **Services → Screen recorder**.
 - Dashboard Calendar tab with notes and optional private Google Calendar iCal integration.
+- Lazy-loaded native AI sidebar with selectable OpenCode, Codex, Claude Code, or local Ollama backends and per-provider reasoning-effort preferences.
 - Optional Lua-based Hyprland dotfiles, scratchpads, gestures, and overview-plugin integration.
 
 See [docs/FEATURES.md](docs/FEATURES.md) for the detailed feature and source inventory. The installation instructions below take precedence over the inherited upstream README for installing **this fork**.
@@ -169,6 +170,64 @@ Optional features have additional requirements:
 | GPU statistics | Working driver tools for your GPU; choose the corresponding GPU configuration in Nexus. |
 
 The shell does not replace these system services. Missing optional tools can make the corresponding feature unavailable without preventing the rest of the shell from working.
+
+### Optional AI sidebar
+
+Configure **Nexus → Panels → AI panel**. Open with **Super+I** (bundled Hyprland binds),
+`caelestia shell drawers toggle ai`, or drag inward from the right edge. The old
+right-edge power-menu gesture is replaced; power buttons and other session-menu
+entry points remain. The panel overlays windows without resizing them.
+
+All backends require a recent Node.js with built-in `fetch`. OpenCode additionally
+requires OpenCode V2 and the pinned client dependencies:
+
+```bash
+npm ci --prefix quickshell/caelestia/utils/opencode --ignore-scripts --no-audit --no-fund
+```
+
+Run this from the repository for a linked installation, or use the installed
+shell's `utils/opencode` path for a copied installation. Native rebuilding is not
+needed for this feature. Codex and Claude require their respective installed,
+signed-in `codex` / `claude` CLIs; Ollama needs a running loopback HTTP server and
+an already-installed model selected in Nexus. No models are downloaded automatically.
+
+- **OpenCode:** dedicated sidebar sessions; tools auto-approve by default as configured
+  in Nexus. Turn off **Auto-approve tools** to require approval. Auto-approval allows
+  commands and file edits without prompting, but does not alter global/project rules
+  or bypass provider-enforced restrictions.
+- **Codex:** native app-server, read-only sandbox, explicit approvals.
+- **Claude Code:** print-mode streaming, tools and MCP disabled. Update the CLI if
+  it does not support the required flags; the adapter does not bypass safety flags.
+- **Ollama:** local chat without tools; HTTP is restricted to loopback addresses.
+  `keep_alive: 0` unloads the model after each reply, reducing retained memory at
+  the cost of loading it again for the next message.
+
+**Reasoning effort** is saved separately for each provider and applies on the next
+message. Provider default omits an explicit override (OpenCode uses its model
+variant). Presets are not a model-capability detector: available levels depend on
+the selected model and installed CLI. OpenCode also accepts a custom variant name;
+Ollama offers thinking on/off and model-specific low/medium/high. Unsupported
+values may be rejected by the backend. Higher effort can increase latency and cost.
+
+The native QML UI unloads on close; streaming updates are batched at 50 ms and
+history is bounded to 40 rows of up to 60,000 characters each. Idle adapters stop
+when the panel closes; an active reply finishes in the background. Provider switches
+wait for the active reply. The shared OpenCode service is never stopped by the panel.
+**New chat** interrupts the current response before clearing the sidebar and starting
+a fresh conversation. It does not delete the provider's saved transcript.
+**NUKE** in the sidebar's top navigation additionally forgets all providers' cached messages
+and resume IDs for that screen, clears the draft, stops the sidebar adapter, and
+closes/unloads the UI. Provider-native history and shared services are untouched.
+Dropping these references allows garbage collection; it is not secure memory
+zeroing and does not guarantee an immediate reduction in the shell's RSS.
+
+Preferences live in `$XDG_CONFIG_HOME/caelestia/ai-panel.json` (usual fallback:
+`~/.config/caelestia`). Session identifiers/directories live under the corresponding
+`$XDG_STATE_HOME/caelestia` directory. Shell files do not store API keys or chat
+text. Provider tools maintain their own credentials and native transcripts.
+UI history survives close/reopen and provider switches in RAM; after a shell restart,
+OpenCode reloads its transcript, Codex/Claude resume their native session IDs without
+reloading old text into the sidebar, and Ollama starts without previous chat context.
 
 ### 4. Clone, back up, and link the shell
 

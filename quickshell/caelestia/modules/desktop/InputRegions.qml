@@ -50,6 +50,13 @@ Region {
     }
 
     R {
+        panel: root.panels.ai
+        x: root.win.width - width
+        width: panel.visible ? panel.width * (1 - root.panels.ai.offsetScale) + root.borderThickness : 0
+        height: panel.visible ? panel.height : 0
+    }
+
+    R {
         panel: root.panels.sessionWrapper
         x: root.win.width - width
         width: panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness

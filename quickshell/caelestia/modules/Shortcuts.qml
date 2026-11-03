@@ -133,9 +133,11 @@ Scope {
 
         function toggle(drawer: string): void {
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "notifShade", "utilitySidebar"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "ai", "notifShade", "utilitySidebar"].includes(drawer))
                     return;
                 const screenState = root.activeScreenState();
+                if (drawer === "ai" && !AiConfig.enabled)
+                    return;
                 if (drawer === "utilitySidebar") {
                     // Compatibility for scripts using the former corner drawer.
                     const index = root.dashboardTabIndex("calendar");

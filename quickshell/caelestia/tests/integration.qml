@@ -16,6 +16,7 @@ import qs.modules.settings.pages.panels
 import qs.modules.desktop
 import qs.modules.lockscreen as Lock
 import qs.modules as Modules
+import qs.modules.ai as Ai
 
 // Transparent, input-free test surface. integration.py isolates all settings
 // and removes the Hyprland IPC connection, so the desktop is left unchanged.
@@ -26,6 +27,12 @@ ShellRoot {
 
     property int step
     property int mediaWaitTicks
+    property var aiRequests: []
+    property var aiMemoryState
+    Component {
+        id: aiMemoryFixture
+        Ai.AiChatState { screenName: "memory-fixture"; connectionEnabled: false }
+    }
     readonly property QtObject phoneFixture: QtObject {
         property var devices: [{ id: "phone-one", name: "Test phone" }, { id: "phone-two", name: "Second phone" }]
         property string selectedId: "phone-one"
@@ -141,7 +148,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -327,6 +334,37 @@ ShellRoot {
             try {
                 if (!Taskbar.loaded)
                     return;
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "ai-memory") {
+                    if (!AiConfig.loaded) return;
+                    if (!root.aiMemoryState) {
+                        root.aiMemoryState = aiMemoryFixture.createObject(root);
+                        return;
+                    }
+                    const chat = root.aiMemoryState;
+                    if (!chat.loaded) return;
+                    switch (root.step++) {
+                    case 0:
+                        AiConfig.directory = "/home/fixture/Brain";
+                        chat.sessions = { opencode: { sessionID: "old-session", directory: "/home/fixture/Obsidian Vault", rows: [{ id: "old", role: "user", text: "Cached message" }] } };
+                        chat.provider = "opencode";
+                        chat.restore();
+                        chat.draft = "Cached draft";
+                        root.check(chat.directory === "/home/fixture/Obsidian Vault", "Fixture must restore the old session directory");
+                        chat.clearMemory();
+                        root.check(!chat.sessionID && !chat.draft && !chat.messages.count && !Object.keys(chat.sessions).length, "NUKE must clear the old ID, all provider caches and draft");
+                        root.check(chat.directory === AiConfig.directory && chat.memoryReleased, "NUKE must reset to the Nexus directory");
+                        chat.receive(JSON.stringify({ type: "session", id: "old-session", directory: "/home/fixture/Obsidian Vault" }));
+                        chat.active = true;
+                        root.check(chat.initCommand().directory === AiConfig.directory && !chat.initCommand().sessionID, "Reopening must initialize Brain without resuming the old session");
+                        break;
+                    case 1:
+                        root.check(!chat.sessionID && !Object.keys(chat.sessions).length, "Delayed storage/events must not restore nuked history");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                    }
+                    return;
+                }
 
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "lock-focus") {
                     const fixture = lockInputFixture.item;
@@ -537,6 +575,89 @@ ShellRoot {
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                     }
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "ai") {
+                    const scene = fullSceneLoader.item;
+                    const panel = scene.interactionWrapper.panels.ai;
+                    const chat = panel.chatState;
+                    switch (root.step) {
+                    case 0:
+                        // No real OpenCode processes, model requests or user data.
+                        chat.connectionEnabled = false;
+                        chat.requestSent.connect(command => root.aiRequests.push(command));
+                        scene.screenState.ai = true;
+                        break;
+                    case 1:
+                        root.check(panel.visible && panel.width > 0 && !!root.find(panel, "aiChatComposer"), "AI overlay must lazily create its native chat UI");
+                        chat.receive(JSON.stringify({ type: "ready" }));
+                        chat.draft = "Test prompt";
+                        chat.send();
+                        root.check(chat.busy && root.aiRequests[0].type === "send" && root.aiRequests[0].text === "Test prompt", "Native composer must submit through the bridge without auto-approval");
+                        chat.receive(JSON.stringify({ type: "delta", id: "test-answer", text: "Hello" }));
+                        chat.receive(JSON.stringify({ type: "delta", id: "test-answer", text: " world" }));
+                        break;
+                    case 2:
+                        root.check(chat.messages.get(chat.messages.count - 1).text === "Hello world", "Streamed text must append to a single message");
+                        chat.receive(JSON.stringify({ type: "permissions", items: [{ id: "test-permission", action: "read", resources: ["/tmp/example"], metadata: {} }] }));
+                        break;
+                    case 3:
+                        root.check(!!root.find(panel, "aiChatApprove") && !!root.find(panel, "aiChatDeny"), `AI panel must show explicit permission controls (permissions=${chat.permissions.length}, visible=${panel.visible}, open=${scene.screenState.ai}, enabled=${AiConfig.enabled}, offset=${panel.offsetScale}, error=${chat.error})`);
+                        root.find(panel, "aiChatApprove").clicked();
+                        root.check(root.aiRequests[root.aiRequests.length - 1].decision === "once", "Approval must grant only one operation, never permanent auto-approval");
+                        chat.receive(JSON.stringify({ type: "snapshot", rows: [{ id: "answer", role: "assistant", text: "Complete" }], permissions: [], busy: false, forms: 0 }));
+                        root.find(panel, "aiChatClose").clicked();
+                        break;
+                    case 4:
+                        root.check(!scene.screenState.ai && !panel.visible && !root.find(panel, "aiChatComposer"), "Closing must release the chat UI without deleting history");
+                        root.check(chat.messages.count === 1, "Chat history must survive closing the overlay");
+                        const interactions = scene.interactionWrapper;
+                        root.check(pointerEvents.mousePress(interactions, interactions.width - 1, interactions.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Right-edge drag must start locally");
+                        root.check(pointerEvents.mouseMove(interactions, interactions.width - 45, interactions.height / 2, 0, Qt.LeftButton, Qt.NoModifier), "Right-edge drag must move locally");
+                        pointerEvents.mouseRelease(interactions, interactions.width - 45, interactions.height / 2, Qt.LeftButton, Qt.NoModifier, 0);
+                        break;
+                    case 5:
+                        root.check(scene.screenState.ai && !scene.screenState.session, "Right-edge swipe must open AI instead of the power menu");
+                        AiConfig.provider = "ollama";
+                        break;
+                    case 6:
+                        root.check(chat.provider === "ollama" && chat.messages.count === 0, "Idle provider switches must load a separate conversation");
+                        chat.receive(JSON.stringify({ type: "snapshot", rows: [{ id: "local", role: "assistant", text: "Local context" }], permissions: [], busy: true, forms: 0 }));
+                        AiConfig.provider = "opencode";
+                        root.check(chat.provider === "ollama", "Provider switches must wait for an active reply");
+                        chat.receive(JSON.stringify({ type: "busy", value: false }));
+                        break;
+                    case 7:
+                        root.check(chat.provider === "opencode" && chat.messages.get(0).text === "Complete", "Switching back must restore the provider's RAM history");
+                        AiConfig.provider = "ollama";
+                        break;
+                    case 8:
+                        root.check(chat.messages.get(0).text === "Local context", "Local history must survive provider changes");
+                        AiConfig.enabled = false;
+                        break;
+                    case 9:
+                        root.check(!scene.screenState.ai && !panel.visible, "Disabling the AI panel must close and unload its UI");
+                        AiConfig.enabled = true;
+                        AiConfig.provider = "opencode";
+                        scene.screenState.ai = true;
+                        break;
+                    case 10:
+                        chat.draft = "Private draft";
+                        root.check(Object.keys(chat.sessions).length > 0, "Clear-memory fixture must include provider caches");
+                        root.find(panel, "aiChatClearMemory").clicked();
+                        break;
+                    case 11:
+                        root.check(!scene.screenState.ai && !panel.visible, "Clear memory must close and unload the chat UI");
+                        root.check(chat.messages.count === 0 && Object.keys(chat.sessions).length === 0 && !chat.sessionID && !chat.draft, "Clear memory must forget every provider cache, resume ID and draft");
+                        root.check(chat.memoryReleased && chat.failed && !chat.busy, "Clear memory must leave the adapter stopped");
+                        chat.receive(JSON.stringify({ type: "delta", id: "stale", text: "Old response" }));
+                        root.check(chat.messages.count === 0, "Late provider events must not restore cleared messages");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
+                    root.step++;
                     return;
                 }
 
@@ -1278,6 +1399,35 @@ ShellRoot {
                         break;
                     case 11:
                         root.check(root.nexusStack.currentItem.title === qsTr("Panels"), "Back from Dashboard should return to Panels");
+                        root.find(root.nexusStack.currentItem, "panelsAi").clicked(null);
+                        break;
+                    case 12: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("AI panel"), "Panels must open AI settings without changing existing subpage indices");
+                        root.find(page, "aiPanelHeightSetting").moved(900);
+                        root.check(AiConfig.panelHeight === 900, "Nexus height control must configure the AI panel");
+                        const approvalToggle = root.find(page, "aiAutoApproveSetting");
+                        approvalToggle.checked = false;
+                        approvalToggle.toggled();
+                        root.check(!AiConfig.autoApproveTools, "Nexus must allow explicit approvals to be restored");
+                        const selector = root.find(page, "aiProviderSetting");
+                        root.check(selector.menuItems.length === 4, "AI settings must expose OpenCode, Codex, Claude Code and Ollama");
+                        const effort = root.find(page, "aiEffortSetting");
+                        effort.selected(page.efforts[3]);
+                        root.check(AiConfig.opencodeEffort === "high", "Nexus must expose independent provider effort settings");
+                        selector.selected(page.providers[3]);
+                        root.check(AiConfig.ollamaEffort === "", "Other providers must retain their own default effort");
+                        root.check(AiConfig.provider === "ollama", "Nexus provider selection must configure the sidebar backend");
+                        AiConfig.ollamaModel = "test-local-model";
+                        root.navigationState.closeSubPage();
+                        break;
+                    }
+                    case 13:
+                        root.find(root.nexusStack.currentItem, "panelsAi").clicked(null);
+                        break;
+                    case 14:
+                        root.check(AiConfig.provider === "ollama" && AiConfig.ollamaModel === "test-local-model", "AI provider/model preferences must survive page navigation");
+                        root.check(AiConfig.panelHeight === 900 && !AiConfig.autoApproveTools, "AI height and approval preferences must survive page navigation");
                         root.nexusStack.destroy();
                         root.nexusStack = PageComponents.pageComps[PageRegistry.pages.findIndex(page => page.id === "about")].createObject(window.contentItem, {
                             nState: root.navigationState,
@@ -1286,7 +1436,7 @@ ShellRoot {
                             visible: false
                         });
                         break;
-                    case 12: {
+                    case 15: {
                         const about = root.nexusStack.currentItem;
                         root.check(root.find(about, "aboutShellName").text === "Orange OS", "About should show the Orange OS name");
                         root.check(root.find(about, "aboutShellVersion").text === "AYUSH_GOAT_V4", "About should show the custom release version");

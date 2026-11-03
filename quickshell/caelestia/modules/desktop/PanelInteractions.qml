@@ -159,7 +159,7 @@ CustomMouseArea {
         }
 
         // Show osd on hover
-        const showOsd = inRightPanel(panels.osdWrapper, x, y);
+        const showOsd = !screenState.ai && inRightPanel(panels.osdWrapper, x, y);
 
         // Always update visibility based on hover if not in shortcut mode
         if (!osdShortcutActive) {
@@ -171,14 +171,13 @@ CustomMouseArea {
             root.panels.osd.hovered = true;
         }
 
-        // Show/hide session on drag
-        if (pressed && inRightPanel(panels.sessionWrapper, dragStart.x, dragStart.y) && withinPanelHeight(panels.sessionWrapper, x, y)) {
-            if (dragX < -Config.session.dragThreshold)
-                screenState.session = true;
-            else if (dragX > Config.session.dragThreshold)
-                screenState.session = false;
+        // The right edge is reserved for the AI panel, not the session menu.
+        if (AiConfig.enabled && pressed && inRightPanel(panels.ai, dragStart.x, dragStart.y) && withinPanelHeight(panels.ai, x, y)) {
+            if (dragX < -20)
+                screenState.ai = true;
+            else if (dragX > 20)
+                screenState.ai = false;
         }
-
         // Show/hide launcher on hover, or show/hide on drag if hover is disabled
         const showLauncher = inBottomPanel(panels.launcher, x, y);
 
@@ -283,6 +282,15 @@ CustomMouseArea {
                     root.screenState.osd = false;
                     root.panels.osd.hovered = false;
                 }
+            }
+        }
+
+        function onAiChanged() {
+            if (root.screenState.ai) {
+                root.screenState.session = false;
+                root.screenState.osd = false;
+                root.panels.osd.hovered = false;
+                root.osdShortcutActive = false;
             }
         }
 

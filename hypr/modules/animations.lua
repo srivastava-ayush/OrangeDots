@@ -55,7 +55,8 @@ return function(settings)
 
     hl.curve("MacClose", {
         type = "bezier",
-        points = { { 0.40, 0.00 }, { 1.00, 1.00 } },
+        -- Short acceleration, then a soft landing instead of a delayed snap.
+        points = { { 0.25, 0.00 }, { 0.35, 1.00 } },
     })
 
     hl.curve("MacMove", {
@@ -65,7 +66,7 @@ return function(settings)
 
     hl.curve("MacWorkspace", {
         type = "bezier",
-        points = { { 0.32, 0.00 }, { 0.15, 1.00 } },
+        points = { { 0.22, 1.00 }, { 0.36, 1.00 } },
     })
 
     hl.curve("MacLinear", {
@@ -87,8 +88,9 @@ return function(settings)
     hl.animation({ leaf = "layersOut", enabled = true, speed = 1.8, bezier = "MacClose", style = "slidefade" })
     hl.animation({ leaf = "border", enabled = true, speed = 3.2, bezier = "MacLinear" })
 
-    -- A longer, continuous slide evokes Spaces while matching vertical gestures.
-    hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 4.0, bezier = "MacWorkspace", style = "slidefadevert" })
-    hl.animation({ leaf = "workspacesOut", enabled = true, speed = 4.0, bezier = "MacWorkspace", style = "slidefadevert" })
+    -- Prompt response to keybinds, with a soft ease-out. Keep vertical travel
+    -- intentionally: it matches our gestures, rather than copying Spaces' axis.
+    hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 3.5, bezier = "MacWorkspace", style = "slidefadevert" })
+    hl.animation({ leaf = "workspacesOut", enabled = true, speed = 3.5, bezier = "MacWorkspace", style = "slidefadevert" })
     hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3.6, bezier = "MacOpen", style = "slidefadevert" })
 end
