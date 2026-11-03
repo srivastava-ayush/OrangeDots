@@ -77,29 +77,40 @@ hl = {
     animation = function(animation) animations[animation.leaf] = animation end,
 }
 dofile(arg[1])({})
-assert(curves.ShellPanel.points[1][1] == 1 / 3 and curves.ShellPanel.points[1][2] == 1)
-assert(curves.ShellPanel.points[2][1] == 2 / 3 and curves.ShellPanel.points[2][2] == 1)
-for _, leaf in ipairs({"windowsIn", "windowsOut", "workspacesIn", "workspacesOut", "specialWorkspace"}) do
-    assert(animations[leaf].bezier == "ShellPanel" and animations[leaf].speed == 3.5)
+-- Every animation must resolve to a curve declared in this file. Hyprland
+-- otherwise rejects the animation and silently falls back to its default.
+for leaf, animation in pairs(animations) do
+    assert(curves[animation.bezier], leaf .. " references undefined bezier " .. tostring(animation.bezier))
 end
-assert(animations.windowsIn.style == "popin 96%")
-assert(animations.windowsOut.style == "popin 96%")
-assert(animations.workspacesIn.style == "slidefadevert" and animations.workspacesOut.style == "slidefadevert")
-assert(animations.windowsMove.bezier == "ShellSpatial" and animations.windowsMove.speed == 5)
-assert(curves.ShellSpatial.points[1][1] == 0.38 and curves.ShellSpatial.points[1][2] == 1.21)
-assert(curves.ShellSpatial.points[2][1] == 0.22 and curves.ShellSpatial.points[2][2] == 1)
+assert(curves.ayuOpen.points[1][1] == 0.22 and curves.ayuOpen.points[1][2] == 1)
+assert(curves.ayuOpen.points[2][1] == 0.36 and curves.ayuOpen.points[2][2] == 1)
+assert(curves.ayuClose.points[1][1] == 0.25 and curves.ayuClose.points[1][2] == 0)
+assert(curves.ayuClose.points[2][1] == 0.35 and curves.ayuClose.points[2][2] == 1)
+assert(curves.ayuMove.points[1][1] == 0.25 and curves.ayuMove.points[1][2] == 0.10)
+assert(curves.ayuMove.points[2][1] == 0.25 and curves.ayuMove.points[2][2] == 1)
+assert(curves.ayuLinear.points[1][1] == 0 and curves.ayuLinear.points[1][2] == 0)
+assert(curves.ayuLinear.points[2][1] == 1 and curves.ayuLinear.points[2][2] == 1)
+for _, leaf in ipairs({"workspacesIn", "workspacesOut"}) do
+    assert(animations[leaf].bezier == "ayuOpen" and animations[leaf].speed == 3.5)
+    assert(animations[leaf].style == "slidefadevert")
+end
+assert(animations.windowsIn.bezier == "ayuOpen" and animations.windowsIn.speed == 3.2)
+assert(animations.windowsIn.style == "popin 10%")
+assert(animations.windowsOut.bezier == "ayuClose" and animations.windowsOut.speed == 2.0)
+assert(animations.windowsOut.style == "popin 60%")
+assert(animations.windowsMove.bezier == "ayuMove" and animations.windowsMove.speed == 3.2)
 for _, leaf in ipairs({"fadeIn", "fadeOut"}) do
-    assert(animations[leaf].bezier == "ShellEffects" and animations[leaf].speed == 2)
+    assert(animations[leaf].bezier == (leaf == "fadeIn" and "ayuOpen" or "ayuClose"))
+    assert(animations[leaf].speed == (leaf == "fadeIn" and 2.4 or 2.0))
 end
-assert(curves.ShellEffects.points[1][1] == 0.34 and curves.ShellEffects.points[1][2] == 0.8)
-assert(curves.ShellEffects.points[2][1] == 0.34 and curves.ShellEffects.points[2][2] == 1)
 for _, leaf in ipairs({"layersIn", "layersOut"}) do
-    assert(animations[leaf].bezier == "ShellFastEffects" and animations[leaf].speed == 1.5)
-    assert(animations[leaf].style == "fade")
+    assert(animations[leaf].bezier == (leaf == "layersIn" and "ayuOpen" or "ayuClose"))
+    assert(animations[leaf].speed == (leaf == "layersIn" and 2.6 or 1.8))
+    assert(animations[leaf].style == "slidefade")
 end
-assert(curves.ShellFastEffects.points[1][1] == 0.31 and curves.ShellFastEffects.points[1][2] == 0.94)
-assert(curves.ShellFastEffects.points[2][1] == 0.34 and curves.ShellFastEffects.points[2][2] == 1)
-assert(animations.border.bezier == "ShellLinear" and animations.border.speed == 2)
+assert(animations.border.bezier == "ayuLinear" and animations.border.speed == 3.2)
+assert(animations.specialWorkspace.bezier == "ayuOpen" and animations.specialWorkspace.speed == 3.6)
+assert(animations.specialWorkspace.style == "slidefadevert")
 '''
         subprocess.run(
             ["lua", "-", str(REPO / "hypr/modules/animations.lua")],
