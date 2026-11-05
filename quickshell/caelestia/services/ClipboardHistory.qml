@@ -12,6 +12,7 @@ Singleton {
     property string error: ""
     property string message: ""
     readonly property bool busy: worker.running
+    readonly property bool refreshing: busy && request.action === "list"
     property var request: ({ action: "list" })
     property bool refreshPending: false
     property int consumers: 0
@@ -36,9 +37,18 @@ Singleton {
         if (busy) return false;
         request = { action: action, id: id ?? "" };
         error = "";
-        message = "";
+        if (action !== "list") {
+            feedback.stop();
+            message = "";
+        }
         worker.exec(["python3", Paths.toLocalFile(Qt.resolvedUrl("../utils/scripts/sidebar-clipboard.py"))]);
         return true;
+    }
+
+    Timer {
+        id: feedback
+        interval: 2000
+        onTriggered: root.message = ""
     }
 
     Timer {
@@ -68,7 +78,10 @@ Singleton {
                     if (root.error && root.request.action === "paste")
                         Toaster.toast(qsTr("Clipboard"), root.error, "content_paste");
                     if (response.entries) root.entries = response.entries;
-                    root.message = response.message ?? "";
+                    if (response.message) {
+                        root.message = response.message;
+                        feedback.restart();
+                    }
                 } catch (_) {
                     root.error = qsTr("Clipboard helper returned an invalid response.");
                 }

@@ -185,6 +185,12 @@ label restores its default name. Modules share common header, outer padding,
 section spacing and card insets for a consistent layout.
 AI, Google Calendar/notes, Clipboard, Focus/Pomodoro, and Notes are available. The calendar uses your
 existing feed and notes settings under **Sidebar → Modules → Calendar & notes**.
+That page includes a masked **Secret iCal URL** field with Save/Replace and
+confirmed Remove controls. Paste Google's **Secret address in iCal format**;
+the saved URL is never prefilled or displayed. The calendar module's settings
+button opens this page directly. Secrets are stored in the compatible
+`calendar-url` file with owner-only (`0600`) permissions, not ordinary settings
+JSON, and passed to the helper/curl through stdin rather than command arguments.
 Both top-attached sidebars share the taskbar's liquid shell background.
 
 Only the visible module view and a briefly outgoing crossfade view are loaded.
@@ -505,6 +511,10 @@ The external `~/bin/power-watcher.sh`, `~/bin/refresh-rate.sh`, and `power-watch
 ## First-run customization
 
 Open Nexus with `caelestia shell nexus open`, or `SUPER+X` when using the bundled binds.
+Every entry point opens the same animated **in-shell overlay** used by the
+Bluetooth/audio menu expansion, including weather/sidebar/calendar settings
+buttons. Nexus no longer creates a standalone floating window. Use Escape or
+its close button to dismiss it; the view unloads after its exit animation.
 
 | Preference | Nexus location |
 |---|---|
@@ -531,7 +541,7 @@ Use **Panels → Taskbar → Center notch size** to set its minimum width in Top
 
 - **Profile photo:** copy an image to `~/.face`, or use the dashboard's photo control.
 - **Weather:** enter a city or `latitude, longitude` in Nexus. It uses Open-Meteo; no API key is required.
-- **Google Calendar:** create `${XDG_CONFIG_HOME:-$HOME/.config}/caelestia/calendar-url` containing your secret iCal URL on one line, then restrict it with `chmod 600`. Obtain the URL from Calendar's **Integrate calendar → Secret address in iCal format**. Treat it as a credential; do not commit it or paste it into issues.
+- **Google Calendar:** paste your secret iCal URL into **Nexus → Panels → Sidebar → Modules → Calendar & notes** and save. Obtain the URL from Calendar's **Integrate calendar → Secret address in iCal format**. Nexus stores it privately in `${XDG_CONFIG_HOME:-$HOME/.config}/caelestia/calendar-url`; existing manually created files remain supported. Treat the URL as a credential; do not commit it or paste it into issues.
 - **Screen locking:** the repo includes password PAM configuration under `assets/pam.d/`. Fingerprint/face unlock require their own system setup. Keep a recovery session available while testing password unlock; do not copy arbitrary PAM files into `/etc/pam.d`.
 
 ## Commands and shortcuts

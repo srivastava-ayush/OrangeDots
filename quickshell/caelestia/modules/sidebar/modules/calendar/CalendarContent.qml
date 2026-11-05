@@ -212,7 +212,7 @@ StyledRect {
                             wrapMode: Text.WordWrap
                             text: {
                                 if (!GoogleCalendar.urlConfigured)
-                                    return qsTr("Add your Google Calendar secret iCal URL to ~/.config/caelestia/calendar-url");
+                                    return GoogleCalendar.setupHint;
                                 if (GoogleCalendar.error.length > 0)
                                     return GoogleCalendar.error;
                                 return qsTr("Nothing scheduled");

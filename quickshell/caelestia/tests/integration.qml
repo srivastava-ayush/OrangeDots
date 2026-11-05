@@ -1620,7 +1620,7 @@ ShellRoot {
                         break;
                     case 13:
                         root.check(root.find(calendar, "calendarAgenda").count === 0 && !root.find(calendar, "calendarRefresh").visible, "An unconfigured calendar must not display stale events or a refresh button");
-                        root.check(root.find(calendar, "calendarEmptyMessage").text.includes("calendar-url"), "The unconfigured state must explain the unchanged private URL setup");
+                        root.check(root.find(calendar, "calendarEmptyMessage").text.includes("Nexus"), "The unconfigured state must point to the Calendar module's Nexus settings");
                         GoogleCalendar.refresh();
                         break;
                     case 14:

@@ -166,8 +166,10 @@ return function(settings)
     hl.bind(mainMod .. " + ALT + page_down", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                 { locked = true, repeating = true })
 
     -- Screenshot / screen recording
-    hl.bind(mainMod .. " + caps_lock",       hl.dsp.exec_cmd("caelestia screenshot -r"))
-    hl.bind(mainMod .. " + ALT + caps_lock", hl.dsp.exec_cmd("caelestia record -r -s"))
+   
+    hl.bind(mainMod .. " + H",         hl.dsp.exec_cmd("caelestia screenshot"))
+    hl.bind(mainMod .. " + SHIFT + H", hl.dsp.exec_cmd("caelestia shell picker openClip"))
+
     -- Screen recording alternative (same action as SUPER+ALT+CAPS_LOCK).
     hl.bind(mainMod .. " + R",               hl.dsp.exec_cmd("caelestia record -r -s"))
 

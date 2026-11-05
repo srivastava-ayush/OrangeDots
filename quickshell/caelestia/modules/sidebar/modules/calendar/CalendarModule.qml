@@ -29,7 +29,7 @@ FocusScope {
             IconButton {
                 icon: "settings"
                 type: IconButton.Text
-                onClicked: { root.closeRequested(); SettingsWindows.openSidebarSettings(); }
+                onClicked: { root.closeRequested(); SettingsWindows.openCalendarSettings(); }
             }
             IconButton {
                 objectName: "sidebarCalendarClose"

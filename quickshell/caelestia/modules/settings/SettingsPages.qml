@@ -11,10 +11,23 @@ Item {
     property int lastPageIdx
     property int animOff
     property Item currentItem
+    property int loadGeneration: 0
+
+    function reloadCurrentPage(): void {
+        switchAnim.stop();
+        container.opacity = 1;
+        container.anchors.topMargin = 0;
+        container.anchors.bottomMargin = 0;
+        loadPage(nState.currentPageIdx);
+    }
 
     function loadPage(idx: int): void {
-        if (currentItem)
-            currentItem.destroy();
+        const generation = ++loadGeneration;
+        if (currentItem) {
+            const previous = currentItem;
+            currentItem = null;
+            previous.destroy();
+        }
 
         const comp = PageComponents.pageComps[idx] ?? PageComponents.pageComps[0];
         const incubator = comp.incubateObject(container, {
@@ -22,6 +35,11 @@ Item {
         });
 
         const attach = () => {
+            if (!incubator.object) return;
+            if (generation !== root.loadGeneration) {
+                incubator.object.destroy();
+                return;
+            }
             incubator.object.anchors.fill = container;
             currentItem = incubator.object;
         };

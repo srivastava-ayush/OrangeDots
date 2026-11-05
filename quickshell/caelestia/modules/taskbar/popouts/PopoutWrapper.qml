@@ -93,6 +93,7 @@ Item {
 
     property string detachedMode
     property string queuedMode
+    property var queuedSubPages: []
 
     // Dummy object so Tokens attached prop resolves to global config
     // Anim configs are not per-monitor
@@ -107,13 +108,24 @@ Item {
     }
 
     function detach(mode: string): void {
-        setAnims(true);
         if (mode === "winfo") {
+            setAnims(true);
             detachedMode = mode;
+            setAnims(false);
+            focus = true;
         } else {
-            queuedMode = mode;
-            detachedMode = "any";
+            openNexus(mode, []);
         }
+    }
+
+    function openNexus(page: string, subPages: var): void {
+        const alreadyOpen = detachedMode === "any" && !!nexus.item;
+        setAnims(true);
+        queuedMode = PageRegistry.pages.some(entry => entry.id === page) ? page : "appearance";
+        queuedSubPages = Array.isArray(subPages) ? subPages.slice() : [];
+        cancelClose();
+        detachedMode = "any";
+        if (alreadyOpen) nexus.item.navigateTo(queuedMode, queuedSubPages);
         setAnims(false);
         focus = true;
     }
@@ -132,7 +144,7 @@ Item {
     focus: hasCurrent
     Keys.onEscapePressed: {
         // Forward escape to password popout if active, otherwise close
-        if (currentName === "wirelesspassword" && content.item) {
+        if (!isDetached && currentName === "wirelesspassword" && content.item) {
             const passwordPopout = (content.item as PopoutContent)?.children.find(c => c.name === "wirelesspassword");
             if (passwordPopout && passwordPopout.item) {
                 passwordPopout.item.closeDialog();
@@ -144,7 +156,7 @@ Item {
 
     Keys.onPressed: event => {
         // Don't intercept keys when password popout is active - let it handle them
-        if (currentName === "wirelesspassword") {
+        if (!isDetached && currentName === "wirelesspassword") {
             event.accepted = false;
         }
     }
@@ -156,7 +168,7 @@ Item {
     }
 
     HyprlandFocusGrab {
-        active: root.isDetached || root.notificationShortcutActive
+        active: !!Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") && (root.isDetached || root.notificationShortcutActive)
         windows: [QsWindow.window]
         onCleared: root.close()
     }
@@ -203,6 +215,10 @@ Item {
             radius: Tokens.rounding.extraLarge
             implicitWidth: nexusInner.implicitWidth
             implicitHeight: nexusInner.implicitHeight
+            readonly property alias nState: nexusInner.nState
+            function navigateTo(page: string, subPages: var): void {
+                nexusInner.navigateTo(page, subPages);
+            }
 
             SettingsView {
                 id: nexusInner
@@ -210,7 +226,7 @@ Item {
                 anchors.fill: parent
                 nState.screen: root.screen
                 nState.animatingContainer: nexus.opacity < 1
-                nState.currentPageIdx: Math.max(0, PageRegistry.pages.findIndex(page => page.id === root.queuedMode))
+                Component.onCompleted: navigateTo(root.queuedMode, root.queuedSubPages)
                 onClose: root.close()
             }
         }

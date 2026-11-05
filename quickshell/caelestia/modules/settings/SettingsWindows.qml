@@ -11,17 +11,29 @@ Singleton {
     id: root
 
     function create(parent: Item, props: var): void {
-        nexusComp.createObject(parent ?? dummy, props);
+        // Keep the public entry point, but never create a standalone window.
+        const index = props?.["nState.currentPageIdx"] ?? 0;
+        const page = PageRegistry.pages[index]?.id ?? "appearance";
+        openPage(page, props?.["nState.subPageIdxStack"] ?? []);
+    }
+
+    function openPage(page: string, subPages: var): void {
+        const fallbackScreen = Quickshell.screens[0];
+        const host = ShellState.componentsForActive()
+            ?? (fallbackScreen ? ShellState.componentsFor(fallbackScreen) : null);
+        const popouts = host?.panels?.popouts;
+        if (!popouts) {
+            console.warn("Nexus cannot open before the shell panels are ready.");
+            return;
+        }
+        // Reuse the very same morph/overlay path as Bluetooth/audio expansion.
+        if (!popouts.hasCurrent && !popouts.isDetached)
+            popouts.currentCenter = Taskbar.horizontal ? host.modelData.width / 2 : host.modelData.height / 2;
+        popouts.openNexus(page, subPages);
     }
 
     function openDashboardSettings(): void {
-        const win = nexusComp.createObject(dummy);
-        if (win) {
-            win.nState.currentPageIdx = PageRegistry.pages.findIndex(page => page.id === "panels");
-            // Panels' first subpage is Dashboard. The new StackPage restores
-            // this stack when it is loaded, without signalling the old page.
-            win.nState.subPageIdxStack = [1];
-        }
+        openPage("panels", [1]);
     }
 
     function openAiSettings(): void {
@@ -30,56 +42,10 @@ Singleton {
     }
 
     function openSidebarSettings(): void {
-        const win = nexusComp.createObject(dummy);
-        if (win) {
-            win.nState.currentPageIdx = PageRegistry.pages.findIndex(page => page.id === "panels");
-            win.nState.subPageIdxStack = [10];
-        }
+        openPage("panels", [10]);
     }
 
-    QtObject {
-        id: dummy
-    }
-
-    Component {
-        id: nexusComp
-
-        FloatingWindow {
-            id: win
-
-            readonly property alias nState: nexus.nState
-
-            color: Colours.tPalette.m3surface
-            surfaceFormat.opaque: false
-
-            onVisibleChanged: {
-                if (!visible)
-                    destroy();
-            }
-
-            implicitWidth: nexus.implicitWidth
-            implicitHeight: nexus.implicitHeight
-
-            minimumSize.width: contentItem.Tokens.sizes.nexus.minWidth
-            minimumSize.height: contentItem.Tokens.sizes.nexus.minHeight
-
-            contentItem.Config.screen: screen.name
-            contentItem.Tokens.screen: screen.name
-
-            title: qsTr("Nexus — %1").arg(PageRegistry.pages[nexus.nState.currentPageIdx]?.label ?? PageRegistry.pages[0].label)
-
-            SettingsView {
-                id: nexus
-
-                anchors.fill: parent
-                nState.screen: win.screen
-                nState.isWindow: true
-                onClose: win.destroy()
-            }
-
-            Behavior on color {
-                CAnim {}
-            }
-        }
+    function openCalendarSettings(): void {
+        openPage("panels", [10, 13, 14]);
     }
 }

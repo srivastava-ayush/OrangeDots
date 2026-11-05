@@ -20,10 +20,14 @@ CACHE = Path(os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))) / "c
 
 
 def run(args, data=None):
-    result = subprocess.run(args, input=data, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=15)
+    # wl-copy forks a background clipboard owner. Captured output pipes can
+    # remain open in that child, making communicate() wait long after copying.
+    # No output is needed from wl-copy: wait only for its initial process.
+    sink = subprocess.DEVNULL if args[0] == "wl-copy" else subprocess.PIPE
+    result = subprocess.run(args, input=data, stdout=sink, stderr=sink, timeout=15)
     if result.returncode:
         raise RuntimeError(f"{args[0]} failed. Check that clipboard history and Wayland clipboard tools are available.")
-    return result.stdout
+    return result.stdout or b""
 
 
 def private_dir(path):
@@ -74,7 +78,9 @@ def decode(identity):
         return pin_path(identity).read_bytes()
     if not re.fullmatch(r"history:[0-9]+", identity):
         raise ValueError("Invalid clipboard entry")
-    return run(["cliphist", "decode"], identity[8:].encode() + b"\n")
+    # cliphist extracts the ID up to the first tab, like a `cliphist list` row.
+    # An ID followed by only a newline is parsed as "123\n" and rejected.
+    return run(["cliphist", "decode"], identity[8:].encode() + b"\t\n")
 
 
 def pins():
@@ -152,7 +158,7 @@ def main():
             path.unlink(missing_ok=True)
             path.with_suffix(".json").unlink(missing_ok=True)
         elif re.fullmatch(r"history:[0-9]+", identity):
-            run(["cliphist", "delete"], identity[8:].encode() + b"\n")
+            run(["cliphist", "delete"], identity[8:].encode() + b"\t\n")
         else:
             raise ValueError("Invalid clipboard entry")
     elif action in ("clear", "clear-all"):

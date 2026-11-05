@@ -154,6 +154,10 @@ The current tab order is **Media → Dashboard → Performance → Phone**. Medi
 
 - Assign Calendar to the left or right sidebar in Nexus → Panels → Sidebar → Modules. Select it through the sidebar tabs, or use the compatible `caelestia shell drawers toggle utilitySidebar` alias. There is no Calendar dashboard tab or Super+Alt+5 binding.
 - A seven-day Google Calendar agenda read from a private iCalendar URL, without an OAuth login flow.
+- Masked secret-URL entry in the module's Nexus settings, explicit save/replace,
+  and confirmed removal. Existing saved secrets are never shown. The compatible
+  calendar-url file is written atomically with owner-only permissions; neither
+  the settings helper nor curl receives the secret as a command-line argument.
 - All-day and timed events, day grouping, current-event highlighting, manual refresh, scheduled refresh, and empty/error states.
 - A multiline notes scratchpad with wrapping, text selection, scrolling, and keyboard focus that keeps the panel open while editing.
 - Independent agenda and scratchpad visibility, configured under **Nexus → Panels → Sidebar → Modules → Calendar & notes**. Existing `sidebar.showAgenda` and `sidebar.showNotes` settings are reused, so no native plugin rebuild is needed.
@@ -182,7 +186,13 @@ The current tab order is **Media → Dashboard → Performance → Phone**. Medi
 
 ### Nexus settings
 
-Nexus can be opened as a floating window or expanded from supported taskbar popouts. It has category navigation and nested subpages. Implemented settings modify the live configuration; the native backend watches the JSON files and automatically saves changes.
+Nexus always opens inside the shell through the same animated overlay/morph path
+as supported taskbar popout expansion. Super+X, `nexus open`, and module settings
+buttons all route to that shared view; there is no standalone window or detach
+button. Escape/Close dismiss it and release the view after the exit animation.
+It has category navigation and nested subpages. Implemented settings modify the
+live configuration; the native backend watches the JSON files and automatically
+saves changes.
 
 | Page / area | Implemented controls |
 |---|---|
@@ -268,7 +278,8 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | `SUPER+L` | Lock session. |
 | `SUPER+X` | Open Nexus. |
 | `SUPER+TAB` | Open the launcher's wallpaper picker. |
-| `SUPER+CapsLock` | External Caelestia region-screenshot command. |
+| `SUPER+CapsLock` | Capture the full focused screen and copy it to the clipboard. |
+| `SUPER+SHIFT+CapsLock` | Pick a screenshot region and copy it to the clipboard. |
 | `SUPER+ALT+CapsLock` | External Caelestia region-recording command with sound. |
 
 The top-left hot corner and `SUPER+Escape` use the separately installed ScrollOverview plugin. Clipboard, emoji, Spotify scratchpads, refresh-rate switching, and Hyprland window-management bindings belong to the surrounding dotfiles/CLI integration rather than additional OrangeShell UI modules.
@@ -340,7 +351,7 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/launcher/services/` | `Actions.qml`, `Apps.qml`, `M3Variants.qml`, `Schemes.qml` | Launcher-specific search providers and action/app launching. |
 | `modules/lockscreen/` | `Center.qml`, `LockScreen.qml`, `LockSurface.qml`, `LockView.qml`, `Media.qml`, `NotifGroup.qml`, `Pam.qml`, `WakeTrace.qml` | Session-lock lifecycle, authentication, surfaces, centre UI, and retained media/notification pieces. |
 | `modules/lockscreen/center/` | `Clock.qml`, `InputField.qml`, `PasswordInput.qml`, `ProfilePic.qml`, `StateMessage.qml` | Lock-screen clock, profile, credential input, and state feedback. |
-| `modules/settings/` | `PageComponents.qml`, `PageRegistry.qml`, `SettingsNavigation.qml`, `SettingsPages.qml`, `SettingsState.qml`, `SettingsView.qml`, `SettingsWindows.qml` | Nexus settings window, navigation, page routing, and shared view state. |
+| `modules/settings/` | `PageComponents.qml`, `PageRegistry.qml`, `SettingsNavigation.qml`, `SettingsPages.qml`, `SettingsState.qml`, `SettingsView.qml`, `SettingsWindows.qml` | In-shell Nexus overlay, navigation, page routing, and shared view state. SettingsWindows is the compatibility-named router, not a floating-window factory. |
 | `modules/settings/common/` | `AnimatedLogo.qml`, `AudioDeviceList.qml`, `BlobPopup.qml`, `ConnectedRect.qml`, `DialogRowButton.qml`, `DialogSelectButton.qml`, `EthernetSection.qml`, `InfoRow.qml`, `ItemList.qml`, `ListEditor.qml`, `NavRow.qml`, `NetworkList.qml`, `PageBase.qml`, `PopupRow.qml`, `RowButton.qml`, `SectionHeader.qml`, `SelectRow.qml`, `SliderRow.qml`, `StackPage.qml`, `StepperRow.qml`, `TextFieldRow.qml`, `ToggleRow.qml`, `WallItem.qml` | Settings-local reusable rows, lists, page containers, popups, device/network widgets, and wallpaper tiles. |
 | `modules/settings/navpane/` | `NavLocations.qml` | Settings navigation locations. |
 | `modules/settings/pages/` | `AboutPage.qml`, `AppsPage.qml`, `AudioPage.qml`, `BluetoothPage.qml`, `LanguageAndRegion.qml`, `NetworkPage.qml`, `PanelsPage.qml`, `PowerAndSleepPage.qml`, `ServicesPage.qml`, `WallpaperAndStyle.qml` | Main implemented settings pages. |

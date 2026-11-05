@@ -83,7 +83,9 @@ FocusScope {
             }
             StyledText {
                 Layout.fillWidth: true
-                text: ClipboardHistory.busy ? qsTr("Updating…") : qsTr("%1 items").arg(root.filtered.length)
+                text: ClipboardHistory.refreshing ? qsTr("Refreshing history…")
+                    : ClipboardHistory.busy ? (ClipboardHistory.request.action === "copy" ? qsTr("Copying…") : ClipboardHistory.request.action === "pin" ? qsTr("Pinning…") : qsTr("Working…"))
+                    : qsTr("%1 items").arg(root.filtered.length)
                 horizontalAlignment: Text.AlignRight
                 color: Colours.palette.m3onSurfaceVariant
                 font: Tokens.font.label.small

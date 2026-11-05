@@ -19,6 +19,15 @@ Item {
     property color blobColour: Colours.tPalette.m3surfaceContainerLow
 
     signal close
+    Keys.onEscapePressed: root.close()
+
+    function navigateTo(page: string, subPages: var): void {
+        nState.searchOpen = false;
+        nState.subPageIdxStack = [];
+        nState.currentPageIdx = Math.max(0, PageRegistry.pages.findIndex(entry => entry.id === page));
+        nState.subPageIdxStack = Array.isArray(subPages) ? subPages.slice() : [];
+        pages.reloadCurrentPage();
+    }
 
     implicitWidth: Math.round(implicitHeight * Tokens.sizes.nexus.ratio)
     implicitHeight: Math.round(nState.screen.height * Tokens.sizes.nexus.heightMult)
@@ -55,30 +64,27 @@ Item {
 
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: root.nState.isWindow ? 0 : Tokens.padding.extraSmall
+        anchors.margins: Tokens.padding.extraSmall
 
         group: blobGroup
         opacity: root.blobColour.a
         radius: Tokens.rounding.medium
 
-        implicitWidth: windowBtn.implicitWidth + (root.nState.isWindow ? Tokens.padding.extraSmall : Tokens.padding.small) * 2
-        implicitHeight: windowBtn.implicitHeight + (root.nState.isWindow ? Tokens.padding.extraSmall : Tokens.padding.small)
+        implicitWidth: windowBtn.implicitWidth + Tokens.padding.small * 2
+        implicitHeight: windowBtn.implicitHeight + Tokens.padding.small
     }
 
     IconButton {
         id: windowBtn
+        objectName: "nexusClose"
 
         anchors.centerIn: windowBtnRect
-        icon: nState.isWindow ? "close" : "pip"
+        icon: "close"
         type: IconButton.Text
         label.fill: 0
-        inactiveOnColour: hovered ? nState.isWindow ? Colours.palette.m3error : Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+        inactiveOnColour: hovered ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
         stateLayer.opacity: 0
-        onClicked: {
-            if (!nState.isWindow)
-                SettingsWindows.create();
-            root.close();
-        }
+        onClicked: root.close()
 
         label.scale: pressed ? 0.8 : 1
         label.renderType: Text.QtRendering
@@ -101,6 +107,7 @@ Item {
     }
 
     SettingsPages {
+        id: pages
         anchors.left: navPane.right
         anchors.right: parent.right
         anchors.top: parent.top

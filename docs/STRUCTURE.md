@@ -47,6 +47,13 @@ Each panel has a feature-named wrapper/content pair, such as
 content owns the UI. This avoids searching through unrelated `Wrapper.qml`
 and `Content.qml` files.
 
+Nexus always uses `taskbar/popouts/PopoutWrapper.qml`'s existing expansion/morph
+overlay. The compatibility-named `settings/SettingsWindows.qml` routes Super+X,
+IPC and module settings buttons to that per-screen host rather than constructing
+a FloatingWindow. Helpers navigate the existing view to the requested page/stack;
+Escape or the close button animates out and unloads it. `SettingsPages` discards
+stale asynchronous page loads during rapid navigation.
+
 `TaskbarLayout.qml` deliberately does **not** use the name `Taskbar.qml`:
 `services/Taskbar.qml` is the existing settings singleton, and QML type names
 must not collide with that imported singleton.
@@ -92,6 +99,11 @@ Phone. Supporting recorder/quick-control cards live in `dashboard/overview/cards
 the obsolete `dashboard/utilities/` tree and Utilities settings page were removed.
 Overview card and hot-corner settings live directly on the Dashboard Nexus page.
 Calendar settings live under Sidebar → Modules → Calendar & notes.
+The masked feed field uses `utils/scripts/calendar-url.py` to atomically save a
+private `0600` calendar-url file. Existing secret URLs are not displayed or put
+in normal preference JSON. `GoogleCalendar.qml` reads the file with FileView,
+passes curl's URL through stdin, and invalidates stale fetches on replacement
+or removal so the old feed cannot repopulate the agenda.
 
 **Nexus → Panels → Sidebar** contains separate **Left sidebar** / **Right sidebar**
 size/enable/default pages and a centralized **Modules** page for Left/Right/Off
