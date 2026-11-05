@@ -40,7 +40,7 @@ Region {
         x: panel.x + root.panels.x + (panel.width - width) / 2
         y: 0
         width: root.panels.dashboard.hoverWidth
-        height: Math.max(root.win.contentItem.Config.border.minThickness, root.panels.y)
+        height: root.panels.dashboard.hoverHeight
     }
 
     R {

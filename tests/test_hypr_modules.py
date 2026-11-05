@@ -117,6 +117,113 @@ assert(animations.specialWorkspace.style == "slidefadevert")
             input=harness, text=True, capture_output=True, check=True,
         )
 
+    def test_opendisplay_hotplug_and_workspace_guards(self):
+        harness = r'''
+local events, timers, rules, moves, binds = {}, {}, {}, {}, {}
+local laptop = {name = "eDP-1"}
+local ipad = {name = "OpenDisplay-1655"}
+local monitors = {laptop, ipad}
+local workspaces = {{id = 4, monitor = ipad}, {id = 8, monitor = laptop}, {id = 10, monitor = ipad}}
+hl = {
+    on = function(event, callback) events[event] = callback end,
+    timer = function(callback, options)
+        assert(options.type == "oneshot")
+        timers[#timers + 1] = callback
+        return {}
+    end,
+    get_monitors = function() return monitors end,
+    get_monitor = function(name) if name == laptop.name then return laptop end end,
+    get_workspaces = function() return workspaces end,
+    workspace_rule = function(spec)
+        spec.enabled = true
+        function spec:set_enabled(enabled) self.enabled = enabled end
+        rules[#rules + 1] = spec
+        return spec
+    end,
+    dispatch = function(spec) moves[#moves + 1] = spec end,
+    bind = function(key, callback) binds[key] = callback end,
+    window_rule = function() end,
+    define_submap = function() end,
+}
+local function dispatcher(spec) return spec end
+local namespace = setmetatable({}, {__index = function() return dispatcher end})
+hl.dsp = setmetatable({window = namespace, workspace = namespace}, {__index = function() return dispatcher end})
+local settings = {
+    configHome = "/config", terminal = "kitty", fileManager = "yazi",
+    ide = "zed", browser = "browser", hyprScript = function(name) return name end,
+}
+dofile(arg[1])(settings)
+dofile(arg[2])(settings)
+local function flush(event)
+    events[event]()
+    local callbacks = timers
+    timers = {}
+    for _, callback in ipairs(callbacks) do callback() end
+end
+flush("config.reloaded")
+assert(#rules == 5 and rules[1].monitor == ipad.name and rules[1].workspace == "5" and rules[5].workspace == "9")
+assert(#moves == 3 and moves[1].monitor == "eDP-1" and moves[2].monitor == ipad.name and moves[3].monitor == "eDP-1")
+flush("monitor.added")
+assert(#rules == 5, "unchanged output must not duplicate rules")
+moves = {}
+binds["SUPER + 5"]()
+binds["SUPER + SHIFT + 9"]()
+assert(#moves == 2 and moves[1].workspace == 5 and moves[2].workspace == 9)
+monitors = {laptop}
+flush("monitor.removed")
+for _, rule in ipairs(rules) do assert(not rule.enabled) end
+moves = {}
+binds["SUPER + 5"]()
+binds["SUPER + SHIFT + 9"]()
+assert(#moves == 0, "disconnected iPad shortcuts must not dispatch")
+binds["SUPER + 1"]()
+assert(#moves == 1 and moves[1].workspace == 1)
+binds["SUPER + 0"]()
+assert(#moves == 2 and moves[2].workspace == 10)
+ipad = {name = "OpenDisplay-9999"}
+monitors = {laptop, ipad}
+moves = {}
+flush("monitor.added")
+assert(#rules == 10 and rules[6].monitor == ipad.name)
+assert(#moves == 3 and moves[2].monitor == ipad.name)
+-- Monitor bursts are coalesced into one deferred reconciliation.
+events["monitor.added"]()
+events["monitor.removed"]()
+assert(#timers == 1)
+'''
+        subprocess.run(
+            ["lua", "-", str(REPO / "hypr/modules/opendisplay.lua"),
+             str(REPO / "hypr/modules/keybindings.lua")],
+            input=harness, text=True, capture_output=True, check=True,
+            env={**os.environ, "SHELL": "/bin/zsh"},
+        )
+
+    def test_monitor_reload_preserves_live_opendisplay_geometry(self):
+        harness = r'''
+local specs, rules = {}, {}
+hl = {
+    get_monitors = function() return {
+        {name = "eDP-1"},
+        {name = "OpenDisplay-9876", width = 2048, height = 1536,
+         refresh_rate = 30, x = 1920, y = 312, scale = 2, transform = 0},
+    } end,
+    monitor = function(spec) specs[#specs + 1] = spec end,
+    workspace_rule = function(spec) rules[#rules + 1] = spec end,
+}
+dofile(arg[1])({})
+assert(#specs == 2)
+assert(specs[1].output == "OpenDisplay-9876")
+assert(specs[1].mode == "2048x1536@30.00000")
+assert(specs[1].position == "1920x312" and specs[1].scale == 2)
+assert(specs[2].output == "eDP-1" and specs[2].mode == "1920x1080@144")
+assert(#rules == 5 and rules[5].monitor == "eDP-1")
+assert(rules[4].workspace == "4" and rules[5].workspace == "10")
+'''
+        subprocess.run(
+            ["lua", "-", str(REPO / "hypr/modules/monitors.lua")],
+            input=harness, text=True, capture_output=True, check=True,
+        )
+
     def test_relocated_config_and_module_edits_on_reload(self):
         with tempfile.TemporaryDirectory(dir="/tmp/opencode" if Path("/tmp/opencode").is_dir() else None) as temp:
             root = Path(temp) / "config with spaces"

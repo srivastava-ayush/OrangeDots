@@ -66,7 +66,9 @@ CustomMouseArea {
 
     function withinPanelWidth(panel: Item, x: real, y: real): bool {
         const panelX = panels.x + panel.x;
-        if (panel === panels.dashboard && y <= Math.max(Config.border.minThickness, panels.y)) {
+        // The dashboard's closed-state edge strip can extend below the bar inset,
+        // so include its configured height in the widened top target.
+        if (panel === panels.dashboard && y <= Math.max(Config.border.minThickness, panels.y, panels.dashboard.hoverHeight)) {
             const center = panelX + panel.width / 2;
             return Math.abs(x - center) <= panels.dashboard.hoverWidth / 2 + Config.border.rounding;
         }
@@ -83,7 +85,10 @@ CustomMouseArea {
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
         const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        return y < Math.max(Config.border.minThickness, panels.y + panelHeight) && withinPanelWidth(panel, x, y);
+        // When the dashboard is closed, only the configured top strip triggers it.
+        // Once it starts opening, the revealed panel keeps the hover target alive.
+        const bottom = panel === panels.dashboard ? (panelHeight > 0 ? Math.max(panels.dashboard.hoverHeight, panels.y + panelHeight) : panels.dashboard.hoverHeight) : panels.y + panelHeight;
+        return y < Math.max(Config.border.minThickness, bottom) && withinPanelWidth(panel, x, y);
     }
 
     function inBottomPanel(panel: Item, x: real, y: real, isCorner = false): bool {

@@ -58,7 +58,13 @@ Item {
         parent && parent.height > 0 && naturalHeight > 0 ? parent.height / naturalHeight : 1.4)
     readonly property real fullWidth: naturalWidth * dashboardScale
     // Keep the edge target generous even while the curtain is collapsed.
-    readonly property real hoverWidth: Math.min(parent ? parent.width : fullWidth + 200, fullWidth + 200)
+    // A configured width overrides the automatic dashboard-sized target.
+    readonly property real hoverWidth: {
+        const autoWidth = Math.min(parent ? parent.width : fullWidth + 200, fullWidth + 200);
+        return DashboardHover.width > 0 ? Math.min(parent ? parent.width : DashboardHover.width, DashboardHover.width) : autoWidth;
+    }
+    // Height of the closed-state top edge strip, measured from the screen edge.
+    readonly property real hoverHeight: Math.max(Config.border.minThickness, DashboardHover.height)
     readonly property real curtainProgress: Math.max(0, Math.min(1, 1 - offsetScale))
     readonly property real curtainWidthScale: Config.dashboard.showOnHover ? 0.48 + 0.52 * curtainProgress : 1
 

@@ -111,8 +111,15 @@ return function(settings)
     -- Move active window to a workspace with mainMod + SHIFT + [0-9]
     for i = 1, 10 do
         local key = i % 10 -- 10 maps to key 0
-        hl.bind(mainMod .. " + " .. key,         hl.dsp.focus({ workspace = i }))
-        hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+        local function available()
+            return i <= 4 or i == 10 or settings.openDisplayConnected()
+        end
+        hl.bind(mainMod .. " + " .. key, function()
+            if available() then hl.dispatch(hl.dsp.focus({ workspace = i })) end
+        end)
+        hl.bind(mainMod .. " + SHIFT + " .. key, function()
+            if available() then hl.dispatch(hl.dsp.window.move({ workspace = i })) end
+        end)
     end
 
     -- Spotify scratchpad (special workspace)
@@ -169,6 +176,11 @@ return function(settings)
     hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus open"))
     hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
     hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
+
+    -- media-audio-pipewire-restart script 
+    hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd(hyprScript("restart-pipewire.sh")))
+
+
     -- Wallpaper picker alternative (same action as SUPER+TAB).
     hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 

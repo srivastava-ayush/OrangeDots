@@ -22,6 +22,7 @@ for _, name in ipairs({
     "appearance",
     "animations",
     "layouts",
+    "opendisplay",
     "misc",
     "input",
     "keybindings",

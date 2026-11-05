@@ -52,6 +52,38 @@ PageBase {
         }
 
         SectionHeader {
+            text: qsTr("Hover area")
+        }
+
+        StepperRow {
+            objectName: "dashboardHoverWidth"
+            first: true
+            label: qsTr("Hover area width (px)")
+            subtext: qsTr("Width of the top-edge trigger strip · 0 = match the dashboard")
+            enabled: Config.dashboard.showOnHover
+            opacity: enabled ? 1 : 0.5
+            value: DashboardHover.width
+            from: 0
+            to: 4000
+            stepSize: 50
+            onMoved: v => DashboardHover.width = v
+        }
+
+        StepperRow {
+            objectName: "dashboardHoverHeight"
+            last: true
+            label: qsTr("Hover area height (px)")
+            subtext: qsTr("How far down from the screen edge the cursor opens the dashboard")
+            enabled: Config.dashboard.showOnHover
+            opacity: enabled ? 1 : 0.5
+            value: DashboardHover.height
+            from: 2
+            to: 200
+            stepSize: 1
+            onMoved: v => DashboardHover.height = v
+        }
+
+        SectionHeader {
             text: qsTr("Size")
         }
 

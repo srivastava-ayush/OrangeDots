@@ -6,7 +6,7 @@ local browser     = "helium-browser"
 -- Resolve helpers through the installed config, not a personal clone path.
 local configHome = os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")
 local function hyprScript(name)
-    return "bash " .. string.format("%q", configHome .. "/hypr/scripts/" .. name)
+    return "zsh " .. string.format("%q", configHome .. "/hypr/scripts/" .. name)
 end
 
 return {
