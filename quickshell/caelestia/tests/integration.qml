@@ -16,7 +16,7 @@ import qs.modules.settings.pages.panels
 import qs.modules.desktop
 import qs.modules.lockscreen as Lock
 import qs.modules as Modules
-import qs.modules.ai as Ai
+import qs.modules.sidebar.modules.ai as Ai
 
 // Transparent, input-free test surface. integration.py isolates all settings
 // and removes the Hyprland IPC connection, so the desktop is left unchanged.
@@ -67,6 +67,10 @@ ShellRoot {
         property bool canGoPrevious: true
         property bool canGoNext: true
         property bool canTogglePlaying: true
+        property real length: 240
+        property real position: 60
+        property bool canSeek: true
+        property bool positionSupported: true
         function previous(): void { trackTitle = "First track"; }
         function next(): void { trackTitle = "Second track"; }
         function togglePlaying(): void { isPlaying = !isPlaying; }
@@ -585,6 +589,12 @@ ShellRoot {
                     switch (root.step) {
                     case 0:
                         // No real OpenCode processes, model requests or user data.
+                        // Keep synthetic sidebar pointer events from opening
+                        // unrelated hover panels and stealing editor focus.
+                        GlobalConfig.dashboard.showOnHover = false;
+                        GlobalConfig.launcher.showOnHover = false;
+                        HotCorner.enabled = false;
+                        root.check(!root.find(panel, "sidebarCalendar"), "Closed sidebars must not construct inactive Calendar views");
                         chat.connectionEnabled = false;
                         chat.requestSent.connect(command => root.aiRequests.push(command));
                         scene.screenState.ai = true;
@@ -653,6 +663,47 @@ ShellRoot {
                         root.check(chat.memoryReleased && chat.failed && !chat.busy, "Clear memory must leave the adapter stopped");
                         chat.receive(JSON.stringify({ type: "delta", id: "stale", text: "Old response" }));
                         root.check(chat.messages.count === 0, "Late provider events must not restore cleared messages");
+                        scene.screenState.ai = true;
+                        break;
+                    case 12:
+                        chat.connectionEnabled = false;
+                        chat.draft = "Keep this draft across sidebar modules";
+                        root.find(panel, "sidebarTab_calendar").clicked();
+                        break;
+                    case 13:
+                        root.check(panel.selectedModule === "calendar" && !!root.find(panel, "sidebarCalendar"), "Sidebar tabs must replace AI with the existing Google Calendar module");
+                        root.check(!chat.active && !root.find(panel, "aiChatComposer"), "Inactive AI must release its UI while retaining its backend state");
+                        const sidebarBg = root.find(scene.contentItem, "sidebarBackground");
+                        const dashBg = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
+                        root.check(sidebarBg.group === dashBg.group && sidebarBg.y < 0, "Sidebar must bridge the top edge in the same liquid shell background group");
+                        root.check(sidebarBg.y + sidebarBg.height >= panel.y + scene.interactionWrapper.panels.y + panel.height - 1, "Sidebar background must span the entire gap from top shell to panel bottom");
+                        root.find(panel, "sidebarTab_ai").clicked();
+                        break;
+                    case 14:
+                        root.check(panel.chatState === chat && chat.draft === "Keep this draft across sidebar modules" && !!root.find(panel, "aiChatComposer"), `Switching back to AI must preserve its state (sameBackend=${panel.chatState === chat}, draft=${chat.draft}, composer=${!!root.find(panel, "aiChatComposer")}, module=${panel.selectedModule}, open=${scene.screenState.ai})`);
+                        root.check(!root.find(panel, "sidebarCalendar"), "Outgoing module views must unload after their crossfade");
+                        SidebarConfig.setModuleEnabled("calendar", false);
+                        break;
+                    case 15:
+                        root.check(panel.chatState === chat && !root.find(panel, "sidebarCalendar"), "Disabling another module must not recreate the AI backend");
+                        SidebarConfig.setModuleEnabled("ai", false);
+                        root.check(SidebarConfig.enabledModules.includes("ai"), "The last sidebar module cannot be disabled");
+                        SidebarConfig.setModuleEnabled("calendar", true);
+                        SidebarConfig.defaultModule = "calendar";
+                        Taskbar.style = "notches";
+                        break;
+                    case 16:
+                        root.check(panel.selectedModule === "calendar", "Changing the default in Nexus must update the sidebar");
+                        root.check(root.find(scene.contentItem, "sidebarBackground").y < 0, "Notched taskbars must keep the sidebar joined to the top shell edge");
+                        SidebarConfig.setModuleEnabled("ai", false);
+                        break;
+                    case 17:
+                        root.check(!panel.chatState && panel.selectedModule === "calendar", "A calendar-only sidebar must unload AI entirely");
+                        root.find(panel, "sidebarCalendarClose").clicked();
+                        break;
+                    case 18:
+                        root.check(!panel.visible && root.find(scene.contentItem, "sidebarBackground").height === 0, "Closing the sidebar must remove its bridge without a ghost background");
+                        root.check(!root.find(panel, "sidebarCalendar"), "Closing a sidebar must release its selected Calendar view");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                         break;
@@ -970,6 +1021,11 @@ ShellRoot {
                         break;
                     case 1:
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
+                        const progress = root.find(island, "islandProgress");
+                        root.check(progress.enabled && Math.abs(progress.value - 0.25) < 0.001 && progress.width > 0, "Island progress must reflect the active player's position");
+                        root.check(root.find(island, "islandElapsed").text === "1:00" && root.find(island, "islandDuration").text === "4:00", "Island must show elapsed and total playback times");
+                        progress.interaction(0.5);
+                        root.check(root.islandPlayer.position === 120, "Seeking in the island must update the active player");
                         root.check(root.find(island, "mediaIslandGloss").opacity === 0.25, "Island must retain the subtle shared gloss strength");
                         const islandVisualizer = root.find(island, "mediaIslandVisualizer");
                         root.check(!!islandVisualizer && islandVisualizer.height === 12 && islandVisualizer.width > 0 && islandVisualizer.playing, "Island must show a compact live spectrum while playing");
@@ -987,6 +1043,12 @@ ShellRoot {
                     case 3:
                         root.check(island.expanded && !root.islandPlayer.isPlaying, "Pausing must reveal the island with working playback controls");
                         root.check(!root.find(island, "mediaIslandVisualizer").playing, "Island spectrum must settle when playback pauses");
+                        root.islandPlayer.canSeek = false;
+                        root.check(!root.find(island, "islandProgress").enabled, "Island seeking must respect player capabilities");
+                        root.find(island, "islandProgress").interaction(0.75);
+                        root.check(root.islandPlayer.position === 120, "Unsupported seeking must not change playback position");
+                        root.islandPlayer.length = 0;
+                        root.check(root.find(island, "islandDuration").text === "--:--" && root.find(island, "islandProgress").value === 0, "Unknown-duration streams must have a safe empty progress bar");
                         const islandBackground = root.findBackground(scene.contentItem, island);
                         root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
                         break;
@@ -1375,26 +1437,23 @@ ShellRoot {
                         root.check(root.find(root.nexusStack.currentItem, "dashboardScale").value === 100, "Dashboard scale must default to 100 percent");
                         root.find(root.nexusStack.currentItem, "dashboardScale").moved(90);
                         root.check(GlobalConfig.dashboard.scale === 90, "Nexus scale control must update dashboard preferences");
-                        root.find(root.nexusStack.currentItem, "dashboardUtilities").clicked(null);
+                        root.check(!root.find(root.nexusStack.currentItem, "dashboardUtilities"), "Dashboard must not link to the removed Utilities page");
                         break;
                     case 7:
-                        root.check(root.nexusStack.depth === 3 && root.nexusStack.currentItem.title === qsTr("Utilities"), "Utilities must be nested beneath Dashboard");
-                        root.navigationState.closeSubPage();
+                        root.check(root.nexusStack.depth === 2 && root.nexusStack.currentItem.title === qsTr("Dashboard"), "Dashboard card settings must live directly on Dashboard");
                         break;
                     case 8:
                         root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Back from Utilities should return to Dashboard");
                         root.check(root.find(root.nexusStack.currentItem, "dashboardScale").value === 90, "Dashboard scale must survive settings page navigation");
                         root.find(root.nexusStack.currentItem, "dashboardScaleReset").clicked(null);
                         root.check(GlobalConfig.dashboard.scale === 100, "Dashboard size reset must restore 100 percent");
-                        root.find(root.nexusStack.currentItem, "dashboardCalendarSettings").clicked(null);
+                        root.check(!root.find(root.nexusStack.currentItem, "dashboardCalendarSettings"), "Calendar settings must not remain under Dashboard");
                         break;
                     case 9:
-                        root.check(root.nexusStack.depth === 3 && root.nexusStack.currentItem.title === qsTr("Calendar & notes"), "Calendar settings must be nested beneath Dashboard");
-                        root.check(!root.nexusStack.currentItem.contentChild.children.some(child => child.text === qsTr("Show on hover") || child.label === qsTr("Corner width")), "Calendar settings must not advertise the removed corner interactions");
-                        root.navigationState.closeSubPage();
+                        root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Removed modules must not create additional dashboard subpages");
                         break;
                     case 10:
-                        root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Back from Calendar settings should return to Dashboard");
+                        root.check(root.nexusStack.currentItem.title === qsTr("Dashboard"), "Dashboard settings must remain accessible after cleanup");
                         root.navigationState.closeSubPage();
                         break;
                     case 11:
@@ -1402,10 +1461,20 @@ ShellRoot {
                         root.find(root.nexusStack.currentItem, "panelsAi").clicked(null);
                         break;
                     case 12: {
-                        const page = root.nexusStack.currentItem;
-                        root.check(page.title === qsTr("AI panel"), "Panels must open AI settings without changing existing subpage indices");
-                        root.find(page, "aiPanelHeightSetting").moved(900);
+                        const overview = root.nexusStack.currentItem;
+                        root.check(overview.title === qsTr("Sidebar") && !!root.find(overview, "sidebarLeftSettings") && !!root.find(overview, "sidebarRightSettings") && !!root.find(overview, "sidebarModulesSettings"), "Sidebar settings must expose Left, Right and centralized Modules");
+                        const page = root.nexusStack.pages[13].createObject(window.contentItem, { nState: root.navigationState, width: 800, height: 600, visible: false });
+                        const placement = root.find(page, "sidebarPlacement_ai");
+                        placement.selected(page.placements[1]);
+                        root.check(SidebarConfig.leftModules.includes("ai") && !SidebarConfig.enabledModules.includes("ai"), "Central module placement must move a module exclusively to the left");
+                        placement.selected(page.placements[0]);
+                        root.check(SidebarConfig.placement("ai") === "off", "Central placement must allow modules to be disabled");
+                        placement.selected(page.placements[2]);
+                        SidebarConfig.setDefault("right", "ai");
+                        const sidePage = root.nexusStack.pages[12].createObject(window.contentItem, { nState: root.navigationState, width: 800, height: 600, visible: false });
+                        root.find(sidePage, "sidebarHeightSetting").moved(900);
                         root.check(AiConfig.panelHeight === 900, "Nexus height control must configure the AI panel");
+                        sidePage.destroy();
                         const approvalToggle = root.find(page, "aiAutoApproveSetting");
                         approvalToggle.checked = false;
                         approvalToggle.toggled();
@@ -1419,6 +1488,7 @@ ShellRoot {
                         root.check(AiConfig.ollamaEffort === "", "Other providers must retain their own default effort");
                         root.check(AiConfig.provider === "ollama", "Nexus provider selection must configure the sidebar backend");
                         AiConfig.ollamaModel = "test-local-model";
+                        page.destroy();
                         root.navigationState.closeSubPage();
                         break;
                     }
@@ -1454,7 +1524,7 @@ ShellRoot {
                     const scene = fullSceneLoader.item;
                     const interactions = scene.interactionWrapper;
                     const dashboard = interactions.panels.dashboard;
-                    const calendar = root.find(scene.contentItem, "dashboardCalendar");
+                    const calendar = root.find(scene.contentItem, "sidebarCalendar");
                     const notes = calendar ? root.find(calendar, "calendarNotes") : null;
                     if ((root.step === 1 || root.step === 14) && (!calendar || root.find(calendar, "calendarAgenda").count !== 2)) {
                         root.check(++root.calendarWaitTicks < 10, "The local iCal fixture and agenda model must finish loading");
@@ -1465,84 +1535,86 @@ ShellRoot {
                     case 0:
                         Taskbar.orientation = "top";
                         GlobalConfig.sidebar.enabled = true;
+                        GlobalConfig.dashboard.showOnHover = false;
+                        GlobalConfig.launcher.showOnHover = false;
+                        scene.screenState.dashboard = false;
+                        scene.screenState.ai = false;
                         GlobalConfig.sidebar.showAgenda = true;
                         GlobalConfig.sidebar.showNotes = true;
+                        SidebarConfig.assignModule("ai", "off");
+                        SidebarConfig.assignModule("calendar", "right");
                         root.calendarIpc = calendarShortcuts.item.drawers;
                         root.check(!!root.calendarIpc, "The real drawer IPC handler must be available");
-                        root.calendarIpc.setTab("calendar");
+                        root.calendarIpc.toggle("utilitySidebar");
                         break;
                     case 1: {
-                        root.check(!!calendar && scene.screenState.dashboard, "Named calendar IPC must open the new dashboard tab");
+                        root.check(!!calendar && scene.screenState.ai && !scene.screenState.dashboard, `Calendar IPC must open its sidebar without opening Dashboard (calendar=${!!calendar}, right=${scene.screenState.ai}, dashboard=${scene.screenState.dashboard})`);
                         const agenda = root.find(calendar, "calendarAgenda");
                         root.check(agenda.count === 2 && GoogleCalendar.events.length === 2, "The dashboard must display all-day and timed events from the isolated local iCal fixture, excluding cancelled events");
                         root.check(root.find(calendar, "calendarRefresh").visible, "A configured calendar must retain its refresh control");
                         const timed = GoogleCalendar.events.find(event => !event.allDay);
                         calendar.now = new Date((timed.start.getTime() + timed.end.getTime()) / 2);
-                        root.check(scene.testEvents.mouseClick(notes, notes.width / 2, notes.height / 2, Qt.LeftButton, Qt.NoModifier, 0), "Qt must deliver a local click into the calendar scratchpad");
                         notes.insert(0, root.calendarNote);
                         break;
                     }
                     case 2: {
-                        root.check(CalendarNotes.text === root.calendarNote && dashboard.notesActive, `The dashboard must retain keyboard focus while editing the shared scratchpad (saved=${CalendarNotes.text === root.calendarNote}, open=${scene.screenState.dashboard}, selected=${calendar?.selected}, fieldFocus=${notes?.activeFocus}, fieldVisible=${notes?.visible})`);
+                        root.check(CalendarNotes.text === root.calendarNote, "The calendar sidebar must save its scratchpad");
                         const agenda = root.find(calendar, "calendarAgenda");
-                        root.check(agenda.contentItem.children.some(child => child.objectName === "calendarAgendaEvent" && child.ongoing), "Current-event highlighting must survive the move into the dashboard");
-                        scene.testEvents.mouseMove(interactions, interactions.width - 1, interactions.height - 1, 0, Qt.NoButton, Qt.NoModifier);
-                        root.check(scene.screenState.dashboard, "Pointer departure must not close a focused notes editor");
-                        root.calendarIpc.setTab("dashboard");
+                        const timedEntries = agenda.contentItem.children.filter(child => child.objectName === "calendarAgendaEvent" && !child.modelData.allDay);
+                        root.check(timedEntries.every(child => child.ongoing === (child.modelData.start <= calendar.now && calendar.now < child.modelData.end)), "Instantiated sidebar events must retain correct current-event highlighting");
+                        root.check(scene.screenState.ai, "Editing scratchpad text must not close its sidebar");
+                        scene.screenState.ai = false;
                         break;
                     }
                     case 3:
-                        root.check(!dashboard.notesActive && CalendarNotes.text === root.calendarNote, "Switching tabs must release the notes focus without losing the draft");
-                        root.calendarIpc.setTab("calendar");
+                        root.check(!calendar && CalendarNotes.text === root.calendarNote, "Closing the sidebar must unload Calendar's view without losing its scratchpad");
+                        root.calendarIpc.toggle("utilitySidebar");
                         break;
                     case 4:
                         root.check(notes.text === root.calendarNote, "The scratchpad must survive lazy tab unloading and reloading");
-                        scene.screenState.dashboard = false;
+                        scene.screenState.ai = false;
                         break;
                     case 5:
-                        root.check(!dashboard.visible && !calendar && CalendarNotes.text === root.calendarNote, "Closing the dashboard must unload its UI but preserve the scratchpad");
+                        root.check(!interactions.panels.rightSidebar.visible && CalendarNotes.text === root.calendarNote, "Closing the sidebar must preserve the scratchpad");
                         root.calendarIpc.toggle("utilitySidebar");
                         break;
                     case 6:
-                        root.check(!!calendar && notes.text === root.calendarNote && root.calendarIpc.isOpen("utilitySidebar") === "1", "The legacy sidebar IPC name must open the Calendar tab rather than a corner panel");
+                        root.check(!!calendar && notes.text === root.calendarNote && root.calendarIpc.isOpen("utilitySidebar") === "1", "The legacy sidebar alias must select Calendar on its assigned side");
                         root.calendarIpc.toggle("utilitySidebar");
                         break;
                     case 7:
-                        root.check(!scene.screenState.dashboard && root.calendarIpc.isOpen("utilitySidebar") === "0", "The legacy sidebar command must toggle the Calendar tab closed");
+                        root.check(!scene.screenState.ai && root.calendarIpc.isOpen("utilitySidebar") === "0", "The legacy sidebar alias must toggle its sidebar closed");
                         root.check(typeof interactions.inUtilitySidebarCorner === "undefined" && typeof interactions.panels.utilitySidebar === "undefined", "The obsolete bottom-right trigger and separate sidebar must be removed");
-                        scene.testEvents.mouseMove(interactions, interactions.width - 1, interactions.height - 1, 0, Qt.NoButton, Qt.NoModifier);
                         root.check(!scene.screenState.dashboard, "Hovering the former bottom-right corner must not reopen the calendar");
-                        root.calendarIpc.setTab("calendar");
+                        root.calendarIpc.toggle("utilitySidebar");
                         GlobalConfig.sidebar.showAgenda = false;
                         break;
                     case 8:
-                        root.check(!root.find(calendar, "calendarAgenda").visible && notes.visible, "The existing agenda visibility preference must work in the dashboard");
+                        root.check(!root.find(calendar, "calendarAgenda").visible && notes.visible, `Sidebar agenda visibility must follow preferences (agenda=${root.find(calendar, "calendarAgenda").visible}, notes=${notes.visible}, open=${scene.screenState.ai}, selected=${calendar.selected}, showAgenda=${GlobalConfig.sidebar.showAgenda}, showNotes=${GlobalConfig.sidebar.showNotes})`);
                         GlobalConfig.sidebar.showAgenda = true;
                         GlobalConfig.sidebar.showNotes = false;
                         break;
                     case 9:
                         root.check(root.find(calendar, "calendarAgenda").visible && !notes.visible, "The existing notes visibility preference must remain independent of the agenda");
-                        GlobalConfig.sidebar.enabled = false;
+                        scene.screenState.ai = false;
+                        SidebarConfig.assignModule("calendar", "off");
                         break;
                     case 10: {
-                        const content = root.find(scene.contentItem, "dashboardContent");
-                        root.check(!content.dashboardTabs.some(tab => tab.text === qsTr("Calendar")) && calendarShortcuts.item.dashboardTabIndex("calendar") === -1, "Disabling Calendar must remove it from both the tab row and named IPC mapping");
+                        root.check(!calendar && calendarShortcuts.item.dashboardTabIndex("calendar") === -1, "Calendar must have no dashboard tab or named dashboard mapping");
                         scene.screenState.dashboard = false;
-                        root.calendarIpc.setTab("calendar");
-                        root.check(!scene.screenState.dashboard, "IPC must not open a disabled Calendar tab");
-                        GlobalConfig.sidebar.enabled = true;
+                        root.calendarIpc.toggle("utilitySidebar");
+                        root.check(!scene.screenState.ai && !scene.screenState.dashboard, "IPC must not open a disabled Calendar module");
+                        SidebarConfig.assignModule("calendar", "right");
                         GlobalConfig.sidebar.showNotes = true;
-                        GlobalConfig.dashboard.showDashboard = false;
-                        GlobalConfig.dashboard.showPerformance = false;
                         break;
                     }
                     case 11:
                         // Let the native per-screen configuration mirror the
                         // preference changes before invoking a named shortcut.
-                        root.calendarIpc.setTab("calendar");
+                        root.calendarIpc.toggle("utilitySidebar");
                         break;
                     case 12:
-                        root.check(scene.screenState.dashboardTab === 1 && !!calendar && notes.text === root.calendarNote, "Calendar selection must follow the filtered tab order when other tabs are disabled");
+                        root.check(scene.screenState.ai && !!calendar && notes.text === root.calendarNote, "Reassigning Calendar must restore its sidebar scratchpad");
                         GoogleCalendar._url = "";
                         GoogleCalendar._rawIcs = "";
                         break;
@@ -1553,11 +1625,10 @@ ShellRoot {
                         break;
                     case 14:
                         root.check(root.find(calendar, "calendarAgenda").count === 2, "Manual refresh must reload the original iCal source inside the dashboard");
-                        scene.testEvents.mouseClick(notes, notes.width / 2, notes.height / 2, Qt.LeftButton, Qt.NoModifier, 0);
-                        root.check(scene.testEvents.keyClick(Qt.Key_Escape, Qt.NoModifier, 0), "Qt must deliver Escape locally to the notes editor");
+                        calendar.closeRequested();
                         break;
                     case 15:
-                        root.check(!scene.screenState.dashboard && CalendarNotes.text === root.calendarNote, "Escape must close the focused Calendar tab without erasing notes");
+                        root.check(!scene.screenState.ai && CalendarNotes.text === root.calendarNote, "Escape must close the Calendar sidebar without erasing notes");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                     }
@@ -1945,7 +2016,7 @@ ShellRoot {
                     Qt.quit();
                 }
             } catch (error) {
-                console.error(`TASKBAR TEST FAIL: ${error.message}`);
+                console.error(`TASKBAR TEST FAIL (step ${root.step}): ${error.message}`);
                 Qt.quit();
             }
         }

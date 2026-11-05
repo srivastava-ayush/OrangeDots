@@ -66,6 +66,7 @@ StyledWindow {
         screenState.session = false;
         screenState.dashboard = false;
         screenState.ai = false;
+        screenState.leftSidebar = false;
         screenState.notifShade = false;
         panels.popouts.close();
     }
@@ -75,7 +76,7 @@ StyledWindow {
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // OnDemand lets the dashboard's notes field take focus on click without
     // stealing it when the dashboard is merely hovered open.
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.ai ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.ai || screenState.leftSidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -122,11 +123,11 @@ StyledWindow {
         active: {
             // There is nothing to grab before Hyprland has a monitor (or in a
             // compositor-disconnected preview/test surface).
-            if (!root.monitor)
+            if (!root.monitor || !Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE"))
                 return false;
             const s = root.screenState;
             const conf = root.contentItem.Config;
-            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || s.ai)
+            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || s.ai || s.leftSidebar)
                 return true;
             if (s.dashboard && conf.dashboard.enabled && (!conf.dashboard.showOnHover || panels.dashboard.notesActive))
                 return true;
@@ -140,6 +141,7 @@ StyledWindow {
             root.screenState.session = false;
             root.screenState.dashboard = false;
             root.screenState.ai = false;
+            root.screenState.leftSidebar = false;
             root.screenState.notifShade = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
@@ -211,7 +213,9 @@ StyledWindow {
             id: dashBg
 
             panel: panels.dashboard
-            deformAmount: 0.1
+            // Let the shared liquid edge soften during the curtain's motion,
+            // then settle back to the original shape once fully open/closed.
+            deformAmount: 0.1 + Math.sin(panel.curtainProgress * Math.PI) * 0.14
             // In notch mode the full-width bar no longer bridges this gap.
             // Continue the dashboard's own surface behind the shell's top edge,
             // across its whole width, rather than hanging it from the clock.
@@ -248,12 +252,28 @@ StyledWindow {
             id: launcherBg
 
             panel: panels.launcher
-            deformAmount: 0.1
+            deformAmount: 0.1 + Math.sin(panel.curtainProgress * Math.PI) * 0.14
         }
 
         PanelBg {
-            panel: panels.ai
+            objectName: "sidebarBackground"
+            panel: panels.sidebar
             deformAmount: 0.1
+            // Join the same liquid shell surface all the way to the top edge,
+            // including the taskbar inset and any clearance for attached popouts.
+            // Follow the panel horizontally so the bridge slides away with it.
+            y: -root.borderRounding
+            implicitWidth: panel.visible ? panel.width : 0
+            implicitHeight: panel.visible ? Math.max(0, panel.y + panels.y + panel.height - y) : 0
+        }
+
+        PanelBg {
+            objectName: "leftSidebarBackground"
+            panel: panels.leftSidebar
+            deformAmount: 0.1
+            y: -root.borderRounding
+            implicitWidth: panel.visible ? panel.width : 0
+            implicitHeight: panel.visible ? Math.max(0, panel.y + panels.y + panel.height - y) : 0
         }
 
         PanelBg {
@@ -261,8 +281,11 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            x: panels.sessionWrapper.x + panels.session.x + panels.x
-            implicitWidth: panels.session.width
+            // A floating, centered card: never extend this surface to an edge.
+            y: panels.sessionWrapper.y + panels.session.y + panels.y
+            opacity: 1 - panels.session.offsetScale
+            implicitWidth: panel.visible ? panels.session.width : 0
+            implicitHeight: panel.visible ? panel.height : 0
         }
 
         PanelBg {
@@ -276,18 +299,23 @@ StyledWindow {
 
         PanelBg {
             id: notifsBg
+            objectName: "notificationBannerBackground"
 
             panel: panels.notifications
+            // Continue the shared liquid surface up to the shell edge, just as
+            // the sidebar does, even when a popout pushes the toast downward.
+            y: -root.borderRounding
             // The taskbar shade hides banners without deleting their popup state.
             // Hide their separate surface too, rather than leaving a ghost panel.
             implicitWidth: panels.notifications.visible ? panels.notifications.width : 0
-            implicitHeight: panels.notifications.visible ? panels.notifications.height : 0
+            implicitHeight: panel.visible ? Math.max(0, panel.y + panels.y + panel.height - y) : 0
         }
 
         PanelBg {
             id: popoutBg
 
             readonly property bool shellAttached: bar.notched && !panels.popouts.isDetached
+            readonly property bool rightAttached: bar.horizontal && panels.popouts.currentName === "notifications" && !panels.popouts.isDetached
             readonly property real contentX: panels.x + panels.popoutsWrapper.x + panels.popouts.x
             readonly property real contentY: panels.y + panels.popoutsWrapper.y + panels.popouts.y
             // Overlap the bar edge so movement deformation cannot detach the popout.
@@ -300,6 +328,10 @@ StyledWindow {
             implicitWidth: {
                 if (!panel.visible)
                     return 0;
+                // Extend behind the right border's rounding so the shade is
+                // one continuous shell surface, not a rounded floating card.
+                if (rightAttached)
+                    return Math.max(0, root.width + root.borderRounding - x);
                 if (!shellAttached)
                     return panels.popouts.width * (1 + (bar.horizontal ? 0 : extraSize));
                 const right = contentX + panels.popouts.width;

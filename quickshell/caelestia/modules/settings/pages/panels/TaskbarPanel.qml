@@ -176,7 +176,7 @@ PageBase {
             icon: "workspaces"
             text: qsTr("Workspaces")
             subtext: qsTr("Indicators, window icons")
-            onClicked: root.nState.openSubPage(6)
+            onClicked: root.nState.openSubPage(4)
         }
 
         NavRow {
@@ -184,21 +184,21 @@ PageBase {
             text: qsTr("Active window")
             subtext: Taskbar.notched ? qsTr("Available in the Unified style") : qsTr("Title display, popout")
             disabled: Taskbar.notched
-            onClicked: root.nState.openSubPage(7)
+            onClicked: root.nState.openSubPage(5)
         }
 
         NavRow {
             icon: "widgets"
             text: qsTr("Tray")
             subtext: qsTr("System tray icons")
-            onClicked: root.nState.openSubPage(8)
+            onClicked: root.nState.openSubPage(6)
         }
 
         NavRow {
             icon: "signal_cellular_alt"
             text: qsTr("Status icons")
             subtext: qsTr("Visible indicators, notification bell")
-            onClicked: root.nState.openSubPage(9)
+            onClicked: root.nState.openSubPage(7)
         }
 
         NavRow {
@@ -206,7 +206,7 @@ PageBase {
             icon: "notifications"
             text: qsTr("Notification shade")
             subtext: Config.notifs.shadeEnabled ? qsTr("Status-group bell, hover popout, notification history") : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(11)
+            onClicked: root.nState.openSubPage(9)
         }
 
         NavRow {
@@ -214,7 +214,7 @@ PageBase {
             icon: "schedule"
             text: qsTr("Clock")
             subtext: qsTr("Date, icon, background")
-            onClicked: root.nState.openSubPage(10)
+            onClicked: root.nState.openSubPage(8)
         }
 
         // Scroll actions

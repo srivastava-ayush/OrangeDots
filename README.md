@@ -171,10 +171,66 @@ Optional features have additional requirements:
 
 The shell does not replace these system services. Missing optional tools can make the corresponding feature unavailable without preventing the rest of the shell from working.
 
-### Optional AI sidebar
+### Modular sidebar (AI / Calendar / Clipboard / Focus / Notes)
 
-Configure **Nexus → Panels → AI panel**. Open with **Super+I** (bundled Hyprland binds),
-`caelestia shell drawers toggle ai`, or drag inward from the right edge. The old
+Configure **Nexus → Panels → Sidebar**. **Left sidebar** and **Right sidebar**
+each have their own enable switch, width, height and default module. Open either
+by dragging inward from its screen edge; both can be open independently.
+**Modules** is the centralized place to assign each module to **Left / Right / Off**.
+Existing assignments stay on the right when upgrading; the empty left sidebar
+shows a configuration prompt until you assign a module.
+Hover a sidebar tab to switch with a short crossfade/glide; clicking still works.
+The **Modules → Module labels** section lets you rename each sidebar tab/header; a blank
+label restores its default name. Modules share common header, outer padding,
+section spacing and card insets for a consistent layout.
+AI, Google Calendar/notes, Clipboard, Focus/Pomodoro, and Notes are available. The calendar uses your
+existing feed and notes settings under **Sidebar → Modules → Calendar & notes**.
+Both top-attached sidebars share the taskbar's liquid shell background.
+
+Only the visible module view and a briefly outgoing crossfade view are loaded.
+Closing a sidebar unloads its module views after the slide finishes. Shared
+notes/drafts and focus timers stay alive; AI retains its bounded conversation
+state and any in-flight reply but releases the chat UI. Clipboard's in-memory
+display cache expires three seconds after its last view closes (once any pending
+operation finishes), without deleting history or pins. Image previews avoid Qt's
+shared decoded-image cache. Qt may retain allocator/render caches, so releasing
+views does not guarantee an immediate, equally sized drop in process RSS.
+
+**Clipboard** uses the same `cliphist` + `wl-copy` history backend as
+`caelestia clipboard`, without opening a second picker. Search recent text/image
+entries, preview images, copy, paste, pin snippets, or delete individual items.
+History clearing asks for confirmation; choose **History** to keep pins or
+**Everything** to remove pins too. Pins contain the full copied data and are
+stored locally under `$XDG_STATE_HOME/caelestia/clipboard-sidebar` (fallback
+`~/.local/state`), with private file/directory permissions. Image previews use a
+private XDG cache directory. Treat pins like any plaintext clipboard history:
+avoid pinning passwords or other secrets. The view shows the latest 200 history
+items and generates previews for up to 24 recent images. Direct paste requires
+`wtype` and compositor support; otherwise copy and press Ctrl+V. Existing clipboard
+history collection must already be running, just as for `caelestia clipboard`.
+
+**Focus** provides configurable work, short-break, and long-break durations, a
+task field, start/pause/reset/skip, and a long break every four completed work
+intervals. Auto-start and focus-only DND are optional; DND that was already enabled
+is left alone. A countdown can appear immediately before the taskbar system tray. The timer runs
+when the sidebar is closed, uses wall-clock deadlines across sleep, and restores
+its state from `$XDG_STATE_HOME/caelestia/focus-timer.json` after a shell restart.
+Existing sidebar preferences are preserved: assign new modules in Nexus → Panels → Sidebar → Modules.
+
+**Notes** is a separate quick-capture module for plain-text notes (including links)
+and checkable todos. Search/filter saved items, edit them, copy their text, or
+delete with confirmation. A contextual **Delete all notes/todos** button beside
+Add clears only that category after confirmation, preserving your current draft.
+Previously saved Link entries become ordinary notes without losing their text.
+Ctrl+Enter saves the current entry. Entries
+and unfinished drafts are stored in `$XDG_STATE_HOME/caelestia/sidebar-notes.json`
+and survive sidebar closure and shell restarts. This does not replace or modify
+the calendar scratchpad.
+
+The right sidebar also opens with **Super+I** (bundled Hyprland binds),
+`caelestia shell drawers toggle ai` or `caelestia shell drawers toggle rightSidebar`.
+Use `caelestia shell drawers toggle leftSidebar` to toggle the left side via IPC.
+The old
 right-edge power-menu gesture is replaced; power buttons and other session-menu
 entry points remain. The panel overlays windows without resizing them.
 
@@ -222,7 +278,10 @@ Dropping these references allows garbage collection; it is not secure memory
 zeroing and does not guarantee an immediate reduction in the shell's RSS.
 
 Preferences live in `$XDG_CONFIG_HOME/caelestia/ai-panel.json` (usual fallback:
-`~/.config/caelestia`). Session identifiers/directories live under the corresponding
+`~/.config/caelestia`); the legacy enabled/geometry keys are retained for compatibility.
+Module assignments, per-side defaults, left-side geometry and custom labels live in `sidebar-panel.json` in the
+same directory. Switching modules preserves AI history and drafts; disabling the
+AI module unloads its backend. Session identifiers/directories live under the corresponding
 `$XDG_STATE_HOME/caelestia` directory. Shell files do not store API keys or chat
 text. Provider tools maintain their own credentials and native transcripts.
 UI history survives close/reopen and provider switches in RAM; after a shell restart,
@@ -489,7 +548,7 @@ caelestia shell nexus open               # Open Nexus
 caelestia shell drawers toggle dashboard
 caelestia shell drawers toggle launcher
 caelestia shell drawers toggle notifShade
-caelestia shell drawers setTab calendar   # Google agenda and notes in the dashboard
+caelestia shell drawers toggle utilitySidebar  # Calendar on its assigned sidebar
 ```
 
 Useful shortcuts in the **bundled** `hyprland.lua`:
@@ -503,7 +562,7 @@ Useful shortcuts in the **bundled** `hyprland.lua`:
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence |
 | `SUPER+SHIFT+T` | Cycle taskbar style: Unified → Three notches → Center notch |
 | `SUPER+SHIFT+T+O` | Toggle taskbar orientation: Left ↔ Top (hold T, then press O) |
-| `SUPER+ALT+1..5` | Media / Dashboard / Performance / Phone / Calendar, subject to enabled tabs |
+| `SUPER+ALT+1..4` | Media / Dashboard / Performance / Phone, subject to enabled tabs |
 | `SUPER+Q` / `SUPER+A` | Terminal / Yazi through the bundled wrapper |
 | `SUPER+S` | Spotify scratchpad |
 | `SUPER+Escape` | ScrollOverview, when installed |

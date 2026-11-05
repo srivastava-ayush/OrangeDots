@@ -19,7 +19,7 @@ PageBase {
             first: true
             icon: "dashboard"
             text: qsTr("Dashboard")
-            subtext: Config.dashboard.enabled ? qsTr("Tabs, weather, calendar, utilities") : qsTr("Disabled")
+            subtext: Config.dashboard.enabled ? qsTr("Media, Dashboard, Performance, Phone") : qsTr("Disabled")
             onClicked: root.nState.openSubPage(1)
         }
 
@@ -42,9 +42,9 @@ PageBase {
             objectName: "panelsAi"
             last: true
             icon: "forum"
-            text: qsTr("AI panel")
-            subtext: AiConfig.enabled ? AiConfig.providerName : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(12)
+            text: qsTr("Sidebar")
+            subtext: qsTr("Left / Right · Shared modules and labels")
+            onClicked: root.nState.openSubPage(10)
         }
 
     }

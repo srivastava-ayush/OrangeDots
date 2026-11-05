@@ -6,7 +6,7 @@ import qs.services
 import qs.modules.taskbar as Bar
 import qs.modules.dashboard as Dashboard
 import qs.modules.launcher as Launcher
-import qs.modules.ai as Ai
+import qs.modules.sidebar as Sidebar
 import qs.modules.notifications.banners as Notifications
 import qs.modules.onscreendisplay as Osd
 import qs.modules.sessionmenu as Session
@@ -28,6 +28,9 @@ Item {
     readonly property alias sessionWrapper: sessionWrapper
     readonly property alias launcher: launcher
     readonly property alias ai: ai
+    readonly property alias sidebar: ai
+    readonly property alias leftSidebar: leftSidebar
+    readonly property alias rightSidebar: ai
     readonly property alias dashboard: dashboard
     readonly property alias mediaIsland: mediaIsland
     readonly property alias popouts: popoutsWrapper.content
@@ -43,8 +46,8 @@ Item {
 
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
-        anchors.rightMargin: sessionWrapper.anchors.rightMargin + session.width * (1 - session.offsetScale)
-        clip: session.visible
+        anchors.rightMargin: 0
+        clip: false
 
         implicitWidth: osd.implicitWidth * (1 - osd.offsetScale)
         implicitHeight: osd.implicitHeight
@@ -54,7 +57,7 @@ Item {
 
             screen: root.screen
             screenState: root.screenState
-            sidebarOrSessionVisible: session.visible
+            sidebarOrSessionVisible: false
 
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
@@ -76,21 +79,23 @@ Item {
     Item {
         id: sessionWrapper
 
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.right
         clip: false
+        visible: session.offsetScale < 1
 
-        implicitWidth: session.implicitWidth * (1 - session.offsetScale)
+        implicitWidth: session.implicitWidth
         implicitHeight: session.implicitHeight
 
         Session.SessionMenuWrapper {
             id: session
 
             screenState: root.screenState
+            availableWidth: root.width
             sidebarVisible: false
 
+            anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
         }
     }
 
@@ -105,26 +110,50 @@ Item {
         anchors.bottom: parent.bottom
     }
 
-    Ai.AiSidebarWrapper {
+    Sidebar.SidebarWrapper {
+        id: leftSidebar
+        side: "left"
+        screenState: root.screenState
+        hideInset: root.x
+        topClearance: {
+            const popout = popoutsWrapper.content;
+            if (!popout.hasCurrent || popout.isDetached) return 0;
+            const left = popoutsWrapper.x;
+            const width = Math.max(popout.width, popout.nonAnimWidth);
+            if (left + width <= 0 || left >= leftSidebar.implicitWidth) return 0;
+            return popoutsWrapper.y + Math.max(popout.height, popout.nonAnimHeight) + root.Tokens.spacing.small;
+        }
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.topMargin: topClearance
+    }
+
+    Sidebar.SidebarWrapper {
         id: ai
         screenState: root.screenState
         // Reserve the attached popout's destination rectangle, not its sliding
         // position, to keep the chat stable while crossing from icon to menu.
         topClearance: {
+            // Banner height already animates. Follow its live bottom edge so
+            // the sidebar yields and recovers space in the same motion.
+            const toastBottom = notifications.visible
+                ? Math.max(0, notifications.y + notifications.height + root.Tokens.spacing.small)
+                : 0;
             const popout = popoutsWrapper.content;
             if (!popout.hasCurrent || popout.isDetached)
-                return 0;
+                return toastBottom;
             const popoutWidth = Math.max(popout.width, popout.nonAnimWidth);
             const popoutHeight = Math.max(popout.height, popout.nonAnimHeight);
             const left = popoutsWrapper.x;
             const top = popoutsWrapper.y;
-            const naturalTop = AiConfig.fullHeight ? 0 : root.height - Math.min(AiConfig.panelHeight, root.height);
+            const naturalTop = 0;
             if (left + popoutWidth <= root.width - ai.implicitWidth || left >= root.width || top + popoutHeight <= naturalTop)
-                return 0;
-            return top + popoutHeight + root.Tokens.spacing.small;
+                return toastBottom;
+            return Math.max(toastBottom, top + popoutHeight + root.Tokens.spacing.small);
         }
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.top: parent.top
+        anchors.topMargin: topClearance
     }
 
     Dashboard.DashboardWrapper {

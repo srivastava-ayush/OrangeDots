@@ -108,7 +108,17 @@ CustomMouseArea {
     acceptedButtons: fullscreen ? Qt.NoButton : Qt.AllButtons
     hoverEnabled: true
 
-    onPressed: event => dragStart = Qt.point(event.x, event.y)
+    onPressed: event => {
+        dragStart = Qt.point(event.x, event.y);
+        if (screenState.session) {
+            const panel = panels.session;
+            const point = panel.mapFromItem(root, event.x, event.y);
+            if (point.x < 0 || point.y < 0 || point.x > panel.width || point.y > panel.height) {
+                screenState.session = false;
+                return;
+            }
+        }
+    }
     onContainsMouseChanged: {
         if (!containsMouse) {
             // Only hide if not activated by shortcut
@@ -176,12 +186,20 @@ CustomMouseArea {
             root.panels.osd.hovered = true;
         }
 
-        // The right edge is reserved for the AI panel, not the session menu.
-        if (AiConfig.enabled && pressed && inRightPanel(panels.ai, dragStart.x, dragStart.y) && withinPanelHeight(panels.ai, x, y)) {
+        // The right edge opens the modular sidebar, not the session menu.
+        if (SidebarConfig.layout.enabled && pressed && inRightPanel(panels.sidebar, dragStart.x, dragStart.y) && withinPanelHeight(panels.sidebar, x, y)) {
             if (dragX < -20)
                 screenState.ai = true;
             else if (dragX > 20)
                 screenState.ai = false;
+        }
+        // Mirror the same inward/outward gesture at the left screen edge,
+        // including the taskbar inset when the bar itself is on the left.
+        const leftPanel = panels.leftSidebar;
+        const leftReach = Math.max(Config.border.minThickness, panels.x + (leftPanel.visible ? leftPanel.width : 0));
+        if (SidebarConfig.leftLayout.enabled && pressed && dragStart.x <= leftReach && withinPanelHeight(leftPanel, x, y)) {
+            if (dragX > 20) screenState.leftSidebar = true;
+            else if (dragX < -20) screenState.leftSidebar = false;
         }
         // Show/hide launcher on hover, or show/hide on drag if hover is disabled
         const showLauncher = inBottomPanel(panels.launcher, x, y);
@@ -297,6 +315,10 @@ CustomMouseArea {
                 root.panels.osd.hovered = false;
                 root.osdShortcutActive = false;
             }
+        }
+
+        function onLeftSidebarChanged() {
+            if (root.screenState.leftSidebar) root.screenState.session = false;
         }
 
         function onDashboardChanged() {

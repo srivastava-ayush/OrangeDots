@@ -25,10 +25,15 @@ Singleton {
     }
 
     function openAiSettings(): void {
+        // Compatibility for existing callers; the panel is now module-neutral.
+        openSidebarSettings();
+    }
+
+    function openSidebarSettings(): void {
         const win = nexusComp.createObject(dummy);
         if (win) {
             win.nState.currentPageIdx = PageRegistry.pages.findIndex(page => page.id === "panels");
-            win.nState.subPageIdxStack = [12];
+            win.nState.subPageIdxStack = [10];
         }
     }
 

@@ -42,12 +42,16 @@ Item {
     }
 
     readonly property real nonAnimHeight: ((content.item as DashboardContent)?.nonAnimHeight ?? 0) * dashboardScale
-    readonly property bool notesActive: (content.item as DashboardContent)?.notesActive ?? false
+    // Dashboard no longer contains an editable Calendar scratchpad.
+    readonly property bool notesActive: false
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
     // A top taskbar can inset the dashboard below the screen edge. Include that
     // gap in the slide-out distance so no background remains inside the screen.
     property real hideInset: 0
-    property real offsetScale: shouldBeActive ? 0 : 1
+    // One reversible timeline scrubs every part of the reveal together. The
+    // vertical curve leads the width on entry and trails its narrowing on exit.
+    property real revealProgress: shouldBeActive ? 1 : 0
+    property real offsetScale: Math.pow(1 - revealProgress, 3)
     // Reveal a full-sized dashboard through a centered curtain instead of
     // squeezing its cards/text as the hover surface expands from the top.
     readonly property real naturalWidth: content.implicitWidth || 854
@@ -65,21 +69,28 @@ Item {
     }
     // Height of the closed-state top edge strip, measured from the screen edge.
     readonly property real hoverHeight: Math.max(Config.border.minThickness, DashboardHover.height)
-    readonly property real curtainProgress: Math.max(0, Math.min(1, 1 - offsetScale))
-    readonly property real curtainWidthScale: Config.dashboard.showOnHover ? 0.48 + 0.52 * curtainProgress : 1
+    readonly property real curtainProgress: Math.max(0, Math.min(1, revealProgress))
+    // Smootherstep brings the curtain's width and fade to rest gently at both
+    // ends, while its full-sized content stays untouched behind the reveal.
+    readonly property real curtainEase: curtainProgress * curtainProgress * curtainProgress
+        * (curtainProgress * (curtainProgress * 6 - 15) + 10)
+    readonly property real curtainWidthScale: 0.6 + 0.4 * curtainEase
 
-    visible: offsetScale < 1
+    visible: revealProgress > 0
     anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
     implicitHeight: naturalHeight * dashboardScale
     implicitWidth: fullWidth * curtainWidthScale
+    // Keep the narrowing curtain visible until it slips back into the edge.
     opacity: 1 - offsetScale
-    clip: Config.dashboard.showOnHover
+    clip: true
 
-    Behavior on offsetScale {
+    Behavior on revealProgress {
         Anim {
-            // A monotonic curve keeps the reveal from overshooting its clip.
-            type: Anim.FastSpatial
-            easing.type: Easing.OutCubic
+            // Retarget from the current value on interruption, never reset the
+            // curtain. Matching curves make closing a true reverse of opening.
+            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
+            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.85 : Tokens.anim.durations.expressiveDefaultSpatial * 0.85
+            easing.type: Easing.InOutCubic
         }
     }
 

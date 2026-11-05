@@ -64,7 +64,7 @@ export class ChatAdapter {
 export class OllamaAdapter extends ChatAdapter {
   async init(command) { this.url = localOllamaUrl(command.ollamaUrl); await super.init(command); }
   async run() {
-    if (!this.model) throw new Error("Choose an installed Ollama model in Nexus → Panels → AI panel.");
+    if (!this.model) throw new Error("Choose an installed Ollama model in Nexus → Panels → Sidebar.");
     this.abort = new AbortController();
     const response = await fetch(`${this.url}/api/chat`, {
       method: "POST", headers: { "Content-Type": "application/json" }, signal: this.abort.signal,

@@ -39,8 +39,10 @@ ShellRoot {
         target: lock.lock
         function onLockedChanged(): void {
             if (lock.lock.locked)
-                for (const screen of Quickshell.screens)
+                for (const screen of Quickshell.screens) {
                     ShellState.forScreen(screen).ai = false;
+                    ShellState.forScreen(screen).leftSidebar = false;
+                }
         }
     }
 

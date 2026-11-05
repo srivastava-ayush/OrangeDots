@@ -17,8 +17,10 @@ Region {
 
     x: bar.clampedWidth + win.dragMaskPadding
     y: bar.clampedHeight + win.dragMaskPadding
-    width: win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
-    height: win.height - bar.clampedHeight - clampedThickness - win.dragMaskPadding * 2
+    // The XOR mask normally passes the desktop through. While the session
+    // menu is visible, capture empty desktop clicks as modal dismissals too.
+    width: panels.session.visible ? 0 : win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
+    height: panels.session.visible ? 0 : win.height - bar.clampedHeight - clampedThickness - win.dragMaskPadding * 2
     intersection: Intersection.Xor
 
     R {
@@ -50,6 +52,13 @@ Region {
     }
 
     R {
+        panel: root.panels.leftSidebar
+        x: 0
+        width: panel.visible ? panel.width * (1 - root.panels.leftSidebar.offsetScale) + root.panels.x : 0
+        height: panel.visible ? panel.height : 0
+    }
+
+    R {
         panel: root.panels.ai
         x: root.win.width - width
         width: panel.visible ? panel.width * (1 - root.panels.ai.offsetScale) + root.borderThickness : 0
@@ -58,8 +67,9 @@ Region {
 
     R {
         panel: root.panels.sessionWrapper
-        x: root.win.width - width
-        width: panel.width * (1 - root.panels.session.offsetScale) + root.borderThickness
+        y: panel.y + root.panels.y + root.panels.session.y
+        width: panel.visible ? panel.width : 0
+        height: panel.visible ? panel.height : 0
     }
 
     R {

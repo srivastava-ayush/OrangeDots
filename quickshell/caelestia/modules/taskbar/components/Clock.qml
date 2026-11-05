@@ -125,6 +125,7 @@ StyledRect {
                 color: root.colour
             }
         }
+
     }
 
     RowLayout {
@@ -152,6 +153,7 @@ StyledRect {
             font: root.font.build()
             color: root.colour
         }
+
     }
 
     MouseArea {

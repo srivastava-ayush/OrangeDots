@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import "overview"
-import "utilities/cards"
+import "overview/cards"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell

@@ -18,7 +18,8 @@ StyledRect {
         cursorShape: Qt.PointingHandCursor
         onClicked: {
             const screenState = ShellState.forActive();
-            screenState.launcher = !screenState.launcher;
+            if (Config.session.enabled)
+                screenState.session = !screenState.session;
         }
     }
 

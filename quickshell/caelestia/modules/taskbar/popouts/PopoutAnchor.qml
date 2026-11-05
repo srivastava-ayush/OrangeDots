@@ -16,6 +16,7 @@ Item {
 
     readonly property alias content: content
     readonly property bool bottomAligned: !horizontal && content.currentName === "notifications" && !content.isDetached
+    readonly property bool rightAligned: horizontal && content.currentName === "notifications" && !content.isDetached
     // Include the destination bounds while opening, so a fast pointer can enter
     // the panel before its slide animation has finished.
     readonly property real hoverWidth: content.hasCurrent ? Math.max(width, content.width, content.nonAnimWidth) : width
@@ -36,6 +37,8 @@ Item {
     x: {
         if (content.isDetached)
             return (parent.width - content.nonAnimWidth) / 2;
+        if (rightAligned)
+            return Math.max(0, parent.width - content.nonAnimWidth);
         return horizontal ? clampedPosition(parent.width, content.nonAnimWidth) : 0;
     }
     y: {

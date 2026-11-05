@@ -12,7 +12,7 @@ PageBase {
     id: root
 
     readonly property string shellName: "Orange OS"
-    readonly property string shellVersion: "AYUSH_GOAT_V4"
+    readonly property string shellVersion: "AYUSH_GOAT_V5"
 
     property string quickshellVersion
     property string cliVersion

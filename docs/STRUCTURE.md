@@ -14,7 +14,8 @@
 | Scratchpad / shell / refresh helpers | `hypr/scripts/` |
 | First-run preferences | `caelestia/*.json` — committed presets, not private live state |
 | Taskbar layout / clock / status icons | `quickshell/caelestia/modules/taskbar/` |
-| Dashboard tabs / Google agenda / notes | `quickshell/caelestia/modules/dashboard/` |
+| Dashboard: Media / Dashboard / Performance / Phone | `quickshell/caelestia/modules/dashboard/` |
+| Left/right sidebar containers / replaceable modules | `quickshell/caelestia/modules/sidebar/` |
 | Window composition / edge hover / focus / input regions | `quickshell/caelestia/modules/desktop/` |
 | Nexus settings pages | `quickshell/caelestia/modules/settings/` |
 | Password field / session lock / wake recovery | `quickshell/caelestia/modules/lockscreen/` |
@@ -50,6 +51,68 @@ and `Content.qml` files.
 `services/Taskbar.qml` is the existing settings singleton, and QML type names
 must not collide with that imported singleton.
 
+### Modular left/right sidebars
+
+`modules/sidebar/SidebarWrapper.qml` is instantiated for each side and owns the
+mirrored edge slides, sizing and hover-switching module tabs. Module changes use
+a short crossfade/glide and only the selected module accepts input.
+Non-AI module loaders are active only while the sidebar is visible and that
+module's reveal/fade progress is nonzero. AI keeps a small state-owner instance
+for conversation continuity, with a separate lazy chat-view loader. Shared
+services hold notes, scratchpad drafts and running timers independently of views.
+`ClipboardHistory` reference-counts live views and evicts its display cache after
+three idle seconds; actions such as paste finish even if their initiating view
+has already unloaded. Clipboard previews disable the shared decoded-image cache.
+Its background is drawn by `DesktopWindow.qml` in the same `BlobGroup` as
+the taskbar/dashboard, extended to the top shell edge so there is no detached gap.
+The wrapper is top-aligned, including when a custom panel height is configured.
+`services/SidebarStyle.qml` defines shared padding, gaps, card insets/rounding and
+header sizing; `SidebarHeader.qml` renders the common icon/title/action header.
+User-defined module labels are saved in `SidebarConfig.moduleLabels` and applied
+to tabs, headers, the default-module picker and the Panels sidebar summary.
+
+`SidebarModules.qml` registers the replaceable module components:
+
+- `modules/sidebar/modules/ai/AiModule.qml` owns its `AiChatState` backend and lazily loads
+  `AiChatContent.qml` when selected. Switching tabs retains the conversation,
+  draft and in-flight reply; disabling the AI module unloads its backend.
+- `modules/sidebar/modules/calendar/CalendarModule.qml` hosts `CalendarContent.qml`,
+  the Google Calendar feed and shared scratchpad. Calendar is sidebar-only.
+- `modules/sidebar/modules/clipboard/ClipboardModule.qml` uses `ClipboardHistory`
+  and `utils/scripts/sidebar-clipboard.py` to access Caelestia's cliphist backend,
+  with local pins, previews and confirmed clearing. No shell interpolation is used.
+- `modules/sidebar/modules/focus/FocusModule.qml` uses the shared `FocusTimer`
+  service; timers and optional taskbar countdowns outlive the visible module.
+- `modules/sidebar/modules/notes/NotesModule.qml` uses `QuickNotes` for persistent
+  plain-text notes (including links), todos and unfinished drafts. It is independent
+  of the calendar's session-local scratchpad.
+
+The dashboard contains only Media, Dashboard (`Overview.qml`), Performance and
+Phone. Supporting recorder/quick-control cards live in `dashboard/overview/cards/`;
+the obsolete `dashboard/utilities/` tree and Utilities settings page were removed.
+Overview card and hot-corner settings live directly on the Dashboard Nexus page.
+Calendar settings live under Sidebar → Modules → Calendar & notes.
+
+**Nexus → Panels → Sidebar** contains separate **Left sidebar** / **Right sidebar**
+size/enable/default pages and a centralized **Modules** page for Left/Right/Off
+assignments, labels and AI settings. Each module has one sidebar owner.
+`services/SidebarConfig.qml` persists module choices in `sidebar-panel.json`.
+Its right-side `layout` facade deliberately uses the existing `AiConfig` enabled/geometry
+fields in `ai-panel.json`, so existing preferences and JSON keys remain valid.
+`ScreenState.ai`, the `panels.ai` alias, `drawers toggle ai`, and Super+I remain
+compatible; the composition layer also exposes `panels.sidebar` / `panels.rightSidebar`
+and `panels.leftSidebar`. The left open state is `ScreenState.leftSidebar` and its
+IPC name is `leftSidebar`; `rightSidebar` is an alias for the original `ai` IPC.
+Left-side geometry, assignments and defaults live alongside existing settings
+in `sidebar-panel.json`; upgrades preserve existing right-side assignments.
+
+To add another module, create `modules/sidebar/modules/<id>/<Name>Module.qml`
+with `screenState`, `selected`, and `closeRequested`; register its component in
+`SidebarModules.qml`, add its ID/name in `SidebarConfig.modules`, and expose its
+default choice in `settings/pages/panels/SidebarSidePanel.qml`. Central assignment
+and label controls in `SidebarModulesPanel.qml` are generated from the registry. The generic
+loader and tab strip require no changes.
+
 ## Rename map
 
 Paths below are relative to `quickshell/caelestia/`.
@@ -66,6 +129,7 @@ Paths below are relative to `quickshell/caelestia/`.
 | `modules/notifications/` | `modules/notifications/banners/` |
 | `modules/notifshade/` | `modules/notifications/shade/` |
 | `modules/dashboard/dash/` | `modules/dashboard/overview/` |
+| `modules/ai/` | `modules/sidebar/modules/ai/` (container: `modules/sidebar/SidebarWrapper.qml`) |
 
 Examples of entry-point renames:
 

@@ -23,6 +23,9 @@ Item {
     property int displayDuration: 5000
     property bool expanded: false
     property string lastEventKey: ""
+    readonly property bool hasDuration: Number.isFinite(player?.length) && player.length > 0 && player.length <= 2147483647
+    readonly property real duration: hasDuration ? player.length : 0
+    readonly property real position: Math.max(0, Math.min(player?.position ?? 0, duration))
     readonly property string eventKey: player
         ? `${player.uniqueId}\n${player.trackTitle || player.metadata["xesam:url"] || ""}\n${player.isPlaying}` : ""
     // Keep the same slide, centered curtain and fade as DashboardWrapper.
@@ -52,9 +55,15 @@ Item {
         hideTimer.stop();
     }
 
+    function formatTime(seconds: real): string {
+        const total = Math.max(0, Math.floor(seconds));
+        const minutes = Math.floor(total / 60);
+        return `${minutes}:${(total % 60).toString().padStart(2, "0")}`;
+    }
+
     readonly property real fullWidth: Math.min(440, parent ? parent.width : 440)
     implicitWidth: fullWidth * (0.48 + 0.52 * reveal)
-    implicitHeight: 92
+    implicitHeight: 120
     anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
     visible: reveal > 0
     opacity: reveal
@@ -89,7 +98,25 @@ Item {
     Timer {
         id: hideTimer
         interval: root.displayDuration
-        onTriggered: root.expanded = false
+        onTriggered: {
+            if (hover.hovered || progress.dragging)
+                restart();
+            else
+                root.expanded = false;
+        }
+    }
+
+    HoverHandler {
+        id: hover
+        onHoveredChanged: if (!hovered && root.expanded) hideTimer.restart()
+    }
+
+    Timer {
+        running: root.visible && (root.player?.isPlaying ?? false) && (root.player?.positionSupported ?? false)
+        interval: GlobalConfig.dashboard.mediaUpdateInterval
+        triggeredOnStart: true
+        repeat: true
+        onTriggered: root.player?.positionChanged()
     }
 
     Item {
@@ -108,7 +135,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 16
+            anchors.bottomMargin: 44
             anchors.topMargin: 16
             width: root.fullWidth - 32
             spacing: 12
@@ -188,6 +215,44 @@ Item {
                 type: IconButton.Text
                 enabled: root.player?.canGoNext ?? false
                 onClicked: root.player?.next()
+            }
+        }
+
+        RowLayout {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 12
+            width: root.fullWidth - 32
+            spacing: 10
+
+            StyledText {
+                objectName: "islandElapsed"
+                text: root.formatTime(progress.dragging ? progress.pos * root.duration : root.position)
+                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+            }
+
+            StyledSlider {
+                id: progress
+                objectName: "islandProgress"
+                Layout.fillWidth: true
+                Layout.preferredHeight: 4
+                value: root.duration > 0 ? root.position / root.duration : 0
+                enabled: root.hasDuration && (root.player?.canSeek ?? false) && (root.player?.positionSupported ?? false)
+                wavy: false
+                interactionOnMove: false
+                onDraggingChanged: if (root.expanded) hideTimer.restart()
+                onInteraction: value => {
+                    if (enabled)
+                        root.player.position = Math.max(0, Math.min(1, value)) * root.duration;
+                }
+            }
+
+            StyledText {
+                objectName: "islandDuration"
+                text: root.hasDuration ? root.formatTime(root.duration) : "--:--"
+                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
             }
         }
     }

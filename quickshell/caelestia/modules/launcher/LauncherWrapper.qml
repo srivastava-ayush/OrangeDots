@@ -23,7 +23,15 @@ Item {
         return max;
     }
 
-    property real offsetScale: shouldBeActive ? 0 : 1
+    // Mirror the dashboard curtain from the bottom edge, with one reversible
+    // timeline for the slide, centered width reveal and fade.
+    property real revealProgress: shouldBeActive ? 1 : 0
+    property real offsetScale: Math.pow(1 - revealProgress, 3)
+    readonly property real curtainProgress: Math.max(0, Math.min(1, revealProgress))
+    readonly property real curtainEase: curtainProgress * curtainProgress * curtainProgress
+        * (curtainProgress * (curtainProgress * 6 - 15) + 10)
+    readonly property real fullWidth: content.implicitWidth || 630
+    readonly property real curtainWidthScale: 0.9 + 0.1 * curtainEase
 
     onShouldBeActiveChanged: {
         if (shouldBeActive)
@@ -32,16 +40,21 @@ Item {
             implicitHeight = implicitHeight; // Break binding during close anim
     }
 
-    visible: offsetScale < 1
+    visible: revealProgress > 0
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight
-    implicitWidth: content.implicitWidth || 630 // Hard coded fallback for first open
+    implicitWidth: fullWidth * curtainWidthScale
     opacity: 1 - offsetScale
+    clip: true
 
     Component.onCompleted: Qt.callLater(() => Apps) // Load apps on init
 
-    Behavior on offsetScale {
-        Anim {}
+    Behavior on revealProgress {
+        Anim {
+            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
+            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.85 : Tokens.anim.durations.expressiveDefaultSpatial * 0.85
+            easing.type: Easing.InOutCubic
+        }
     }
 
     InsetGloss {
@@ -57,6 +70,9 @@ Item {
 
         anchors.top: parent.top
         anchors.horizontalCenter: parent.horizontalCenter
+        // Clip full-size rows/search through the curtain instead of squeezing
+        // their layout as the outer surface expands and contracts.
+        width: root.fullWidth
 
         active: root.shouldBeActive || root.visible
 

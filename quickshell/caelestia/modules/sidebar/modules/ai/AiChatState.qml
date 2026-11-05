@@ -29,7 +29,7 @@ Scope {
     property var permissions: []
     property int forms: 0
     readonly property alias messages: messages
-    readonly property string bridgeDirectory: Paths.toLocalFile(Qt.resolvedUrl("../../utils/opencode"))
+    readonly property string bridgeDirectory: Paths.toLocalFile(Qt.resolvedUrl("../../../../utils/opencode"))
     signal updated
     signal memoryCleared
     signal requestSent(var command)
@@ -229,7 +229,9 @@ Scope {
         stdinEnabled: true
         onStarted: root.write(root.initCommand())
         stdout: SplitParser { onRead: line => root.receive(line) }
-        stderr: StdioCollector {}
+        // Provider stderr is not shown in the UI. Parse/discard it incrementally
+        // instead of retaining an unbounded transcript for a long-running reply.
+        stderr: SplitParser {}
         onExited: code => {
             root.ready = false;
             if (root.resetting) {
@@ -243,7 +245,7 @@ Scope {
                 return;
             }
             if (code !== 0 && (root.active || root.busy) && !root.failed) {
-                root.error = root.error || (root.provider === "opencode" ? qsTr("OpenCode bridge unavailable. Install Node.js/OpenCode, then run npm ci --prefix %1").arg(root.bridgeDirectory) : qsTr("%1 bridge unavailable. Check Node.js and the provider setup in Nexus → Panels → AI panel.").arg(AiConfig.names[root.provider]));
+                root.error = root.error || (root.provider === "opencode" ? qsTr("OpenCode bridge unavailable. Install Node.js/OpenCode, then run npm ci --prefix %1").arg(root.bridgeDirectory) : qsTr("%1 bridge unavailable. Check Node.js and the provider setup in Nexus → Panels → Sidebar.").arg(AiConfig.names[root.provider]));
                 root.failed = true;
             }
             root.busy = false;

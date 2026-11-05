@@ -126,32 +126,47 @@ PageBase {
         }
 
         ToggleRow {
+            last: true
             text: qsTr("Performance")
             checked: Config.dashboard.showPerformance
             onToggled: GlobalConfig.dashboard.showPerformance = checked
         }
 
-        NavRow {
-            objectName: "dashboardCalendarSettings"
-            last: true
-            icon: "event_note"
-            text: qsTr("Calendar & notes")
-            subtext: Config.sidebar.enabled ? qsTr("Google Calendar agenda and scratchpad") : qsTr("Disabled")
-            onClicked: root.nState.openSubPage(4)
-        }
-
         SectionHeader {
-            text: qsTr("Utilities")
+            text: qsTr("Dashboard cards")
         }
-
-        NavRow {
-            objectName: "dashboardUtilities"
+        ToggleRow {
             first: true
+            text: qsTr("Keep awake")
+            subtext: qsTr("Show the idle inhibitor card on the Dashboard")
+            checked: Config.utilities.cards.keepAwake
+            onToggled: GlobalConfig.utilities.cards.keepAwake = checked
+        }
+        ToggleRow {
             last: true
-            icon: "construction"
-            text: qsTr("Utilities")
-            subtext: qsTr("Dashboard utility cards and overview hot corner")
-            onClicked: root.nState.openSubPage(5)
+            text: qsTr("Screen recorder")
+            checked: Config.utilities.cards.recorder
+            onToggled: GlobalConfig.utilities.cards.recorder = checked
+        }
+        SectionHeader { text: qsTr("Top-left hot corner") }
+        ToggleRow {
+            first: true
+            text: qsTr("Enable overview hot corner")
+            checked: HotCorner.enabled
+            onToggled: HotCorner.enabled = checked
+        }
+        StepperRow {
+            label: qsTr("Corner width")
+            value: HotCorner.width
+            from: 8; to: 128; stepSize: 4
+            onMoved: value => HotCorner.width = value
+        }
+        StepperRow {
+            last: true
+            label: qsTr("Hover interval (ms)")
+            value: HotCorner.interval
+            from: 0; to: 2000; stepSize: 50
+            onMoved: value => HotCorner.interval = value
         }
 
         SectionHeader {

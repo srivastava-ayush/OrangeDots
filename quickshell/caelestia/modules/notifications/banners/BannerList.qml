@@ -40,7 +40,9 @@ Item {
                 height = h;
         }
 
-        if (screenState.session) {
+        // The centered session card should only constrain toasts if their
+        // horizontal bounds actually intersect (for example on narrow screens).
+        if (screenState.session && sessionPanel.x < parent.x + width && sessionPanel.x + sessionPanel.width > parent.x) {
             const h = sessionPanel.y - clampedPadding - topInset;
             if (height > h)
                 height = h;

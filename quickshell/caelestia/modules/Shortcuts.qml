@@ -27,8 +27,7 @@ Scope {
             ["media", conf.dashboard.showMedia],
             ["dashboard", conf.dashboard.showDashboard],
             ["performance", conf.dashboard.showPerformance],
-            ["phone", true],
-            ["calendar", conf.sidebar.enabled]
+            ["phone", true]
         ];
         return tabs.filter(t => t[1]).findIndex(t => t[0] === tab);
     }
@@ -132,23 +131,25 @@ Scope {
         }
 
         function toggle(drawer: string): void {
+            if (drawer === "rightSidebar") drawer = "ai";
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "ai", "notifShade", "utilitySidebar"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "ai", "leftSidebar", "notifShade", "utilitySidebar"].includes(drawer))
                     return;
                 const screenState = root.activeScreenState();
-                if (drawer === "ai" && !AiConfig.enabled)
+                if (drawer === "ai" && !SidebarConfig.layout.enabled)
                     return;
+                if (drawer === "leftSidebar" && !SidebarConfig.leftLayout.enabled) return;
                 if (drawer === "utilitySidebar") {
-                    // Compatibility for scripts using the former corner drawer.
-                    const index = root.dashboardTabIndex("calendar");
-                    if (index < 0 || !GlobalConfig.forScreen(screenState.modelData.name).dashboard.enabled)
-                        return;
-                    if (screenState.dashboard && screenState.dashboardTab === index)
-                        screenState.dashboard = false;
-                    else {
-                        screenState.dashboardTab = index;
-                        screenState.dashboard = true;
-                    }
+                    // Preserve the old IPC name without retaining a Calendar
+                    // dashboard tab: open its assigned sidebar module instead.
+                    const side = SidebarConfig.placement("calendar");
+                    if (side === "off" || !SidebarConfig.layoutFor(side).enabled) return;
+                    const panel = ShellState.componentsFor(screenState.modelData)?.panels?.[side === "left" ? "leftSidebar" : "rightSidebar"];
+                    if (!panel) return;
+                    const key = side === "left" ? "leftSidebar" : "ai";
+                    const wasOpen = screenState[key] && panel.selectedModule === "calendar";
+                    panel.selectedModule = "calendar";
+                    screenState[key] = !wasOpen;
                 } else {
                     screenState[drawer] = !screenState[drawer];
                 }
@@ -159,13 +160,18 @@ Scope {
 
         function list(): string {
             const screenState = root.activeScreenState();
-            return [...Object.keys(screenState).filter(k => typeof screenState[k] === "boolean"), "utilitySidebar"].join("\n");
+            return [...Object.keys(screenState).filter(k => typeof screenState[k] === "boolean"), "rightSidebar", "utilitySidebar"].join("\n");
         }
 
         function isOpen(drawer: string): string {
+            if (drawer === "rightSidebar") drawer = "ai";
             const screenState = root.activeScreenState();
-            if (drawer === "utilitySidebar")
-                return screenState.dashboard && screenState.dashboardTab === root.dashboardTabIndex("calendar") ? "1" : "0";
+            if (drawer === "utilitySidebar") {
+                const side = SidebarConfig.placement("calendar");
+                if (side === "off") return "0";
+                const panel = ShellState.componentsFor(screenState.modelData)?.panels?.[side === "left" ? "leftSidebar" : "rightSidebar"];
+                return screenState[side === "left" ? "leftSidebar" : "ai"] && panel?.selectedModule === "calendar" ? "1" : "0";
+            }
             if (typeof screenState[drawer] !== "boolean")
                 return "unknown";
             return screenState[drawer] ? "1" : "0";

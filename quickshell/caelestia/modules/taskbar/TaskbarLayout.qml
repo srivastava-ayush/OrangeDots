@@ -30,7 +30,7 @@ GridLayout {
             return 0;
         if (id === "clock")
             return 1;
-        if (id === "tray" || id === "statusIcons")
+        if (id === "focusCountdown" || id === "tray" || id === "statusIcons")
             return 2;
         return -1;
     }
@@ -269,6 +269,13 @@ GridLayout {
                 // real widget from receiving its screen-edge padding.
                 const supported = ["logo", "workspaces", "spacer", "activeWindow", "tray", "clock", "statusIcons"];
                 const enabled = configured.filter(e => e.enabled && supported.includes(e.id));
+                // A transient status-side entry, not part of the centered clock.
+                // Insert immediately before tray (or status icons if no tray).
+                if (FocusTimer.showTaskbar && FocusTimer.engaged) {
+                    let before = enabled.findIndex(e => e.id === "tray");
+                    if (before < 0) before = enabled.findIndex(e => e.id === "statusIcons");
+                    enabled.splice(before < 0 ? enabled.length : before, 0, { id: "focusCountdown", enabled: true });
+                }
                 if (!root.centeredClock)
                     return enabled;
                 const start = enabled.filter(e => root.entryGroup(e.id) === 0);
@@ -332,6 +339,14 @@ GridLayout {
                 delegate: EntryWrapper {
                     Tray {
                         objectName: "taskbarTray"
+                    }
+                }
+            }
+            DelegateChoice {
+                roleValue: "focusCountdown"
+                delegate: EntryWrapper {
+                    FocusCountdown {
+                        objectName: "taskbarFocusCountdown"
                     }
                 }
             }

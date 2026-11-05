@@ -113,14 +113,6 @@ QtObject {
                 Component {
                     LauncherPanel {}
                 }
-                Component {
-                    CalendarNotesPanel {}
-                }
-                Component {
-                    // Dashboard → Utilities (keep index 5 stable for navigation).
-                    UtilitiesPanel {}
-                }
-
                 // Taskbar component sub-pages
                 Component {
                     BarWorkspaces {}
@@ -138,12 +130,16 @@ QtObject {
                     BarClock {}
                 }
                 Component {
-                    // Taskbar → Notification shade (index 11).
+                    // Taskbar → Notification shade (index 9).
                     NotificationShadePanel {}
                 }
                 Component {
-                    AiPanel {}
+                    SidebarPanel {}
                 }
+                Component { SidebarSidePanel { side: "left" } }
+                Component { SidebarSidePanel { side: "right" } }
+                Component { SidebarModulesPanel {} }
+                Component { SidebarCalendarPanel {} }
             }
         },
         Component {

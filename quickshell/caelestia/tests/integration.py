@@ -49,7 +49,7 @@ def main():
         base = Path(temporary)
         config = base / "shell"
         config.mkdir()
-        for directory in ("modules", "components", "services", "utils"):
+        for directory in ("modules", "components", "services", "utils", "assets"):
             (config / directory).symlink_to(shell_root / directory, target_is_directory=True)
         fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml", "switcher": "switcher.qml"}.get(mode, "integration.qml")
         (config / "shell.qml").symlink_to(SHELL / "tests" / fixture)
@@ -130,6 +130,9 @@ def main():
                     '#!/usr/bin/env bash\nprintf "toggled\\n" > "$XDG_CONFIG_HOME/spotify-toggle-test"\n'
                 )
             run(config, env, "left", mode=mode)
+            if mode == "ai":
+                sidebar = json.loads((base / "config/caelestia/sidebar-panel.json").read_text())
+                assert sidebar["enabledModules"] == ["calendar"] and sidebar["defaultModule"] == "calendar", sidebar
             if mode == "media-dashboard":
                 assert (base / "config/spotify-toggle-test").read_text() == "toggled\n"
             if mode == "recorder-delete":
@@ -260,7 +263,7 @@ def main():
         print("PASS: saved Left and malformed/unsupported values")
 
         run(config, env, "left", mode="calendar")
-        print("PASS: dashboard Calendar tab, local iCal agenda, notes focus/persistence, visibility preferences, filtered IPC selection, legacy alias, and removal of the corner trigger")
+        print("PASS: sidebar Calendar, local iCal agenda, notes focus/persistence, visibility preferences, sidebar IPC alias, and no Calendar dashboard tab")
 
         notes_config = base / "notes-shell"
         notes_config.mkdir()

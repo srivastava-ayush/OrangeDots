@@ -44,20 +44,20 @@ Item {
                 iconName: "smartphone",
                 text: qsTr("Phone"),
                 enabled: true
-            },
-            {
-                component: calendarComponent,
-                iconName: "event_note",
-                text: qsTr("Calendar"),
-                enabled: Config.sidebar.enabled
             }
         ];
         return allTabs.filter(tab => tab.enabled);
     }
 
+    function clampSelectedTab(): void {
+        if (screenState)
+            screenState.dashboardTab = Math.max(0, Math.min(screenState.dashboardTab, dashboardTabs.length - 1));
+    }
+    onDashboardTabsChanged: clampSelectedTab()
+    Component.onCompleted: clampSelectedTab()
+
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
-    readonly property bool notesActive: (view.currentItem as Loader)?.item?.notesActive ?? false
     readonly property bool overviewSelected: dashboardTabs[screenState.dashboardTab]?.component === dashComponent
     property real performanceHeight: Tokens.sizes.dashboard.mediaTabHeight
 
@@ -201,15 +201,6 @@ Item {
 
                 Phone {
                     filePicker: root.phoneFilePicker
-                }
-            }
-
-            Component {
-                id: calendarComponent
-
-                Calendar {
-                    selected: root.dashboardTabs[root.screenState.dashboardTab]?.component === calendarComponent
-                    onCloseRequested: root.screenState.dashboard = false
                 }
             }
 

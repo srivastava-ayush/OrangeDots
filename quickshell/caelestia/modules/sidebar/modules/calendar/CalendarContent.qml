@@ -11,14 +11,15 @@ import qs.components.controls
 import qs.services
 import qs.utils
 
-// The former corner sidebar now lives in the dashboard. Its agenda source and
-// visibility settings stay compatible with existing calendar configurations.
+// Calendar sidebar content. Agenda and scratchpad preferences keep their legacy
+// identities; this is no longer a dashboard tab.
 StyledRect {
     id: root
 
-    objectName: "dashboardCalendar"
+    objectName: "sidebarCalendarContent"
 
     property bool selected: true
+    property real contentPadding: Tokens.padding.large
     signal closeRequested
 
     readonly property date today: now
@@ -43,7 +44,7 @@ StyledRect {
     }
 
     implicitWidth: 860
-    implicitHeight: Math.min(root.maxPanelHeight, layout.implicitHeight + Tokens.padding.large * 2)
+    implicitHeight: Math.min(root.maxPanelHeight, layout.implicitHeight + contentPadding * 2)
 
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
@@ -52,7 +53,7 @@ StyledRect {
         id: layout
 
         anchors.fill: parent
-        anchors.margins: root.Tokens.padding.large
+        anchors.margins: root.contentPadding
         spacing: root.Tokens.spacing.medium
 
         RowLayout {

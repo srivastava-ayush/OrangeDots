@@ -10,6 +10,7 @@ PersistentProperties {
     property bool launcher
     property bool dashboard
     property bool ai
+    property bool leftSidebar
 
     // Notification shade (taskbar bell popout; also exposed through drawer IPC)
     property bool notifShade

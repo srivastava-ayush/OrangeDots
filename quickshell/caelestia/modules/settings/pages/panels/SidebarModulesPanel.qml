@@ -9,7 +9,7 @@ import qs.services
 
 PageBase {
     id: root
-    title: qsTr("AI panel")
+    title: qsTr("Sidebar modules")
     isSubPage: true
     readonly property var effortValues: AiConfig.effortOptions(AiConfig.provider)
     readonly property list<MenuItem> efforts: [
@@ -27,43 +27,58 @@ PageBase {
         MenuItem { text: "Claude Code" },
         MenuItem { text: "Ollama (local)" }
     ]
+    readonly property list<MenuItem> placements: [
+        MenuItem { text: qsTr("Off") },
+        MenuItem { text: qsTr("Left sidebar") },
+        MenuItem { text: qsTr("Right sidebar") }
+    ]
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         width: root.cappedWidth
         spacing: Tokens.spacing.extraSmall / 2
-        SectionHeader { first: true; text: qsTr("Panel") }
-        ToggleRow {
+        SectionHeader { first: true; text: qsTr("Module placement") }
+        Repeater {
+            model: SidebarConfig.modules
+            delegate: SelectRow {
+                required property var modelData
+                required property int index
+                objectName: "sidebarPlacement_" + modelData.id
+                first: index === 0
+                last: index === SidebarConfig.modules.length - 1
+                label: SidebarConfig.moduleName(modelData.id)
+                subtext: qsTr("Choose one sidebar, or turn this module off")
+                menuItems: root.placements
+                active: root.placements[["off", "left", "right"].indexOf(SidebarConfig.placement(modelData.id))]
+                onSelected: item => SidebarConfig.assignModule(modelData.id, ["off", "left", "right"][root.placements.indexOf(item)])
+            }
+        }
+        SectionHeader { text: qsTr("Module labels") }
+        Repeater {
+            model: SidebarConfig.modules
+            delegate: TextFieldRow {
+                required property var modelData
+                required property int index
+                first: index === 0
+                last: index === SidebarConfig.modules.length - 1
+                label: modelData.name
+                subtext: qsTr("Custom sidebar name · leave blank to restore default · up to 40 characters")
+                value: SidebarConfig.moduleLabels[modelData.id] ?? ""
+                placeholderText: modelData.name
+                onEditingFinished: value => SidebarConfig.setModuleLabel(modelData.id, value)
+            }
+        }
+        SectionHeader { text: qsTr("Calendar") }
+        NavRow {
             first: true
-            text: qsTr("Enabled")
-            subtext: qsTr("Super+I or drag inward from the right edge")
-            checked: AiConfig.enabled
-            onToggled: AiConfig.enabled = checked
-        }
-        StepperRow {
-            label: qsTr("Panel width")
-            value: AiConfig.panelWidth
-            from: 360; to: 720; stepSize: 20
-            onMoved: value => AiConfig.panelWidth = value
-        }
-        ToggleRow {
-            objectName: "aiFullHeightSetting"
-            text: qsTr("Full-height sidebar")
-            subtext: qsTr("Attach to both top and bottom shell edges · turn off to use a custom height")
-            checked: AiConfig.fullHeight
-            onToggled: AiConfig.fullHeight = checked
-        }
-        StepperRow {
-            objectName: "aiPanelHeightSetting"
-            visible: !AiConfig.fullHeight
             last: true
-            label: qsTr("Panel height")
-            value: AiConfig.panelHeight
-            from: 480; to: 1600; stepSize: 20
-            onMoved: value => AiConfig.panelHeight = value
+            icon: "calendar_month"
+            text: qsTr("Calendar & notes")
+            subtext: qsTr("Configure the sidebar agenda and scratchpad")
+            onClicked: root.nState.openSubPage(14)
         }
-        SectionHeader { text: qsTr("Provider") }
+        SectionHeader { text: qsTr("AI provider") }
         SelectRow {
             objectName: "aiProviderSetting"
             first: true

@@ -45,9 +45,8 @@ Item {
     BannerList {
         id: content
 
-        // Normally the list starts at the shell edge while the background is
-        // tucked under the bar. When pushed down, keep both on the popout's
-        // bottom edge so the background does not bleed back over it.
+        // Keep toast content below the popout; DesktopWindow bridges only the
+        // shared shell background upward, without moving the toast's controls.
         anchors.topMargin: root.popoutInset > 0 ? 0 : -root.anchors.topMargin
         screenState: root.screenState
         topInset: root.popoutInset

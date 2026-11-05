@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import qs.services
 import qs.modules.settings.common
 
 PageBase {
@@ -19,19 +20,6 @@ PageBase {
 
         SectionHeader {
             first: true
-            text: qsTr("General")
-        }
-
-        ToggleRow {
-            first: true
-            last: true
-            text: qsTr("Enabled")
-            subtext: qsTr("Show the Calendar tab in the dashboard")
-            checked: Config.sidebar.enabled
-            onToggled: GlobalConfig.sidebar.enabled = checked
-        }
-
-        SectionHeader {
             text: qsTr("Contents")
         }
 
@@ -47,6 +35,13 @@ PageBase {
             text: qsTr("Notes")
             checked: Config.sidebar.showNotes
             onToggled: GlobalConfig.sidebar.showNotes = checked
+        }
+        InfoRow {
+            first: true
+            last: true
+            label: qsTr("Google Calendar feed")
+            value: GoogleCalendar.urlConfigured ? qsTr("Configured") : qsTr("Not configured")
+            subtext: qsTr("Add your private iCal URL to ~/.config/caelestia/calendar-url. Module placement is configured in Sidebar → Modules.")
         }
     }
 }

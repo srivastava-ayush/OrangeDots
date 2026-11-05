@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQml
+import QtQml.Models
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
@@ -12,8 +13,38 @@ Singleton {
     id: root
 
     readonly property list<MprisPlayer> list: Mpris.players.values
-    readonly property MprisPlayer active: props.manualActive ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer) ?? list[0] ?? null
+    readonly property MprisPlayer active: selectActive()
     property alias manualActive: props.manualActive
+
+    function selectActive(): MprisPlayer {
+        // Explicit selections and the last playback source stay selected on pause.
+        // Ignore stale selections as soon as their MPRIS service disappears.
+        return (list.includes(props.manualActive) ? props.manualActive : null)
+            ?? list.find(p => p.isPlaying)
+            ?? list.find(p => getIdentity(p) === GlobalConfig.services.defaultPlayer)
+            ?? list[0] ?? null;
+    }
+
+    function followPlayback(player: MprisPlayer): void {
+        if (player.isPlaying && list.includes(player))
+            props.manualActive = player;
+    }
+
+    // Watch every source, not just active: a browser starting playback must take
+    // over from Spotify (and vice versa). Pausing must not bounce back to Spotify.
+    Instantiator {
+        model: root.list
+
+        delegate: Connections {
+            required property MprisPlayer modelData
+
+            target: modelData
+            function onIsPlayingChanged(): void {
+                root.followPlayback(modelData);
+            }
+            Component.onCompleted: root.followPlayback(modelData)
+        }
+    }
 
     // Dedup key for progressive metadata (e.g. mpv-mpris/yt-dlp player fills title then artist later).
     property string lastNowPlayingKey: ""

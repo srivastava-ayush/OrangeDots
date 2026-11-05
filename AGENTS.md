@@ -49,7 +49,7 @@ docs/STRUCTURE.md     Source map, rename map, and runtime compatibility boundary
 
 - Main mod: `SUPER`. Launcher `SUPER+SUPER_L`(release), dashboard `SUPER+D`, lock `SUPER+L`.
 - Window switcher: `ALT+TAB` / `ALT+SHIFT+TAB`, release Alt to select, Escape to cancel. UI/state/controller live in `quickshell/caelestia/modules/switcher/`; compositor binds in `hypr/modules/keybindings.lua`.
-- Dashboard tabs: tap `SUPER+ALT` toggles the dashboard; `SUPER+ALT+1..5` selects Media/Dashboard/Performance/Phone/Calendar by name via IPC `drawers setTab <name>` (handler in `modules/Shortcuts.qml`).
+- Dashboard tabs: tap `SUPER+ALT` toggles the dashboard; `SUPER+ALT+1..4` selects Media/Dashboard/Performance/Phone by name via IPC `drawers setTab <name>` (handler in `modules/Shortcuts.qml`). Calendar is sidebar-only under `modules/sidebar/modules/calendar/`; Dashboard cards live in `modules/dashboard/overview/cards/`.
 - Apps: kitty `SUPER+Q`, Zed `SUPER+E`, Yazi `SUPER+A`, Helium `SUPER+W` (see Lua for current choices).
 - Spotify scratchpad: `SUPER+S` toggles `special:magic` (launches if not running); `SUPER+SHIFT+S` throws window there. Misc scratchpad: `SUPER+Z` / `SUPER+SHIFT+Z` → `special:misc`.
 - Workspaces 1–2 use the **scrolling layout**; others dwindle. 3-finger vertical swipe switches workspaces, horizontal swipes move focus.

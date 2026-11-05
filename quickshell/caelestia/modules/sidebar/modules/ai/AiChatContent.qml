@@ -8,6 +8,7 @@ import qs.components
 import qs.components.controls
 import qs.services
 import qs.modules.settings
+import qs.modules.sidebar as Sidebar
 
 FocusScope {
     id: root
@@ -19,7 +20,7 @@ FocusScope {
 
     Image {
         anchors.fill: parent
-        source: Qt.resolvedUrl("../../assets/dino.png")
+        source: Qt.resolvedUrl("../../../../assets/dino.png")
         fillMode: Image.PreserveAspectFit
         sourceSize.width: Math.ceil(root.width)
         sourceSize.height: Math.ceil(root.height)
@@ -32,24 +33,12 @@ FocusScope {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Tokens.padding.large
-        spacing: Tokens.spacing.medium
+        anchors.margins: SidebarStyle.padding
+        spacing: SidebarStyle.gap
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: Tokens.spacing.small
-          
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.rightMargin: Tokens.spacing.medium
-                spacing: 2
-                StyledText { text: AiConfig.names[root.chat.provider] || "AI"; font: Tokens.font.title.medium }
-                StyledText {
-                    text: root.chat.resetting ? qsTr("Stopping previous chat…") : root.chat.permissions.length ? qsTr("Approval needed") : root.chat.busy ? qsTr("Working…") : root.chat.ready ? qsTr("Ready") : qsTr("Connecting…")
-                    font: Tokens.font.label.small
-                    color: Colours.palette.m3onSurfaceVariant
-                }
-            }
+        Sidebar.SidebarHeader {
+            moduleId: "ai"
+            subtitle: `${AiConfig.names[root.chat.provider] || "AI"} · ${root.chat.resetting ? qsTr("Stopping previous chat…") : root.chat.permissions.length ? qsTr("Approval needed") : root.chat.busy ? qsTr("Working…") : root.chat.ready ? qsTr("Ready") : qsTr("Connecting…")}`
             IconButton {
                 icon: "open_in_new"
                 type: IconButton.Text
@@ -62,7 +51,7 @@ FocusScope {
             IconButton {
                 icon: "settings"
                 type: IconButton.Text
-                onClicked: { root.closeRequested(); SettingsWindows.openAiSettings(); }
+                onClicked: { root.closeRequested(); SettingsWindows.openSidebarSettings(); }
             }
             TextButton {
                 objectName: "aiChatClearMemory"
@@ -82,7 +71,7 @@ FocusScope {
             Layout.fillWidth: true
             Layout.fillHeight: true
             model: root.chat.messages
-            spacing: Tokens.spacing.small
+            spacing: SidebarStyle.smallGap
             clip: true
             reuseItems: true
             boundsBehavior: Flickable.StopAtBounds
@@ -95,8 +84,8 @@ FocusScope {
                 required property string role
                 required property string text
                 width: history.width
-                implicitHeight: message.implicitHeight + Tokens.padding.medium * 2
-                radius: Tokens.rounding.large
+                implicitHeight: message.implicitHeight + SidebarStyle.cardPadding * 2
+                radius: SidebarStyle.cardRadius
                 color: role === "user" ? Qt.alpha(Colours.palette.m3secondaryContainer, 0.5) : Colours.tPalette.m3surfaceContainer
 
                 TextEdit {
@@ -104,7 +93,7 @@ FocusScope {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: Tokens.padding.medium
+                    anchors.margins: SidebarStyle.cardPadding
                     text: parent.text
                     readOnly: true
                     selectByMouse: true
@@ -124,14 +113,14 @@ FocusScope {
             StyledRect {
                 required property var modelData
                 Layout.fillWidth: true
-                implicitHeight: approval.implicitHeight + Tokens.padding.medium * 2
-                radius: Tokens.rounding.large
+                implicitHeight: approval.implicitHeight + SidebarStyle.cardPadding * 2
+                radius: SidebarStyle.cardRadius
                 color: Colours.tPalette.m3surfaceContainerHigh
                 ColumnLayout {
                     id: approval
                     anchors.fill: parent
-                    anchors.margins: Tokens.padding.medium
-                    spacing: Tokens.spacing.small
+                    anchors.margins: SidebarStyle.cardPadding
+                    spacing: SidebarStyle.smallGap
                     StyledText { text: qsTr("Allow %1?").arg(parent.parent.modelData.action); font: Tokens.font.title.small }
                     Flickable {
                         Layout.fillWidth: true
@@ -177,12 +166,12 @@ FocusScope {
 
         StyledRect {
             Layout.fillWidth: true
-            implicitHeight: Math.min(140, Math.max(52, composer.contentHeight + 24))
-            radius: Tokens.rounding.large
+            implicitHeight: Math.min(140, Math.max(52, composer.contentHeight + SidebarStyle.cardPadding * 2))
+            radius: SidebarStyle.cardRadius
             color: Colours.tPalette.m3surfaceContainerHigh
             Flickable {
                 anchors.fill: parent
-                anchors.margins: 12
+                anchors.margins: SidebarStyle.cardPadding
                 contentHeight: composer.contentHeight
                 clip: true
                 TextEdit {

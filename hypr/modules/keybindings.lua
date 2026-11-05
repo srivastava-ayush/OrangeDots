@@ -19,13 +19,15 @@ return function(settings)
     hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
     hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
     hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab performance"), { release = false })
-    hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle ai"))
+    hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle rightSidebar"))
+    hl.bind(mainMod .. " + U",       hl.dsp.exec_cmd("caelestia shell drawers toggle leftSidebar"))
+    hl.bind(mainMod .. " + space",   hl.dsp.exec_cmd("caelestia shell drawers toggle session"))
     -- Dashboard: tap SUPER+ALT to toggle it (either Alt key; release-triggered,
     -- same trick as the SUPER+SUPER_L launcher bind so it won't fire after a
     -- chord like SUPER+ALT+2). Held down, ALT acts as a chord mod, so
-    -- SUPER+ALT+[1-5] jumps straight to a tab (opens the dashboard if closed).
+    -- SUPER+ALT+[1-4] jumps straight to a tab (opens the dashboard if closed).
     -- Tab order follows modules/dashboard/DashboardContent.qml, skipping disabled tabs:
-    -- 1=Media 2=Dashboard 3=Performance 4=Phone 5=Calendar
+    -- 1=Media 2=Dashboard 3=Performance 4=Phone
     local dashToggle = hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard")
     hl.bind(mainMod .. " + ALT_L", dashToggle, { release = true })
     hl.bind(mainMod .. " + ALT_R", dashToggle, { release = true })
@@ -39,9 +41,9 @@ return function(settings)
     hl.bind(mainMod .. " + SHIFT_L", barToggle, { release = true })
     hl.bind(mainMod .. " + SHIFT_R", barToggle, { release = true })
 
-    local dashTabs = { "media", "dashboard", "performance", "phone", "calendar" }
+    local dashTabs = { "media", "dashboard", "performance", "phone" }
     for i, tab in ipairs(dashTabs) do
-        hl.bind(mainMod .. " + ALT + " .. i, hl.dsp.exec_cmd("caelestia shell drawers setTab " .. tab), { release = true })
+        hl.bind(mainMod .. " + TAB + " .. i, hl.dsp.exec_cmd("caelestia shell drawers setTab " .. tab), { release = true })
     end
 
     -- Apps / window management
