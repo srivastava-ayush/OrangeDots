@@ -132,6 +132,7 @@ GridLayout {
     }
 
     function showPopout(name: string, item: Item): void {
+        popouts.cancelHoverIntent();
         popouts.cancelClose();
         popouts.anchorHovered = true;
         popouts.currentName = name;
@@ -179,6 +180,8 @@ GridLayout {
         const px = horizontal ? x : width / 2;
         const py = horizontal ? height / 2 : y;
         const ch = entryAt(px, py) as EntryWrapper;
+        if (ch?.entryId !== "statusIcons")
+            popouts.cancelHoverIntent();
         popouts.anchorHovered = false;
 
         if (ch?.entryId !== "tray")
@@ -196,11 +199,11 @@ GridLayout {
             const icon = items.childAt(pos.x, pos.y);
             if (icon?.name === "notifications") {
                 if (Config.notifs.shadeShowOnHover)
-                    openNotifications();
+                    popouts.queueStatusHover("notifications", icon, () => root.centerFor(icon));
                 else if (!popouts.notificationsOpen)
                     popouts.scheduleClose();
             } else if (icon && Config.bar.popouts.statusIcons) {
-                showPopout(icon.name, icon);
+                popouts.queueStatusHover(icon.name, icon, () => root.centerFor(icon));
             } else
                 popouts.scheduleClose();
         } else if (id === "tray" && Config.bar.popouts.tray) {

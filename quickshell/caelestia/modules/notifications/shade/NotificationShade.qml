@@ -26,7 +26,7 @@ StyledRect {
     readonly property int emptyMinHeight: 180
 
     implicitWidth: Tokens.sizes.notifs.width
-    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight)
+    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight + Tokens.padding.medium * 2)
 
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
@@ -36,7 +36,10 @@ StyledRect {
 
         objectName: "notificationShadeLayout"
         anchors.fill: parent
-        // The shared status-popout container already supplies the outer padding.
+        // Match the audio/status menus' vertical breathing room. The shared
+        // popout supplies the horizontal inset; don't pad the sides twice.
+        anchors.topMargin: root.Tokens.padding.medium
+        anchors.bottomMargin: root.Tokens.padding.medium
         spacing: root.Tokens.spacing.medium
 
         RowLayout {
@@ -45,9 +48,8 @@ StyledRect {
 
             StyledText {
                 Layout.fillWidth: true
-                text: root.notifCount > 0 ? qsTr("notification%1").arg(root.notifCount === 1 ? "" : "s") : qsTr("Notifications")
-                color: Colours.palette.m3outline
-                font: Tokens.font.label.large
+                text: qsTr("Notifications")
+                font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
             }
 
             StyledText {
@@ -106,9 +108,9 @@ StyledRect {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Preserve the panel's height: give the removed inner inset to the
-            // scrollable list instead of padding the header and sides twice.
-            implicitHeight: Math.min(root.listMaxHeight, Math.max(view.contentHeight, root.emptyMinHeight)) + root.Tokens.padding.large * 2
+            // Size to the list itself; outer breathing room belongs to the
+            // layout, not a blank tail inside the scrolling area.
+            implicitHeight: Math.min(root.listMaxHeight, Math.max(view.contentHeight, root.emptyMinHeight))
             clip: true
 
             StyledFlickable {

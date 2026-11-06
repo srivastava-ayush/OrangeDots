@@ -34,14 +34,17 @@ CustomMouseArea {
     }
 
     function updatePopoutHover(x: real, y: real): void {
-        if (popouts.isDetached || popouts.notificationShortcutActive)
+        if (popouts.isDetached || popouts.notificationShortcutActive) {
+            popouts.cancelHoverIntent();
             return;
+        }
         const inBar = bar.horizontal ? y < bar.thickness : x < bar.thickness;
         const inPopup = inBarPopout(x, y);
         popouts.pointerInHoverRegion = inPopup;
         if (inBar) {
             bar.checkPopout(x, y);
         } else {
+            popouts.cancelHoverIntent();
             popouts.anchorHovered = false;
             if (inPopup)
                 popouts.cancelClose();

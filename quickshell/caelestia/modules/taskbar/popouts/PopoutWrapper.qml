@@ -31,6 +31,49 @@ Item {
     property bool hovered
     property bool anchorHovered
     property bool pointerInHoverRegion
+    property string pendingHoverName: ""
+    property Item pendingHoverItem: null
+    property var pendingHoverCenter: null
+
+    function cancelHoverIntent(): void {
+        hoverIntent.stop();
+        pendingHoverName = "";
+        pendingHoverItem = null;
+        pendingHoverCenter = null;
+    }
+
+    function queueStatusHover(name: string, item: Item, center: var): void {
+        cancelClose();
+        anchorHovered = true;
+        if (hasCurrent && currentName === name) {
+            cancelHoverIntent();
+            return;
+        }
+        // Debounce target changes, not pointer motion inside the same icon.
+        // Keep the existing surface alive until the new target is intentional.
+        if (pendingHoverName === name && pendingHoverItem === item)
+            return;
+        pendingHoverName = name;
+        pendingHoverItem = item;
+        pendingHoverCenter = center;
+        hoverIntent.interval = hasCurrent ? 80 : 0;
+        hoverIntent.restart();
+    }
+
+    Timer {
+        id: hoverIntent
+        onTriggered: {
+            const item = root.pendingHoverItem;
+            const name = root.pendingHoverName;
+            const center = root.pendingHoverCenter;
+            root.cancelHoverIntent();
+            if (!item || !root.anchorHovered || root.isDetached || root.notificationShortcutActive)
+                return;
+            root.currentName = name;
+            root.currentCenter = Qt.binding(center);
+            root.hasCurrent = true;
+        }
+    }
 
     signal hoverClosed
 
@@ -39,6 +82,7 @@ Item {
     }
 
     function scheduleClose(): void {
+        cancelHoverIntent();
         if (!closeTimer.running)
             closeTimer.start();
     }
@@ -119,6 +163,7 @@ Item {
     }
 
     function openNexus(page: string, subPages: var): void {
+        cancelHoverIntent();
         const alreadyOpen = detachedMode === "any" && !!nexus.item;
         setAnims(true);
         queuedMode = PageRegistry.pages.some(entry => entry.id === page) ? page : "appearance";
@@ -131,6 +176,7 @@ Item {
     }
 
     function close(): void {
+        cancelHoverIntent();
         cancelClose();
         anchorHovered = false;
         pointerInHoverRegion = false;
