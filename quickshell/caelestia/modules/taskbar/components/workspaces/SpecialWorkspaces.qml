@@ -284,7 +284,7 @@ Item {
 
         Component.onCompleted: {
             wsId = modelData.id;
-            icon = Icons.getSpecialWsIcon(modelData.name);
+            icon = "";
             hasWindows = Config.bar.workspaces.showWindowsOnSpecialWorkspaces && modelData.lastIpcObject.windows > 0;
         }
 

@@ -13,7 +13,7 @@ return function(settings)
     local mainMod = "SUPER"
 
     -- Overview / shell toggles
-    --hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+    hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
     hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
     hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
     hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
@@ -166,8 +166,9 @@ return function(settings)
     hl.bind(mainMod .. " + ALT + page_down", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                 { locked = true, repeating = true })
 
     -- Screenshot / screen recording
-   
-    hl.bind(mainMod .. " + H",         hl.dsp.exec_cmd("caelestia screenshot"))
+
+    -- Save to ~/Pictures/Screenshots and copy the focused screen to the clipboard.
+    hl.bind(mainMod .. " + H",         hl.dsp.exec_cmd(hyprScript("screenshot.sh")))
     hl.bind(mainMod .. " + SHIFT + H", hl.dsp.exec_cmd("caelestia shell picker openClip"))
 
     -- Screen recording alternative (same action as SUPER+ALT+CAPS_LOCK).
@@ -181,7 +182,7 @@ return function(settings)
     hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
     hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 
-    -- media-audio-pipewire-restart script 
+    -- media-audio-pipewire-restart script
     hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd(hyprScript("restart-pipewire.sh")))
 
 

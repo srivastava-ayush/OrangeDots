@@ -1027,8 +1027,8 @@ ShellRoot {
                         progress.interaction(0.5);
                         root.check(root.islandPlayer.position === 120, "Seeking in the island must update the active player");
                         root.check(root.find(island, "mediaIslandGloss").opacity === 0.25, "Island must retain the subtle shared gloss strength");
-                        const islandVisualizer = root.find(island, "mediaIslandVisualizer");
-                        root.check(!!islandVisualizer && islandVisualizer.height === 12 && islandVisualizer.width > 0 && islandVisualizer.playing, "Island must show a compact live spectrum while playing");
+                        const islandEq = root.find(island, "mediaIslandEq");
+                        root.check(!!islandEq && islandEq.height === 12 && islandEq.width > 0 && islandEq.barCount === 3 && islandEq.playing, "Island must show its fixed three-band equaliser while playing");
                         const background = root.findBackground(scene.contentItem, island);
                         const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
                         root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
@@ -1042,7 +1042,7 @@ ShellRoot {
                         break;
                     case 3:
                         root.check(island.expanded && !root.islandPlayer.isPlaying, "Pausing must reveal the island with working playback controls");
-                        root.check(!root.find(island, "mediaIslandVisualizer").playing, "Island spectrum must settle when playback pauses");
+                        root.check(!root.find(island, "mediaIslandEq").playing, "Island equaliser must settle when playback pauses");
                         root.islandPlayer.canSeek = false;
                         root.check(!root.find(island, "islandProgress").enabled, "Island seeking must respect player capabilities");
                         root.find(island, "islandProgress").interaction(0.75);
@@ -1054,7 +1054,7 @@ ShellRoot {
                         break;
                     case 4:
                         root.check(!island.expanded, "The island must automatically dismiss after its timeout");
-                        root.check(!root.find(island, "mediaIslandVisualizer"), "Hidden island must unload its visualizer and release its audio service reference");
+                        root.check(!root.find(island, "mediaIslandEq"), "Hidden island must unload its equaliser");
                         root.islandPlayer.trackArtist = "Late artist metadata";
                         scene.screenState.dashboardTab = 1;
                         scene.screenState.dashboard = true;

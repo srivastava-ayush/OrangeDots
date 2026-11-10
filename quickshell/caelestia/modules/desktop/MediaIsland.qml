@@ -8,7 +8,6 @@ import Caelestia.Config
 import qs.components
 import qs.components.controls
 import qs.components.effects
-import qs.modules.dashboard.media as DashboardMedia
 import qs.services
 
 // Independent player content, drawn on the shell's shared dashboard surface.
@@ -172,23 +171,27 @@ Item {
                     elide: Text.ElideRight
                 }
 
-                StyledText {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: [root.player?.isPlaying ? qsTr("Playing") : qsTr("Paused"), root.player?.trackArtist].filter(Boolean).join(" · ")
-                    font: Tokens.font.label.small
-                    color: Colours.palette.m3onSurfaceVariant
-                    elide: Text.ElideRight
-                }
+                    spacing: 6
 
-                Loader {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 12
-                    active: root.visible
-                    sourceComponent: DashboardMedia.EqBars {
-                        objectName: "mediaIslandVisualizer"
-                        barWidth: 3
-                        barSpacing: 2
-                        playing: root.player?.isPlaying ?? false
+                    Loader {
+                        objectName: "mediaIslandEqLoader"
+                        active: root.visible
+                        Layout.alignment: Qt.AlignVCenter
+
+                        sourceComponent: MediaIslandEq {
+                            objectName: "mediaIslandEq"
+                            playing: root.player?.isPlaying ?? false
+                        }
+                    }
+
+                    StyledText {
+                        Layout.fillWidth: true
+                        text: [root.player?.isPlaying ? qsTr("Playing") : qsTr("Paused"), root.player?.trackArtist].filter(Boolean).join(" · ")
+                        font: Tokens.font.label.small
+                        color: Colours.palette.m3onSurfaceVariant
+                        elide: Text.ElideRight
                     }
                 }
             }
