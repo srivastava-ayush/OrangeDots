@@ -45,6 +45,18 @@ Item {
         (content.item as TaskbarLayout)?.closeTray();
     }
 
+    // Long-axis centre of the status-icon cluster. Overlays that open without
+    // a hovered icon (e.g. Nexus via SUPER+X) animate out of this point and
+    // collapse back into it.
+    function centerForStatusIcons(): real {
+        const bar = content.item as TaskbarLayout;
+        const fallback = (horizontal ? root.width : root.height) / 2;
+        if (!bar)
+            return fallback;
+        const entry = bar.entryItems.find(item => item.entryId === "statusIcons");
+        return entry?.item ? bar.centerFor(entry.item) : (horizontal ? bar.width : bar.height) / 2;
+    }
+
     function blocksDashboardHover(x: real, y: real): bool {
         const bar = content.item as TaskbarLayout;
         if (!bar)

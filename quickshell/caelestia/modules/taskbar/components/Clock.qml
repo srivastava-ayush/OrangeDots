@@ -14,14 +14,32 @@ StyledRect {
     readonly property var font: Tokens.font.body.builders.small.scale(1.1)
     readonly property bool horizontal: Taskbar.horizontal
     readonly property bool showDate: Config.bar.clock.showDate || Taskbar.notched
+    // Set by the taskbar layout from the screen's media island state. Only the
+    // top bar yields its centre; the vertical left bar must keep the date/time.
+    property bool mediaIslandExpanded: false
+    // Animated 0..1. Collapsing the entry's implicit width also removes its
+    // notch background, so the island is not stacked beneath an empty clock
+    // notch. Opacity and an upward slide hide the text while it collapses.
+    property real hideProgress: horizontal && mediaIslandExpanded ? 1 : 0
+    readonly property real hideOffset: horizontal ? -hideProgress * (implicitHeight + Tokens.padding.large) : 0
 
     signal clicked
 
-    implicitWidth: horizontal ? horizontalLayout.implicitWidth + padding * 2 : Tokens.sizes.bar.innerWidth
+    implicitWidth: horizontal ? Math.max(0, (horizontalLayout.implicitWidth + padding * 2) * (1 - hideProgress)) : Tokens.sizes.bar.innerWidth
     implicitHeight: (horizontal ? horizontalLayout.implicitHeight : layout.implicitHeight) + padding * 2
 
     color: Qt.alpha(Colours.tPalette.m3surfaceContainer, Config.bar.clock.background ? Colours.tPalette.m3surfaceContainer.a : 0)
     radius: Tokens.rounding.full
+    opacity: 1 - hideProgress
+    clip: hideProgress > 0
+
+    Behavior on hideProgress {
+        Anim {
+            type: Anim.FastSpatial
+            // Match the media island's slide timing exactly.
+            easing.type: Easing.OutCubic
+        }
+    }
 
     ColumnLayout {
         id: layout
@@ -158,7 +176,7 @@ StyledRect {
 
     MouseArea {
         anchors.fill: parent
-        enabled: root.horizontal
+        enabled: root.horizontal && root.hideProgress < 1
         acceptedButtons: Qt.LeftButton
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()

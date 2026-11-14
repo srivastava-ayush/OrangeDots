@@ -9,7 +9,7 @@ QtObject {
         // Appearance
         {
             id: "appearance",
-            label: qsTr("Wallpaper & style"),
+            label: qsTr("Desktop & style"),
             icon: "palette",
             description: qsTr("Wallpaper, shell tint, colours, interface, desktop"),
             category: "appearance",
@@ -105,7 +105,7 @@ QtObject {
             label: qsTr("Wallpapers"),
             description: qsTr("Browse and apply wallpapers"),
             icon: "wallpaper",
-            trail: qsTr("Wallpaper & style"),
+            trail: qsTr("Desktop & style"),
             page: "appearance",
             subPages: [1],
             keywords: ["wallpaper", "background", "image", "picture"]
@@ -114,7 +114,7 @@ QtObject {
             label: qsTr("Shell tint"),
             description: qsTr("Tint shell surfaces and adjust tint strength"),
             icon: "format_color_fill",
-            trail: qsTr("Wallpaper & style"),
+            trail: qsTr("Desktop & style"),
             page: "appearance",
             subPages: [3],
             keywords: ["tint", "shell", "background", "colour", "color", "opacity"]
@@ -123,25 +123,25 @@ QtObject {
             label: qsTr("Colours"),
             description: qsTr("Scheme library, variant, dark or light mode"),
             icon: "palette",
-            trail: qsTr("Wallpaper & style"),
+            trail: qsTr("Desktop & style"),
             page: "appearance",
             subPages: [4],
             keywords: ["colour", "color", "scheme", "theme", "dark", "light", "variant", "palette", "material"]
         },
         {
             label: qsTr("Interface"),
-            description: qsTr("Rounding, spacing, transparency, fonts, animation"),
+            description: qsTr("Rounding, spacing, fonts, animation"),
             icon: "tune",
-            trail: qsTr("Wallpaper & style"),
+            trail: qsTr("Desktop & style"),
             page: "appearance",
             subPages: [5],
-            keywords: ["interface", "rounding", "corner", "spacing", "padding", "transparency", "opacity", "font", "text", "animation", "deformation", "border", "smoothing"]
+            keywords: ["interface", "rounding", "corner", "spacing", "padding", "font", "text", "animation", "deformation", "border", "smoothing"]
         },
         {
             label: qsTr("Desktop"),
             description: qsTr("Desktop clock and audio visualiser"),
             icon: "desktop_windows",
-            trail: qsTr("Wallpaper & style"),
+            trail: qsTr("Desktop & style"),
             page: "appearance",
             subPages: [6],
             keywords: ["desktop", "clock", "visualiser", "visualizer", "audio", "bars", "shadow", "wallpaper", "blur"]

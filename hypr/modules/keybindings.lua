@@ -180,7 +180,7 @@ return function(settings)
     hl.bind(mainMod .. " + B",   hl.dsp.exec_cmd("blueman-manager"))
     hl.bind(mainMod .. " + M",   hl.dsp.exec_cmd("pavucontrol"))
     hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
-    hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus open"))
+    hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus toggle"))
     hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
     hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 

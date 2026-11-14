@@ -18,7 +18,7 @@ QtObject {
     readonly property list<Component> pageComps: [
         // Appearance
         Component {
-            // Wallpaper & style
+            // Desktop & style
             StackPage {
                 Component {
                     WallpaperAndStyle {}
@@ -33,15 +33,15 @@ QtObject {
                     ColourSelect {}
                 }
                 Component {
-                    // Wallpaper & style → Colours (index 4).
+                    // Desktop & style → Colours (index 4).
                     ColoursPage {}
                 }
                 Component {
-                    // Wallpaper & style → Interface (index 5).
+                    // Desktop & style → Interface (index 5).
                     InterfacePage {}
                 }
                 Component {
-                    // Wallpaper & style → Desktop (index 6).
+                    // Desktop & style → Desktop (index 6).
                     DesktopPage {}
                 }
             }

@@ -27,8 +27,12 @@ Singleton {
             return;
         }
         // Reuse the very same morph/overlay path as Bluetooth/audio expansion.
+        // Seed the origin with the status-icon cluster so the overlay grows out
+        // of the taskbar and collapses back into it, instead of materialising
+        // at the screen centre. currentCenter survives close, so the exit
+        // animation retraces the same point.
         if (!popouts.hasCurrent && !popouts.isDetached)
-            popouts.currentCenter = Taskbar.horizontal ? host.modelData.width / 2 : host.modelData.height / 2;
+            popouts.currentCenter = host.panels?.statusIconCenter ?? (Taskbar.horizontal ? host.modelData.width / 2 : host.modelData.height / 2);
         popouts.openNexus(page, subPages);
     }
 

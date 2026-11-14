@@ -1032,6 +1032,8 @@ ShellRoot {
                         break;
                     case 1:
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
+                        const clock = root.find(scene.contentItem, "taskbarClock");
+                        root.check(!!clock && clock.hideProgress > 0.99 && clock.opacity < 0.01 && clock.implicitWidth < 1, "A top taskbar clock must animate out and collapse while the media island is expanded");
                         const progress = root.find(island, "islandProgress");
                         root.check(progress.enabled && Math.abs(progress.value - 0.25) < 0.001 && progress.width > 0, "Island progress must reflect the active player's position");
                         root.check(root.find(island, "islandElapsed").text === "1:00" && root.find(island, "islandDuration").text === "4:00", "Island must show elapsed and total playback times");
@@ -1066,6 +1068,8 @@ ShellRoot {
                     case 4:
                         root.check(!island.expanded, "The island must automatically dismiss after its timeout");
                         root.check(!root.find(island, "mediaIslandEq"), "Hidden island must unload its equaliser");
+                        const restoredClock = root.find(scene.contentItem, "taskbarClock");
+                        root.check(!!restoredClock && restoredClock.hideProgress < 0.01 && restoredClock.opacity > 0.99 && restoredClock.implicitWidth > 0, "The top taskbar clock must animate back once the media island dismisses");
                         root.islandPlayer.trackArtist = "Late artist metadata";
                         scene.screenState.dashboardTab = 1;
                         scene.screenState.dashboard = true;
@@ -1306,6 +1310,7 @@ ShellRoot {
                         root.check(ShellTint.colour === "#ffffff" && Qt.colorEqual(Colours.palette.m3surface, "#ffffff"), "Full strength should apply the selected background colour");
                         root.check(Qt.colorEqual(Colours.palette.m3primary, Colours.current.m3primary) && Colours.scheme === "Tint test theme", "Wallpaper scheme reloads should still update accents beneath the tint");
                         root.check(ShellTint.contrast(Colours.palette.m3onSurface, Colours.palette.m3surface) >= 4.5, "A light tint must retain readable foreground text");
+                        root.check(root.nexusStack.currentItem.presets.length === 3, "Shell tint must expose exactly three presets");
                         root.nexusStack.currentItem.applyPreset(root.nexusStack.currentItem.presets.find(preset => preset.name === qsTr("VOID")));
                         root.check(ShellTint.colour === "#000000" && ShellTint.strength === 1, "The VOID preset should apply pure black at full strength");
                         GlobalConfig.appearance.transparency.enabled = true;
@@ -1534,7 +1539,7 @@ ShellRoot {
                     }
                     case 16: {
                         const page = root.nexusStack.currentItem;
-                        root.check(page.title === qsTr("Wallpaper & style"), "Appearance must remain the Wallpaper & style root");
+                        root.check(page.title === qsTr("Desktop & style"), "Appearance must remain the Desktop & style root");
                         root.check(!!root.find(page, "coloursSettings") && !!root.find(page, "interfaceSettings") && !!root.find(page, "desktopSettings"), "Appearance must expose Colours, Interface and Desktop pages");
                         root.find(page, "coloursSettings").clicked(null);
                         break;
@@ -1556,7 +1561,7 @@ ShellRoot {
                     }
                     case 18: {
                         const page = root.nexusStack.currentItem;
-                        root.check(page.title === qsTr("Wallpaper & style"), "Back from Colours should return to Wallpaper & style");
+                        root.check(page.title === qsTr("Desktop & style"), "Back from Colours should return to Desktop & style");
                         root.find(page, "interfaceSettings").clicked(null);
                         break;
                     }
@@ -1575,7 +1580,7 @@ ShellRoot {
                     }
                     case 20: {
                         const page = root.nexusStack.currentItem;
-                        root.check(page.title === qsTr("Wallpaper & style"), "Back from Interface should return to Wallpaper & style");
+                        root.check(page.title === qsTr("Desktop & style"), "Back from Interface should return to Desktop & style");
                         root.find(page, "desktopSettings").clicked(null);
                         break;
                     }
@@ -1597,7 +1602,7 @@ ShellRoot {
                         break;
                     }
                     case 22:
-                        root.check(root.nexusStack.currentItem.title === qsTr("Wallpaper & style"), "Back from Desktop should return to Wallpaper & style");
+                        root.check(root.nexusStack.currentItem.title === qsTr("Desktop & style"), "Back from Desktop should return to Desktop & style");
                         root.nexusStack.destroy();
                         root.nexusStack = PageComponents.pageComps[PageRegistry.pages.findIndex(page => page.id === "power")].createObject(window.contentItem, {
                             nState: root.navigationState,

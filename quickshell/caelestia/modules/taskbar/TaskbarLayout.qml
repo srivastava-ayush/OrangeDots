@@ -279,7 +279,10 @@ GridLayout {
                     if (before < 0) before = enabled.findIndex(e => e.id === "statusIcons");
                     enabled.splice(before < 0 ? enabled.length : before, 0, { id: "focusCountdown", enabled: true });
                 }
-                if (!root.centeredClock)
+                // On horizontal bars, hide the clock and its spacers when the media island is expanded.
+                // The media island occupies the center; the clock would be redundant.
+                const hideClock = root.horizontal && root.screenState.mediaIslandExpanded;
+                if (!root.centeredClock || hideClock)
                     return enabled;
                 const start = enabled.filter(e => root.entryGroup(e.id) === 0);
                 const end = enabled.filter(e => root.entryGroup(e.id) === 2);
@@ -360,11 +363,15 @@ GridLayout {
                         id: clock
 
                         objectName: "taskbarClock"
+                        mediaIslandExpanded: root.screenState.mediaIslandExpanded
                         // GridLayout rounds cells to logical pixels. Correct
                         // that rounding so the date/time stays at the exact
                         // screen midpoint, including odd widths and scaling.
+                        // The extra slide lifts the text out of the top edge
+                        // while the media island occupies the centre.
                         transform: Translate {
                             x: root.horizontal ? root.width / 2 - clock.parent.x - clock.x - clock.width / 2 : 0
+                            y: clock.hideOffset
                         }
 
                         onClicked: {

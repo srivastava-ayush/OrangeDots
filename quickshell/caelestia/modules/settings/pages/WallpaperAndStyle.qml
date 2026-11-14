@@ -13,7 +13,7 @@ import qs.modules.settings.common
 PageBase {
     id: root
 
-    title: qsTr("Wallpaper & style")
+    title: qsTr("Desktop & style")
 
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -213,7 +213,7 @@ PageBase {
             objectName: "interfaceSettings"
             icon: "tune"
             text: qsTr("Interface")
-            subtext: qsTr("Rounding, spacing, transparency, fonts, animation")
+            subtext: qsTr("Rounding, spacing, fonts, animation")
             onClicked: root.nState.openSubPage(5) // Interface page
         }
 

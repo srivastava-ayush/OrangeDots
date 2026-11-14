@@ -196,7 +196,7 @@ saves changes.
 
 | Page / area | Implemented controls |
 |---|---|
-| **Wallpaper & style** | Wallpaper enablement, local/category browsing, image-file selection, random wallpaper, transparency, and light/dark theme. The dedicated Colours subpage is unfinished. |
+| **Desktop & style** | Wallpaper enablement, local/category browsing, image-file selection, random wallpaper, transparency, and light/dark theme. The dedicated Colours subpage is unfinished. |
 | **Network** | Wi-Fi radio control, available/saved network lists, filters for saved/secured/2.4 GHz/5 GHz networks, password entry, hidden/open/personal-security network creation, connect/disconnect/forget, autoconnect, connection information, and IPv4/DNS configuration. |
 | **Ethernet subpages** | Interface/connection information, connect/disconnect, IPv4 method, manual address/gateway, DNS, and apply controls. |
 | **VPN** | Add/edit/delete/select providers, connect/disconnect, interface/status information, statistics/ping, built-in command templates for WireGuard/WARP/Tailscale/NetBird, and custom connect/disconnect commands. External providers must be installed/configured. |

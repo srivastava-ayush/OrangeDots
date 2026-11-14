@@ -110,40 +110,6 @@ PageBase {
         }
 
         SectionHeader {
-            text: qsTr("Transparency")
-        }
-
-        ToggleRow {
-            objectName: "interfaceTransparency"
-            first: true
-            text: qsTr("Enable transparency")
-            subtext: qsTr("Use translucent shell surfaces")
-            checked: Config.appearance.transparency.enabled
-            onToggled: GlobalConfig.appearance.transparency.enabled = checked
-        }
-
-        SliderRow {
-            objectName: "interfaceTransparencyBase"
-            icon: "opacity"
-            label: qsTr("Base opacity")
-            valueLabel: `${Math.round(value * 100)}%`
-            value: Config.appearance.transparency.base
-            enabled: Config.appearance.transparency.enabled
-            onMoved: v => GlobalConfig.appearance.transparency.base = v
-        }
-
-        SliderRow {
-            objectName: "interfaceTransparencyLayers"
-            last: true
-            icon: "layers"
-            label: qsTr("Layer opacity")
-            valueLabel: `${Math.round(value * 100)}%`
-            value: Config.appearance.transparency.layers
-            enabled: Config.appearance.transparency.enabled
-            onMoved: v => GlobalConfig.appearance.transparency.layers = v
-        }
-
-        SectionHeader {
             text: qsTr("Text")
         }
 

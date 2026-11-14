@@ -35,6 +35,9 @@ Item {
     readonly property alias mediaIsland: mediaIsland
     readonly property alias popouts: popoutsWrapper.content
     readonly property alias popoutsWrapper: popoutsWrapper
+    // Long-axis position of this screen's status icons; the detached Nexus
+    // overlay grows out of it and collapses back into it.
+    readonly property real statusIconCenter: bar.centerForStatusIcons()
 
     anchors.fill: parent
     anchors.margins: borderThickness
@@ -174,6 +177,13 @@ Item {
         hideInset: root.bar.notched ? root.y : 0
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
+
+        // Share the island state with the taskbar so a top bar can animate its
+        // clock out of the way. ScreenState is per-screen, so another monitor's
+        // island never hides this screen's clock.
+        onExpandedChanged: root.screenState.mediaIslandExpanded = expanded
+        Component.onCompleted: root.screenState.mediaIslandExpanded = expanded
+        Component.onDestruction: root.screenState.mediaIslandExpanded = false
     }
 
     BarPopouts.PopoutAnchor {

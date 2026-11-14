@@ -198,6 +198,29 @@ Scope {
             SettingsWindows.create();
         }
 
+        function toggle(): void {
+            const fallbackScreen = Quickshell.screens[0];
+            const comps = ShellState.componentsForActive()
+                ?? (fallbackScreen ? ShellState.componentsFor(fallbackScreen) : null);
+            const popouts = comps?.panels?.popouts;
+            // Nexus lives in the detached popout overlay, which never sets
+            // hasCurrent; detachedMode is the reliable open indicator.
+            if (popouts?.detachedMode === "any") {
+                popouts.close();
+                return;
+            }
+            // The overlay may be open on another monitor; close that instance
+            // instead of opening a second one.
+            const openElsewhere = Quickshell.screens
+                .map(screen => ShellState.componentsFor(screen)?.panels?.popouts)
+                .find(p => p?.detachedMode === "any");
+            if (openElsewhere) {
+                openElsewhere.close();
+                return;
+            }
+            SettingsWindows.create();
+        }
+
         target: "nexus"
     }
 

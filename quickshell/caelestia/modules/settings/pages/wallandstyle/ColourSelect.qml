@@ -15,17 +15,16 @@ PageBase {
 
     readonly property var presets: [
         { name: qsTr("VOID"), colour: "#000000", strength: 1 },
-        { name: qsTr("Graphite"), colour: "#242424" },
-        { name: qsTr("Navy"), colour: "#243447" },
-        { name: qsTr("Teal"), colour: "#173f3b" },
-        { name: qsTr("Plum"), colour: "#422b42" },
-        { name: qsTr("Brown"), colour: "#49362b" },
-        { name: qsTr("Olive"), colour: "#353e28" },
-        { name: qsTr("Slate"), colour: "#455268" },
-        { name: qsTr("Cream"), colour: "#e8ddc5" }
+        { name: qsTr("GRAPHITE"), colour: "#242424" },
+        { name: qsTr("DEFAULT"), reset: true }
     ]
 
     function applyPreset(preset: var): void {
+        if (preset.reset) {
+            ShellTint.reset();
+            return;
+        }
+
         ShellTint.setColour(preset.colour);
         if (preset.strength !== undefined)
             ShellTint.strength = preset.strength;
@@ -80,7 +79,7 @@ PageBase {
 
         GridLayout {
             Layout.fillWidth: true
-            columns: 4
+            columns: 3
             columnSpacing: Tokens.spacing.small
             rowSpacing: Tokens.spacing.small
 
@@ -91,12 +90,13 @@ PageBase {
                     id: swatch
 
                     required property var modelData
+                    readonly property bool isDefault: swatch.modelData.reset === true
 
                     Layout.fillWidth: true
                     implicitHeight: 46
                     radius: Tokens.rounding.medium
-                    color: modelData.colour
-                    border.width: ShellTint.enabled && ShellTint.colour === modelData.colour ? 2 : 0
+                    color: swatch.isDefault ? Colours.palette.m3surfaceContainer : swatch.modelData.colour
+                    border.width: (swatch.isDefault ? !ShellTint.enabled : ShellTint.enabled && ShellTint.colour === swatch.modelData.colour) ? 2 : 0
                     border.color: Colours.on(color)
                     Accessible.name: modelData.name
 
