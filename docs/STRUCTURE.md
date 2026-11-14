@@ -18,6 +18,7 @@
 | Left/right sidebar containers / replaceable modules | `quickshell/caelestia/modules/sidebar/` |
 | Window composition / edge hover / focus / input regions | `quickshell/caelestia/modules/desktop/` |
 | Nexus settings pages | `quickshell/caelestia/modules/settings/` |
+| Emoji/glyph picker (copies on select) | `quickshell/caelestia/modules/emoji/` |
 | Password field / session lock / wake recovery | `quickshell/caelestia/modules/lockscreen/` |
 | New-notification banners vs history shade | `quickshell/caelestia/modules/notifications/banners/` vs `notifications/shade/` |
 | Shared UI widgets | `quickshell/caelestia/components/` |

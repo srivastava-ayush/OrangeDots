@@ -10,6 +10,7 @@ import qs.modules.sidebar as Sidebar
 import qs.modules.notifications.banners as Notifications
 import qs.modules.onscreendisplay as Osd
 import qs.modules.sessionmenu as Session
+import qs.modules.emoji as Emoji
 import qs.modules.taskbar.popouts as BarPopouts
 
 Item {
@@ -26,6 +27,7 @@ Item {
     readonly property alias notifications: notifications
     readonly property alias session: session
     readonly property alias sessionWrapper: sessionWrapper
+    readonly property alias emojiPicker: emojiPicker
     readonly property alias launcher: launcher
     readonly property alias ai: ai
     readonly property alias sidebar: ai
@@ -184,6 +186,14 @@ Item {
         onExpandedChanged: root.screenState.mediaIslandExpanded = expanded
         Component.onCompleted: root.screenState.mediaIslandExpanded = expanded
         Component.onDestruction: root.screenState.mediaIslandExpanded = false
+    }
+
+    // Sits above the drawers but below the detached popout overlay.
+    Emoji.EmojiPicker {
+        id: emojiPicker
+
+        screenState: root.screenState
+        anchors.centerIn: parent
     }
 
     BarPopouts.PopoutAnchor {

@@ -11,6 +11,8 @@ PersistentProperties {
     property bool dashboard
     property bool ai
     property bool leftSidebar
+    // In-shell Material emoji picker (selection copies to the clipboard).
+    property bool emoji
 
     // Notification shade (taskbar bell popout; also exposed through drawer IPC)
     property bool notifShade

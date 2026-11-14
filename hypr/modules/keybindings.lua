@@ -64,8 +64,17 @@ return function(settings)
     hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(ide))
     hl.bind(mainMod .. " + C", hl.dsp.window.close())
     hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
-    -- Pin/unpin the focused window (Hyprland pins floating windows).
-    hl.bind(mainMod .. " + P", hl.dsp.window.pin())
+    -- Float the focused window (if it is tiled), then pin/unpin it.
+    -- Hyprland can only pin floating windows, so the float step is conditional
+    -- to keep the pin state a pure toggle on repeated presses.
+    hl.bind(mainMod .. " + P", function()
+        local win = hl.get_active_window()
+        if not win then return end
+        if not win.floating then
+            hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+        end
+        hl.dispatch(hl.dsp.window.pin())
+    end)
     hl.bind(mainMod .. " + F", hl.dsp.layout("colresize +conf"))
     hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
@@ -194,7 +203,9 @@ return function(settings)
     -- Clipboard / emoji
     hl.bind("CTRL + ALT + V",         hl.dsp.exec_cmd("caelestia clipboard"))
     hl.bind("CTRL + ALT + SHIFT + V", hl.dsp.exec_cmd("cliphist wipe"))
-    hl.bind(mainMod .. " + period",   hl.dsp.exec_cmd("caelestia emoji -p"))
+    -- In-shell Material emoji picker; selecting an emoji copies it to the
+    -- clipboard and types it into the previously focused window.
+    hl.bind(mainMod .. " + period",   hl.dsp.exec_cmd("caelestia shell drawers toggle emoji"))
 
     -- Media keys (requires playerctl)
     hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })

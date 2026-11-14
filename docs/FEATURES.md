@@ -273,16 +273,17 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | `SUPER+D` on release | Toggle dashboard. |
 | Tap `SUPER+ALT` | Toggle dashboard. |
 | `SUPER+ALT+1..4` | Select Media / Dashboard / Performance / Phone by name. Disabled dashboard tabs are omitted from the visible strip. |
-| `SUPER+P` | Pin/unpin the focused window. |
+| `SUPER+P` | Float the focused window (if it is tiled) and pin/unpin it. |
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence. |
 | `SUPER+L` | Lock session. |
-| `SUPER+X` | Open Nexus. |
+| `SUPER+X` | Toggle Nexus; one toggle per key press, holding the key does nothing further until it is released. |
 | `SUPER+TAB` | Open the launcher's wallpaper picker. |
 | `SUPER+CapsLock` | Capture the full focused screen and copy it to the clipboard. |
 | `SUPER+SHIFT+CapsLock` | Pick a screenshot region and copy it to the clipboard. |
 | `SUPER+ALT+CapsLock` | External Caelestia region-recording command with sound. |
+| `SUPER+period` | Toggle the in-shell emoji/glyph picker; selecting an emoji copies it to the clipboard and pastes it into the previously focused window. |
 
-The top-left hot corner and `SUPER+Escape` use the separately installed ScrollOverview plugin. Clipboard, emoji, Spotify scratchpads, refresh-rate switching, and Hyprland window-management bindings belong to the surrounding dotfiles/CLI integration rather than additional OrangeShell UI modules.
+The top-left hot corner and `SUPER+Escape` use the separately installed ScrollOverview plugin. Clipboard, Spotify scratchpads, refresh-rate switching, and Hyprland window-management bindings belong to the surrounding dotfiles/CLI integration rather than additional OrangeShell UI modules.
 
 ### IPC targets
 
@@ -345,6 +346,7 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/dashboard/performance/` | `BatteryTank.qml`, `HeroCard.qml`, `MemoryCard.qml`, `NetworkCard.qml`, `StorageCard.qml` | Performance and battery cards. |
 | `modules/dashboard/overview/cards/` | `BlackoutCard.qml`, `GameModeCard.qml`, `IdleInhibit.qml`, `Record.qml`, `RecordingList.qml` | Dashboard-owned Caffeine/Blackout/Game mode, recording controls, and recording history. |
 | `modules/sidebar/modules/calendar/` | `CalendarModule.qml`, `CalendarContent.qml` | Sidebar-only calendar agenda and scratchpad. |
+| `modules/emoji/` | `EmojiPicker.qml`, `EmojiPickerContent.qml` | In-shell Material emoji/glyph picker: search over the CLI dataset, scrolling grid, clipboard copy plus auto-paste into the focused window on selection. |
 | `modules/desktop/` | `Desktop.qml`, `DesktopWindow.qml`, `ExclusiveZones.qml`, `InputRegions.qml`, `PanelInteractions.qml`, `PanelLayout.qml` | Per-screen window composition, reserved space, focus, input regions, border rendering, and edge/corner gestures. |
 | `modules/launcher/` | `AppList.qml`, `ContentList.qml`, `LauncherContent.qml`, `LauncherWrapper.qml`, `WallpaperList.qml` | Search input, result lists, wallpaper browser, and launcher panel. |
 | `modules/launcher/items/` | `ActionItem.qml`, `AppItem.qml`, `CalcItem.qml`, `SchemeItem.qml`, `VariantItem.qml`, `WallpaperItem.qml` | Launcher result delegates. |
@@ -564,6 +566,6 @@ External integrations need their own installation, permissions, hardware support
 - **Recording deletion:** the history delete button sets `recordingConfirmDelete`, but the current dashboard has no confirmation/deletion handler consuming that state. It is not a completed delete feature.
 - **Notification tab:** notifications are a separate shade, not a dashboard tab. `drawers setTab` currently accepts only `media`, `dashboard`, `performance`, and `phone`.
 - **Notes/calendar limits:** notes are reload-persistent rather than durable storage; the agenda is read-only and does not expand recurring-event rules.
-- **Surrounding dotfiles:** refresh-rate helpers, Spotify scratchpads, clipboard/emoji commands, HyprGlass, Hypr3D, and ScrollOverview are integrations outside the shell UI module inventory. There is no Tide Island or alternative-shell implementation in this tree, and no bundled hyprpaper/hypridle configuration.
+- **Surrounding dotfiles:** refresh-rate helpers, Spotify scratchpads, clipboard commands, HyprGlass, Hypr3D, and ScrollOverview are integrations outside the shell UI module inventory. There is no Tide Island or alternative-shell implementation in this tree, and no bundled hyprpaper/hypridle configuration.
 
 The vendored OrangeShell tree retains its upstream [GPL-3.0 license](quickshell/caelestia/LICENSE).

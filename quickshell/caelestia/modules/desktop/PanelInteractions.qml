@@ -113,6 +113,14 @@ CustomMouseArea {
 
     onPressed: event => {
         dragStart = Qt.point(event.x, event.y);
+        if (screenState.emoji) {
+            const panel = panels.emojiPicker;
+            const point = panel.mapFromItem(root, event.x, event.y);
+            if (point.x < 0 || point.y < 0 || point.x > panel.width || point.y > panel.height) {
+                screenState.emoji = false;
+                return;
+            }
+        }
         if (screenState.session) {
             const panel = panels.session;
             const point = panel.mapFromItem(root, event.x, event.y);

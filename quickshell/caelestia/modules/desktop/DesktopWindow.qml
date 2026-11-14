@@ -67,6 +67,7 @@ StyledWindow {
         screenState.dashboard = false;
         screenState.ai = false;
         screenState.leftSidebar = false;
+        screenState.emoji = false;
         screenState.notifShade = false;
         panels.popouts.close();
     }
@@ -76,7 +77,7 @@ StyledWindow {
     WlrLayershell.layer: (fsTransitionProg > 0 && contentItem.Config.general.showOverFullscreen) || (hasSpecialWorkspace && hasFullscreenOnNormalWs) ? WlrLayer.Overlay : WlrLayer.Top
     // OnDemand lets the dashboard's notes field take focus on click without
     // stealing it when the dashboard is merely hovered open.
-    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.ai || screenState.leftSidebar ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: screenState.launcher || screenState.session || screenState.dashboard || screenState.ai || screenState.leftSidebar || screenState.emoji ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     mask: hasFullscreen ? emptyRegion : regions
 
@@ -127,7 +128,7 @@ StyledWindow {
                 return false;
             const s = root.screenState;
             const conf = root.contentItem.Config;
-            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || s.ai || s.leftSidebar)
+            if ((s.launcher && conf.launcher.enabled) || (s.session && conf.session.enabled) || s.ai || s.leftSidebar || s.emoji)
                 return true;
             if (s.dashboard && conf.dashboard.enabled && (!conf.dashboard.showOnHover || panels.dashboard.notesActive))
                 return true;
@@ -142,6 +143,7 @@ StyledWindow {
             root.screenState.dashboard = false;
             root.screenState.ai = false;
             root.screenState.leftSidebar = false;
+            root.screenState.emoji = false;
             root.screenState.notifShade = false;
             panels.popouts.hasCurrent = false;
             bar.closeTray();
@@ -151,7 +153,7 @@ StyledWindow {
     StyledRect {
         anchors.fill: parent
         // Hover popouts stay undimmed; only session and detached panels need a scrim.
-        opacity: (root.screenState.session && Config.session.enabled) || panels.popouts.detachedMode !== "" ? 0.5 : 0
+        opacity: (root.screenState.session && Config.session.enabled) || root.screenState.emoji || panels.popouts.detachedMode !== "" ? 0.5 : 0
         color: Colours.palette.m3scrim
 
         Behavior on opacity {

@@ -133,7 +133,7 @@ Scope {
         function toggle(drawer: string): void {
             if (drawer === "rightSidebar") drawer = "ai";
             if (list().split("\n").includes(drawer)) {
-                if (root.hasFullscreen && ["launcher", "session", "dashboard", "ai", "leftSidebar", "notifShade", "utilitySidebar"].includes(drawer))
+                if (root.hasFullscreen && ["launcher", "session", "dashboard", "ai", "leftSidebar", "notifShade", "utilitySidebar", "emoji"].includes(drawer))
                     return;
                 const screenState = root.activeScreenState();
                 if (drawer === "ai" && !SidebarConfig.layout.enabled)
@@ -151,6 +151,12 @@ Scope {
                     panel.selectedModule = "calendar";
                     screenState[key] = !wasOpen;
                 } else {
+                    // The emoji picker is modal; dismiss the other drawers first.
+                    if (drawer === "emoji" && !screenState.emoji) {
+                        screenState.launcher = false;
+                        screenState.dashboard = false;
+                        screenState.session = false;
+                    }
                     screenState[drawer] = !screenState[drawer];
                 }
             } else {

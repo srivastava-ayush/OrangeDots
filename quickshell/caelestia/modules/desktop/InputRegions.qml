@@ -18,9 +18,10 @@ Region {
     x: bar.clampedWidth + win.dragMaskPadding
     y: bar.clampedHeight + win.dragMaskPadding
     // The XOR mask normally passes the desktop through. While the session
-    // menu is visible, capture empty desktop clicks as modal dismissals too.
-    width: panels.session.visible ? 0 : win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
-    height: panels.session.visible ? 0 : win.height - bar.clampedHeight - clampedThickness - win.dragMaskPadding * 2
+    // menu or emoji picker is visible, capture empty desktop clicks as modal
+    // dismissals too.
+    width: panels.session.visible || panels.emojiPicker.visible ? 0 : win.width - bar.clampedWidth - clampedThickness - win.dragMaskPadding * 2
+    height: panels.session.visible || panels.emojiPicker.visible ? 0 : win.height - bar.clampedHeight - clampedThickness - win.dragMaskPadding * 2
     intersection: Intersection.Xor
 
     R {
@@ -68,6 +69,12 @@ Region {
     R {
         panel: root.panels.sessionWrapper
         y: panel.y + root.panels.y + root.panels.session.y
+        width: panel.visible ? panel.width : 0
+        height: panel.visible ? panel.height : 0
+    }
+
+    R {
+        panel: root.panels.emojiPicker
         width: panel.visible ? panel.width : 0
         height: panel.visible ? panel.height : 0
     }
