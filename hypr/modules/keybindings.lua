@@ -13,12 +13,13 @@ return function(settings)
     local mainMod = "SUPER"
 
     -- Overview / shell toggles
-    hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+    --hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
     hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
-    hl.bind(mainMod .. " + L",       hl.dsp.exec_cmd("caelestia shell lock lock"))
+    -- Use the shell's registered global shortcut instead of spawning the
+    -- caelestia CLI; Python startup would add ~200ms before the lock animates.
+    hl.bind(mainMod .. " + L",       hl.dsp.global("caelestia:lock"))
     hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
     hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
-    hl.bind(mainMod .. " + P",       hl.dsp.exec_cmd("caelestia shell drawers setTab performance"), { release = false })
     hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle rightSidebar"))
     hl.bind(mainMod .. " + U",       hl.dsp.exec_cmd("caelestia shell drawers toggle leftSidebar"))
     hl.bind(mainMod .. " + space",   hl.dsp.exec_cmd("caelestia shell drawers toggle session"))
@@ -63,10 +64,11 @@ return function(settings)
     hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(ide))
     hl.bind(mainMod .. " + C", hl.dsp.window.close())
     hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
+    -- Pin/unpin the focused window (Hyprland pins floating windows).
+    hl.bind(mainMod .. " + P", hl.dsp.window.pin())
     hl.bind(mainMod .. " + F", hl.dsp.layout("colresize +conf"))
     hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
 
-    -- hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
     local swapDirection = "right"
 
     hl.bind(

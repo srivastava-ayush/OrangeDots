@@ -101,8 +101,19 @@ ShellRoot {
     property var calendarIpc
     readonly property string calendarNote: "Calendar integration scratchpad — keep this draft"
     property int calendarWaitTicks
+    property int colourWaitTicks
+    property var searchNav
+    property var searchNavigation
     readonly property SettingsState navigationState: SettingsState {
         screen: window.screen
+    }
+
+    Component {
+        id: settingsNavigationFixture
+
+        SettingsNavigation {
+            nState: root.navigationState
+        }
     }
 
     Component {
@@ -1509,10 +1520,158 @@ ShellRoot {
                     case 15: {
                         const about = root.nexusStack.currentItem;
                         root.check(root.find(about, "aboutShellName").text === "Orange OS", "About should show the Orange OS name");
-                        root.check(root.find(about, "aboutShellVersion").text === "AYUSH_GOAT_V4", "About should show the custom release version");
-                        root.check(root.find(about, "aboutShellSoftware").value === "AYUSH_GOAT_V4", "The software version should match the About heading");
+                        root.check(root.find(about, "aboutShellVersion").text === "AYUSH_GOAT_V5", "About should show the custom release version");
+                        root.check(root.find(about, "aboutShellSoftware").value === "AYUSH_GOAT_V5", "The software version should match the About heading");
                         root.check(typeof about.pluginCount === "undefined", "The unused fake plugin counter should be removed");
                         root.nexusStack.destroy();
+                        root.nexusStack = PageComponents.pageComps[PageRegistry.pages.findIndex(page => page.id === "appearance")].createObject(window.contentItem, {
+                            nState: root.navigationState,
+                            width: 800,
+                            height: 600,
+                            visible: false
+                        });
+                        break;
+                    }
+                    case 16: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Wallpaper & style"), "Appearance must remain the Wallpaper & style root");
+                        root.check(!!root.find(page, "coloursSettings") && !!root.find(page, "interfaceSettings") && !!root.find(page, "desktopSettings"), "Appearance must expose Colours, Interface and Desktop pages");
+                        root.find(page, "coloursSettings").clicked(null);
+                        break;
+                    }
+                    case 17: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Colours"), "Appearance should open the Colours page");
+                        if (page.schemeEntries.length === 0) {
+                            root.check(++root.colourWaitTicks < 10, "The scheme library must finish loading");
+                            root.step--;
+                            return;
+                        }
+                        root.colourWaitTicks = 0;
+                        root.check(page.schemeEntries.length > 0, "The Colours page must load schemes from the caelestia CLI");
+                        root.check(page.variantItems.length === 9, "The Colours page must expose all nine Material 3 variants");
+                        root.check(root.find(page, "coloursDarkMode").checked === !Colours.light, "The dark theme toggle must follow the active scheme");
+                        root.navigationState.closeSubPage();
+                        break;
+                    }
+                    case 18: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Wallpaper & style"), "Back from Colours should return to Wallpaper & style");
+                        root.find(page, "interfaceSettings").clicked(null);
+                        break;
+                    }
+                    case 19: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Interface"), "Appearance should open the Interface page");
+                        const previousAnimScale = GlobalConfig.appearance.anim.durations.scale;
+                        root.find(page, "interfaceRoundingScale").moved(120);
+                        root.check(Math.abs(GlobalConfig.appearance.rounding.scale - 1.2) < 0.001, "Interface rounding must update the live scale");
+                        root.find(page, "interfaceRoundingScale").moved(100);
+                        root.find(page, "interfaceReset").clicked(null);
+                        root.check(Math.abs(GlobalConfig.appearance.rounding.scale - 1) < 0.001, "Reset must restore interface scales");
+                        GlobalConfig.appearance.anim.durations.scale = previousAnimScale;
+                        root.navigationState.closeSubPage();
+                        break;
+                    }
+                    case 20: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Wallpaper & style"), "Back from Interface should return to Wallpaper & style");
+                        root.find(page, "desktopSettings").clicked(null);
+                        break;
+                    }
+                    case 21: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Desktop"), "Appearance should open the Desktop page");
+                        const previousClockScale = GlobalConfig.background.desktopClock.scale;
+                        root.find(page, "desktopClockScale").moved(125);
+                        root.check(Math.abs(GlobalConfig.background.desktopClock.scale - 1.25) < 0.001, "Desktop clock size must update");
+                        GlobalConfig.background.desktopClock.scale = previousClockScale;
+                        const toggle = root.find(page, "desktopVisualiserEnabled");
+                        const previous = GlobalConfig.background.visualiser.enabled;
+                        toggle.checked = !previous;
+                        toggle.toggled();
+                        root.check(GlobalConfig.background.visualiser.enabled === !previous, "Desktop visualiser visibility must update");
+                        toggle.checked = previous;
+                        toggle.toggled();
+                        root.navigationState.closeSubPage();
+                        break;
+                    }
+                    case 22:
+                        root.check(root.nexusStack.currentItem.title === qsTr("Wallpaper & style"), "Back from Desktop should return to Wallpaper & style");
+                        root.nexusStack.destroy();
+                        root.nexusStack = PageComponents.pageComps[PageRegistry.pages.findIndex(page => page.id === "power")].createObject(window.contentItem, {
+                            nState: root.navigationState,
+                            width: 800,
+                            height: 600,
+                            visible: false
+                        });
+                        break;
+                    case 23: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Power & sleep"), "Power & sleep must remain the system root");
+                        root.find(page, "powerLockScreen").clicked(null);
+                        break;
+                    }
+                    case 24: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("Lock screen"), "Power & sleep should open the Lock screen page");
+                        root.check(!!root.find(page, "lockFingerprint") && !!root.find(page, "lockFace"), "Lock screen must expose fingerprint and face unlock");
+                        const toggle = root.find(page, "lockFingerprint");
+                        const previous = GlobalConfig.lock.enableFprint;
+                        toggle.checked = !previous;
+                        toggle.toggled();
+                        root.check(GlobalConfig.lock.enableFprint === !previous, "Fingerprint unlock must update");
+                        toggle.checked = previous;
+                        toggle.toggled();
+                        root.navigationState.closeSubPage();
+                        break;
+                    }
+                    case 25:
+                        root.check(root.nexusStack.currentItem.title === qsTr("Power & sleep"), "Back from Lock screen should return to Power & sleep");
+                        root.nexusStack.destroy();
+                        root.nexusStack = PageComponents.pageComps[PageRegistry.pages.findIndex(page => page.id === "services")].createObject(window.contentItem, {
+                            nState: root.navigationState,
+                            width: 800,
+                            height: 600,
+                            visible: false
+                        });
+                        break;
+                    case 26:
+                        root.check(root.nexusStack.currentItem.title === qsTr("Services"), "Services must remain the shell services root");
+                        root.find(root.nexusStack.currentItem, "servicesOsd").clicked(null);
+                        break;
+                    case 27: {
+                        const page = root.nexusStack.currentItem;
+                        root.check(page.title === qsTr("On-screen display"), "Services should open the On-screen display page");
+                        const previousHideDelay = GlobalConfig.osd.hideDelay;
+                        root.find(page, "osdHideDelay").moved(3000);
+                        root.check(GlobalConfig.osd.hideDelay === 3000, "The OSD hide delay must update");
+                        GlobalConfig.osd.hideDelay = previousHideDelay;
+                        root.nexusStack.destroy();
+                        root.searchNavigation = null;
+                        root.navigationState.navigationRequested.connect((page, subPages) => {
+                            root.searchNavigation = { page, subPages };
+                        });
+                        root.searchNav = settingsNavigationFixture.createObject(window.contentItem, {
+                            width: 320,
+                            height: 560,
+                            visible: false
+                        });
+                        root.navigationState.searchQuery = "history";
+                        break;
+                    }
+                    case 28: {
+                        const lockLink = PageRegistry.searchResults("lock screen").find(result => result.kind === "link" && result.pageId === "power" && result.subPages[0] === 1);
+                        root.check(!!lockLink, "Search must deep-link to the Lock screen page");
+                        root.check(!!root.searchNav, "The settings navigation search surface must load");
+                        const result = root.find(root.searchNav, "settingsSearchResult");
+                        root.check(!!result, "Search must render matching settings");
+                        root.check(result.modelData.pageId === "panels" && result.modelData.subPages[0] === 2 && result.modelData.subPages[1] === 9, "History search must target the notification shade");
+                        result.activate();
+                        root.check(root.searchNavigation?.page === "panels", "Selecting a search result must request the target page");
+                        root.check(root.searchNavigation?.subPages?.[0] === 2 && root.searchNavigation?.subPages?.[1] === 9, "Search results must preserve the nested page chain");
+                        root.check(root.navigationState.searchQuery === "", "Selecting a search result must clear the query");
+                        root.searchNav.destroy();
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                     }

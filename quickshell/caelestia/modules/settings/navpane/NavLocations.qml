@@ -13,9 +13,15 @@ VerticalFadeFlickable {
 
     required property SettingsState nState
 
+    readonly property string query: root.nState.searchQuery.trim()
+    readonly property bool searching: query.length > 0
+    readonly property var results: PageRegistry.searchResults(query)
+
     topMargin: Tokens.padding.large
     bottomMargin: Tokens.padding.large
-    contentHeight: content.implicitHeight
+    contentHeight: root.searching ? resultsLayout.implicitHeight : content.implicitHeight
+
+    onQueryChanged: contentY = 0
 
     TapHandler {
         onTapped: root.focus = true
@@ -26,6 +32,7 @@ VerticalFadeFlickable {
 
         anchors.left: parent.left
         anchors.right: parent.right
+        visible: !root.searching
         spacing: Tokens.spacing.extraSmall
 
         Repeater {
@@ -123,6 +130,108 @@ VerticalFadeFlickable {
                     }
                 }
             }
+        }
+    }
+
+    ColumnLayout {
+        id: resultsLayout
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        visible: root.searching
+        spacing: Tokens.spacing.extraSmall
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.leftMargin: Tokens.padding.small
+            Layout.bottomMargin: Tokens.spacing.extraSmall
+            visible: root.results.length > 0
+            text: root.results.length === 1 ? qsTr("1 result") : qsTr("%1 results").arg(root.results.length)
+            color: Colours.palette.m3onSurfaceVariant
+            font: Tokens.font.label.medium
+        }
+
+        Repeater {
+            model: root.results
+
+            StyledRect {
+                id: resultItem
+
+                required property var modelData
+
+                function activate(): void {
+                    if (modelData.kind === "page")
+                        root.nState.requestNavigation(modelData.pageId, []);
+                    else
+                        root.nState.requestNavigation(modelData.pageId, modelData.subPages);
+                }
+
+                objectName: "settingsSearchResult"
+                Layout.fillWidth: true
+                implicitHeight: resultLayout.implicitHeight + Tokens.padding.medium * 2
+                color: Colours.layer(Colours.palette.m3surfaceContainerHigh, 2)
+                radius: Tokens.rounding.large
+
+                StateLayer {
+                    onClicked: resultItem.activate()
+                }
+
+                RowLayout {
+                    id: resultLayout
+
+                    anchors.fill: parent
+                    anchors.margins: Tokens.padding.medium
+                    anchors.leftMargin: Tokens.padding.large
+                    anchors.rightMargin: Tokens.padding.large
+                    spacing: Tokens.spacing.medium
+
+                    MaterialIcon {
+                        text: resultItem.modelData.icon
+                        color: Colours.palette.m3onSurfaceVariant
+                        fontStyle: Tokens.font.icon.small
+                        fill: 1
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 0
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: resultItem.modelData.label
+                            font: Tokens.font.body.small
+                            elide: Text.ElideRight
+                        }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: resultItem.modelData.description
+                            color: Colours.palette.m3outline
+                            font: Tokens.font.label.small
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    StyledText {
+                        Layout.maximumWidth: root.width / 3
+                        text: resultItem.modelData.trail
+                        color: Colours.palette.m3primary
+                        font: Tokens.font.label.small
+                        elide: Text.ElideRight
+                    }
+                }
+            }
+        }
+
+        StyledText {
+            Layout.fillWidth: true
+            Layout.topMargin: Tokens.padding.large
+            Layout.leftMargin: Tokens.padding.small
+            visible: root.results.length === 0
+            text: qsTr("No settings found")
+            color: Colours.palette.m3outline
+            font: Tokens.font.body.small
+            wrapMode: Text.WordWrap
         }
     }
 

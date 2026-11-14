@@ -22,11 +22,19 @@ Item {
     Keys.onEscapePressed: root.close()
 
     function navigateTo(page: string, subPages: var): void {
-        nState.searchOpen = false;
+        nState.searchQuery = "";
         nState.subPageIdxStack = [];
         nState.currentPageIdx = Math.max(0, PageRegistry.pages.findIndex(entry => entry.id === page));
         nState.subPageIdxStack = Array.isArray(subPages) ? subPages.slice() : [];
         pages.reloadCurrentPage();
+    }
+
+    Connections {
+        function onNavigationRequested(page: string, subPages: var): void {
+            root.navigateTo(page, subPages);
+        }
+
+        target: nState
     }
 
     implicitWidth: Math.round(implicitHeight * Tokens.sizes.nexus.ratio)

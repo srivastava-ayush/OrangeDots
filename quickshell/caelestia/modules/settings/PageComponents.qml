@@ -32,6 +32,18 @@ QtObject {
                 Component {
                     ColourSelect {}
                 }
+                Component {
+                    // Wallpaper & style → Colours (index 4).
+                    ColoursPage {}
+                }
+                Component {
+                    // Wallpaper & style → Interface (index 5).
+                    InterfacePage {}
+                }
+                Component {
+                    // Wallpaper & style → Desktop (index 6).
+                    DesktopPage {}
+                }
             }
         },
 
@@ -93,6 +105,10 @@ QtObject {
             StackPage {
                 Component {
                     PowerAndSleepPage {}
+                }
+                Component {
+                    // Power & sleep → Lock screen (index 1).
+                    LockScreenPage {}
                 }
             }
         },
@@ -168,6 +184,10 @@ QtObject {
                 Component {
                     // Services → Screen recorder (index 2).
                     RecorderPanel {}
+                }
+                Component {
+                    // Services → On-screen display (index 3).
+                    OnScreenDisplayPage {}
                 }
             }
         },

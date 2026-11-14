@@ -195,5 +195,35 @@ PageBase {
             checked: !Colours.light
             onToggled: Colours.setMode(checked ? "dark" : "light")
         }
+
+        SectionHeader {
+            text: qsTr("Appearance")
+        }
+
+        NavRow {
+            objectName: "coloursSettings"
+            first: true
+            icon: "palette"
+            text: qsTr("Colours")
+            subtext: qsTr("Scheme library, variant, dark or light mode")
+            onClicked: root.nState.openSubPage(4) // Colours page
+        }
+
+        NavRow {
+            objectName: "interfaceSettings"
+            icon: "tune"
+            text: qsTr("Interface")
+            subtext: qsTr("Rounding, spacing, transparency, fonts, animation")
+            onClicked: root.nState.openSubPage(5) // Interface page
+        }
+
+        NavRow {
+            objectName: "desktopSettings"
+            last: true
+            icon: "desktop_windows"
+            text: qsTr("Desktop")
+            subtext: qsTr("Desktop clock and audio visualiser")
+            onClicked: root.nState.openSubPage(6) // Desktop page
+        }
     }
 }

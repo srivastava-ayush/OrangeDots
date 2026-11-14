@@ -7,7 +7,7 @@ QtObject {
     property bool animatingContainer
     property int currentPageIdx
     property list<int> subPageIdxStack
-    property bool searchOpen
+    property string searchQuery
 
     property string selectedWallpaperCategory
     property BluetoothDevice selectedBtDevice
@@ -20,6 +20,7 @@ QtObject {
     signal close
     signal subPageOpened(idx: int)
     signal subPageClosed
+    signal navigationRequested(page: string, subPages: var)
 
     function openSubPage(idx: int): void {
         subPageIdxStack.push(idx);
@@ -29,6 +30,13 @@ QtObject {
     function closeSubPage(): void {
         subPageClosed();
         subPageIdxStack.pop();
+    }
+
+    // Deep-link requests come from search results, which can target any
+    // top-level page and a chain of sub-pages below it.
+    function requestNavigation(page: string, subPages: var): void {
+        searchQuery = "";
+        navigationRequested(page, subPages ?? []);
     }
 
     onCurrentPageIdxChanged: subPageIdxStack.length = 0

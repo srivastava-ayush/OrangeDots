@@ -440,7 +440,9 @@ end)
 
 hl.bind("SUPER + X", hl.dsp.exec_cmd("caelestia shell nexus open"))
 hl.bind("SUPER + D", hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"))
-hl.bind("SUPER + L", hl.dsp.exec_cmd("caelestia shell lock lock"))
+-- Prefer the shell's registered global shortcut for locking: it skips the
+-- caelestia CLI/Python startup delay before the lock animation begins.
+hl.bind("SUPER + L", hl.dsp.global("caelestia:lock"))
 hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
 ```
 

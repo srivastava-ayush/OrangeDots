@@ -44,7 +44,9 @@ Item {
                 icon: "lock"
                 title: qsTr("Lock")
                 subtitle: qsTr("Stay private")
-                command: ["caelestia", "shell", "lock", "lock"]
+                // Talk to the running shell directly; the caelestia CLI adds
+                // Python startup latency before the lock animation begins.
+                command: ["qs", "-c", "caelestia", "ipc", "call", "lock", "lock"]
                 KeyNavigation.right: logout
                 KeyNavigation.down: logout
                 Component.onCompleted: forceActiveFocus()

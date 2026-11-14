@@ -176,7 +176,9 @@ Item {
                     icon: "lock"
                     onClicked: {
                         root.screenState.dashboard = false;
-                        Quickshell.execDetached(["caelestia", "shell", "lock", "lock"]);
+                        // Keep the lock request in the shell's IPC path; the
+                        // caelestia CLI adds Python startup latency.
+                        Quickshell.execDetached(["qs", "-c", "caelestia", "ipc", "call", "lock", "lock"]);
                     }
                 }
                 PowerButton {

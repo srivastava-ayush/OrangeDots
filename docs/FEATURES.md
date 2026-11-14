@@ -273,7 +273,7 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | `SUPER+D` on release | Toggle dashboard. |
 | Tap `SUPER+ALT` | Toggle dashboard. |
 | `SUPER+ALT+1..4` | Select Media / Dashboard / Performance / Phone by name. Disabled dashboard tabs are omitted from the visible strip. |
-| `SUPER+P` | Open Performance. |
+| `SUPER+P` | Pin/unpin the focused window. |
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence. |
 | `SUPER+L` | Lock session. |
 | `SUPER+X` | Open Nexus. |

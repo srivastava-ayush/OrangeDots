@@ -17,6 +17,7 @@ ColumnLayout {
     SearchBar {
         id: searchField
 
+        objectName: "settingsSearch"
         Layout.fillWidth: true
 
         placeholderText: qsTr("Search settings")
@@ -34,9 +35,14 @@ ColumnLayout {
         }
 
         Binding {
-            target: root.nState
-            property: "searchOpen"
-            value: searchField.text.length > 0
+            target: searchField
+            property: "text"
+            value: root.nState.searchQuery
+        }
+
+        onTextChanged: {
+            if (text !== root.nState.searchQuery)
+                root.nState.searchQuery = text;
         }
     }
 

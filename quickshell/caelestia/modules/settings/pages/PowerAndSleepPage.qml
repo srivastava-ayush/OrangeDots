@@ -170,6 +170,20 @@ PageBase {
         }
 
         SectionHeader {
+            text: qsTr("Lock screen")
+        }
+
+        NavRow {
+            objectName: "powerLockScreen"
+            first: true
+            last: true
+            icon: "lock"
+            text: qsTr("Lock screen")
+            subtext: qsTr("Background, fingerprint and face unlock")
+            onClicked: root.nState.openSubPage(1) // Lock screen page
+        }
+
+        SectionHeader {
             // Snapshot of this machine's systemd configuration; these rows do not change it.
             text: qsTr("Systemd (read-only)")
         }

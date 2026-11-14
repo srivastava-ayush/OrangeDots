@@ -107,6 +107,21 @@ PageBase {
             onClicked: root.nState.openSubPage(2)
         }
 
+        // Display
+        SectionHeader {
+            text: qsTr("Display")
+        }
+
+        NavRow {
+            objectName: "servicesOsd"
+            first: true
+            last: true
+            icon: "volume_up"
+            text: qsTr("On-screen display")
+            subtext: qsTr("Volume, brightness and microphone overlays")
+            onClicked: root.nState.openSubPage(3)
+        }
+
         // Polling
         SectionHeader {
             text: qsTr("Polling")

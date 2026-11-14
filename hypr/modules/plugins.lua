@@ -8,16 +8,21 @@ return function(settings)
         hl.bind("SUPER + T", hl.plugin.hypr3d.toggle)
     end
 
-    plugin = {
-       scrolloverview = {
-           gesture_distance = 300,
-           scale            = 0.5,
-           workspace_gap    = 100,
-            layout           = "vertical",
-           wallpaper        = 0,
-            blur             = false,
-        },
-    }
+
+
+
+--    hl.config({
+ --   plugin = {
+  --      scrolloverview = {
+  --          gesture_distance = 1, 
+--            scale = .3,
+    --        workspace_gap = 10,
+      --      layout = "vertical", 
+        --    wallpaper = 0, 
+          --  blur = false, 
+       --},
+   -- },
+--})
 
 
     if hl.plugin.hyprglass then
