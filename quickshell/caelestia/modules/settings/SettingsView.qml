@@ -17,8 +17,12 @@ Item {
         onClose: root.close()
     }
     property color blobColour: Colours.tPalette.m3surfaceContainerLow
+    // The popout button only makes sense while Nexus is hosted in the taskbar
+    // overlay; the detached window instance disables it.
+    property bool detachable: true
 
     signal close
+    signal detach
     Keys.onEscapePressed: root.close()
 
     function navigateTo(page: string, subPages: var): void {
@@ -78,27 +82,53 @@ Item {
         opacity: root.blobColour.a
         radius: Tokens.rounding.medium
 
-        implicitWidth: windowBtn.implicitWidth + Tokens.padding.small * 2
-        implicitHeight: windowBtn.implicitHeight + Tokens.padding.small
+        implicitWidth: windowBtnRow.implicitWidth + Tokens.padding.small * 2
+        implicitHeight: windowBtnRow.implicitHeight + Tokens.padding.small
     }
 
-    IconButton {
-        id: windowBtn
-        objectName: "nexusClose"
+    Row {
+        id: windowBtnRow
 
         anchors.centerIn: windowBtnRect
-        icon: "close"
-        type: IconButton.Text
-        label.fill: 0
-        inactiveOnColour: hovered ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
-        stateLayer.opacity: 0
-        onClicked: root.close()
+        spacing: Tokens.spacing.extraSmall
 
-        label.scale: pressed ? 0.8 : 1
-        label.renderType: Text.QtRendering
+        IconButton {
+            id: detachBtn
+            objectName: "nexusDetach"
 
-        Behavior on label.scale {
-            Anim {}
+            visible: root.detachable
+            icon: "open_in_new"
+            type: IconButton.Text
+            label.fill: 0
+            inactiveOnColour: hovered ? Colours.palette.m3primary : Colours.palette.m3onSurfaceVariant
+            stateLayer.opacity: 0
+            onClicked: root.detach()
+
+            label.scale: pressed ? 0.8 : 1
+            label.renderType: Text.QtRendering
+
+            Behavior on label.scale {
+                Anim {}
+            }
+        }
+
+        IconButton {
+            id: windowBtn
+            objectName: "nexusClose"
+
+            icon: "close"
+            type: IconButton.Text
+            label.fill: 0
+            inactiveOnColour: hovered ? Colours.palette.m3error : Colours.palette.m3onSurfaceVariant
+            stateLayer.opacity: 0
+            onClicked: root.close()
+
+            label.scale: pressed ? 0.8 : 1
+            label.renderType: Text.QtRendering
+
+            Behavior on label.scale {
+                Anim {}
+            }
         }
     }
 

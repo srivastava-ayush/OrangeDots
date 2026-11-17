@@ -202,26 +202,36 @@ Item {
             }
         }
 
+        function playEntrance(): void {
+            // A reused card can still hold the exit frame (or a partial one)
+            // inside its stagger pause. Reset first so every button starts
+            // hidden and the wave replays on each open, not just the first.
+            entrance = 0;
+            enterAnimation.restart();
+        }
         onPresentedChanged: {
             if (presented) {
                 exitAnimation.stop();
-                enterAnimation.restart();
+                playEntrance();
             } else {
                 enterAnimation.stop();
                 exitAnimation.restart();
             }
         }
-        Component.onCompleted: if (presented) enterAnimation.start()
+        Component.onCompleted: if (presented) playEntrance()
 
         SequentialAnimation {
             id: enterAnimation
-            PauseAnimation { duration: button.order * Tokens.anim.durations.expressiveFastEffects * 0.55 }
+            // The card opens quickly, but the buttons keep a relaxed cadence so
+            // the group still reads as a deliberate cascade rather than a pop.
+            PauseAnimation { duration: button.order * Tokens.anim.durations.expressiveFastEffects * 0.4 }
             Anim {
                 target: button
                 property: "entrance"
                 from: 0
                 to: 1
-                type: Anim.SlowSpatial
+                type: Anim.FastSpatial
+                duration: Tokens.anim.durations.expressiveFastSpatial * 0.8
                 easing.type: Easing.OutBack
                 easing.overshoot: 0.65
             }

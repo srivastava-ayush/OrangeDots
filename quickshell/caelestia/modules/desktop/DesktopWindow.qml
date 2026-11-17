@@ -283,11 +283,14 @@ StyledWindow {
 
             panel: panels.sessionWrapper
             deformAmount: 0.2
-            // A floating, centered card: never extend this surface to an edge.
+            // Follow the menu's animated card so the liquid surface is born at
+            // the bottom centre and expands with it, rather than sitting at the
+            // final slot. Its destination is a floating, centered card.
+            x: panels.sessionWrapper.x + panels.session.x + panels.x
             y: panels.sessionWrapper.y + panels.session.y + panels.y
-            opacity: 1 - panels.session.offsetScale
+            opacity: panels.session.reveal
             implicitWidth: panel.visible ? panels.session.width : 0
-            implicitHeight: panel.visible ? panel.height : 0
+            implicitHeight: panel.visible ? panels.session.height : 0
         }
 
         PanelBg {

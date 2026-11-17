@@ -274,6 +274,11 @@ Item {
                 nState.animatingContainer: nexus.opacity < 1
                 Component.onCompleted: navigateTo(root.queuedMode, root.queuedSubPages)
                 onClose: root.close()
+                onDetach: {
+                    const state = nexusInner.nState;
+                    SettingsWindows.popOut(PageRegistry.pages[state.currentPageIdx]?.id ?? "appearance", state.subPageIdxStack, root.screen);
+                    root.close();
+                }
             }
         }
     }

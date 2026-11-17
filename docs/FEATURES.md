@@ -80,7 +80,7 @@ The current tab order is **Media → Dashboard → Performance → Phone**. Medi
 
 #### Dashboard tab
 
-- User card with a selectable profile picture from `~/.face`, clock, date, and uptime.
+- User card with a selectable profile picture from `~/.face`, name and uptime overlaid on the artwork, and Orange OS name/release branding above the update row.
 - Arch package-update count using `checkupdates`, refreshed every 30 minutes while the user card is loaded. Clicking the update row opens `kitty -e sudo pacman -Syu`.
 - Logout, suspend, hibernate, reboot, and shutdown buttons.
 - A shared row of three utility cards:
@@ -357,18 +357,17 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/settings/common/` | `AnimatedLogo.qml`, `AudioDeviceList.qml`, `BlobPopup.qml`, `ConnectedRect.qml`, `DialogRowButton.qml`, `DialogSelectButton.qml`, `EthernetSection.qml`, `InfoRow.qml`, `ItemList.qml`, `ListEditor.qml`, `NavRow.qml`, `NetworkList.qml`, `PageBase.qml`, `PopupRow.qml`, `RowButton.qml`, `SectionHeader.qml`, `SelectRow.qml`, `SliderRow.qml`, `StackPage.qml`, `StepperRow.qml`, `TextFieldRow.qml`, `ToggleRow.qml`, `WallItem.qml` | Settings-local reusable rows, lists, page containers, popups, device/network widgets, and wallpaper tiles. |
 | `modules/settings/navpane/` | `NavLocations.qml` | Settings navigation locations. |
 | `modules/settings/pages/` | `AboutPage.qml`, `AppsPage.qml`, `AudioPage.qml`, `BluetoothPage.qml`, `LanguageAndRegion.qml`, `NetworkPage.qml`, `PanelsPage.qml`, `PowerAndSleepPage.qml`, `ServicesPage.qml`, `WallpaperAndStyle.qml` | Main implemented settings pages. |
-| `modules/settings/pages/apps/` | `AllApps.qml`, `AppInfo.qml` | Application browsing and per-app settings. |
 | `modules/settings/pages/audio/` | `AppVolumes.qml` | Application-stream volume/mute controls. |
 | `modules/settings/pages/bluetooth/` | `BluetoothPairing.qml`, `BtDeviceInfo.qml` | Pairing and device-specific controls. |
 | `modules/settings/pages/network/` | `AddNetworkPage.qml`, `AddVpnPage.qml`, `AllNetworksPage.qml`, `EthernetDetailPage.qml`, `NetworkDetailPage.qml`, `SavedNetworksPage.qml` | Network creation/filtering, saved profiles, IPv4 details, and VPN-provider editing. |
-| `modules/settings/pages/panels/` | `DashboardPanel.qml`, `LauncherPanel.qml`, `NotificationShadePanel.qml`, `TaskbarPanel.qml`, `SidebarPanel.qml`, `SidebarSidePanel.qml`, `SidebarModulesPanel.qml`, `SidebarCalendarPanel.qml` | Shell-panel configuration; no standalone Utilities page. |
+| `modules/settings/pages/panels/` | `AllApps.qml`, `AppInfo.qml`, `DashboardPanel.qml`, `LauncherPanel.qml`, `NotificationShadePanel.qml`, `TaskbarPanel.qml`, `SidebarPanel.qml`, `SidebarSidePanel.qml`, `SidebarModulesPanel.qml`, `SidebarCalendarPanel.qml` | Shell-panel configuration, launcher app browsing/per-app settings; no standalone Utilities page. |
 | `modules/settings/pages/panels/taskbar/` | `BarActiveWindow.qml`, `BarClock.qml`, `BarStatusIcons.qml`, `BarTray.qml`, `BarWorkspaces.qml` | Taskbar component settings. |
 | `modules/settings/pages/services/` | `NotificationsPage.qml`, `RecorderPanel.qml` | Notification, toast, and screen-recorder configuration. |
 | `modules/settings/pages/wallandstyle/` | `ColourSelect.qml`, `WallpaperCategory.qml`, `WallpaperSelect.qml` | Wallpaper browsing and the unfinished colour-selection page. |
 | `modules/notifications/banners/` | `BannerList.qml`, `BannerWrapper.qml`, `NotificationBanner.qml` | Transient notification popup stack. |
 | `modules/notifications/shade/` | `NotificationActions.qml`, `NotificationCard.qml`, `NotificationDock.qml`, `NotificationGroup.qml`, `NotificationGroups.qml`, `NotificationShade.qml`, `ShadeState.qml` | Notification shade, grouped/docked lists, actions, and expansion state. |
 | `modules/onscreendisplay/` | `OsdContent.qml`, `OsdWrapper.qml` | Volume/microphone/brightness OSD and change-driven visibility. |
-| `modules/sessionmenu/` | `SessionMenuContent.qml`, `SessionMenuWrapper.qml` | Session buttons, animated image, keyboard navigation, and panel visibility. |
+| `modules/sessionmenu/` | `SessionMenuContent.qml`, `SessionMenuWrapper.qml` | Session buttons, animated image, keyboard navigation, and a bottom-centre open/close morph. |
 | `modules/windowinfo/` | `Buttons.qml`, `Details.qml`, `Preview.qml`, `WindowInfo.qml` | Expanded window preview, metadata, workspace moves, and window actions. |
 
 ## Shared QML components
@@ -484,6 +483,7 @@ The UI also imports **`M3Shapes`** for Material shapes. It is a fetched native d
 | Path under `quickshell/caelestia/` | Purpose |
 |---|---|
 | `utils/Icons.qml` | Application/system icon lookup and volume, network, Bluetooth, and related icon selection. |
+| `utils/Branding.qml` | Shared Orange OS display name and release version used by the About page and dashboard branding. |
 | `utils/Images.qml` | Supported image-extension/filter helpers. |
 | `utils/NetworkConnection.qml` | Shared Wi-Fi connection flow and password-dialog coordination. |
 | `utils/Paths.qml` | XDG/home/config/state/cache/media paths, environment overrides, and path conversion/shortening. |

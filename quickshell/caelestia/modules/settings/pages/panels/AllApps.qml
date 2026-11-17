@@ -41,7 +41,7 @@ PageBase {
                 StateLayer {
                     onClicked: {
                         root.nState.selectedApp = appItem.modelData;
-                        root.nState.openSubPage(2);
+                        root.nState.openSubPage(16); // Launcher → App info sub-page
                     }
                 }
 

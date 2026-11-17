@@ -1,9 +1,9 @@
+
 pragma Singleton
 
 import QtQuick
 import qs.modules.settings.common
 import qs.modules.settings.pages
-import qs.modules.settings.pages.apps
 import qs.modules.settings.pages.audio
 import qs.modules.settings.pages.bluetooth
 import qs.modules.settings.pages.network
@@ -16,198 +16,115 @@ QtObject {
     id: root
 
     readonly property list<Component> pageComps: [
-        // Appearance
+        // 1. Desktop & Style
         Component {
-            // Desktop & style
             StackPage {
-                Component {
-                    WallpaperAndStyle {}
-                }
-                Component {
-                    WallpaperSelect {}
-                }
-                Component {
-                    WallpaperCategory {}
-                }
-                Component {
-                    ColourSelect {}
-                }
-                Component {
-                    // Desktop & style → Colours (index 4).
-                    ColoursPage {}
-                }
-                Component {
-                    // Desktop & style → Interface (index 5).
-                    InterfacePage {}
-                }
-                Component {
-                    // Desktop & style → Desktop (index 6).
-                    DesktopPage {}
-                }
+                Component { WallpaperAndStyle {} }
+                Component { WallpaperSelect {} }
+                Component { WallpaperCategory {} }
+                Component { ColourSelect {} }
+                Component { ColoursPage {} }
+                Component { InterfacePage {} }
+                Component { DesktopPage {} }
             }
         },
 
-        // Connectivity
+        // 2. Panels
         Component {
-            // Network
             StackPage {
-                Component {
-                    NetworkPage {}
-                }
-                Component {
-                    EthernetDetailPage {}
-                }
-                Component {
-                    AddNetworkPage {}
-                }
-                Component {
-                    NetworkDetailPage {}
-                }
-                Component {
-                    AddVpnPage {}
-                }
-                Component {
-                    AllNetworksPage {}
-                }
-                Component {
-                    SavedNetworksPage {}
-                }
-            }
-        },
-        Component {
-            // Bluetooth
-            StackPage {
-                Component {
-                    BluetoothPage {}
-                }
-                Component {
-                    BtDeviceInfo {}
-                }
-                Component {
-                    BluetoothPairing {}
-                }
-            }
-        },
-        Component {
-            // Audio
-            StackPage {
-                Component {
-                    AudioPage {}
-                }
-                Component {
-                    AppVolumes {}
-                }
-            }
-        },
+                Component { PanelsPage {} }
+                Component { DashboardPanel {} }
+                Component { TaskbarPanel {} }
+                Component { LauncherPanel {} }
 
-        // System
-        Component {
-            StackPage {
-                Component {
-                    PowerAndSleepPage {}
-                }
-                Component {
-                    // Power & sleep → Lock screen (index 1).
-                    LockScreenPage {}
-                }
-            }
-        },
+                // Taskbar sub-pages
+                Component { BarWorkspaces {} }
+                Component { BarActiveWindow {} }
+                Component { BarTray {} }
+                Component { BarStatusIcons {} }
+                Component { BarClock {} }
+                Component { NotificationShadePanel {} }
 
-        // Shell
-        Component {
-            // Panels
-            StackPage {
-                Component {
-                    PanelsPage {}
-                }
-                Component {
-                    DashboardPanel {}
-                }
-                Component {
-                    TaskbarPanel {}
-                }
-                Component {
-                    LauncherPanel {}
-                }
-                // Taskbar component sub-pages
-                Component {
-                    BarWorkspaces {}
-                }
-                Component {
-                    BarActiveWindow {}
-                }
-                Component {
-                    BarTray {}
-                }
-                Component {
-                    BarStatusIcons {}
-                }
-                Component {
-                    BarClock {}
-                }
-                Component {
-                    // Taskbar → Notification shade (index 9).
-                    NotificationShadePanel {}
-                }
-                Component {
-                    SidebarPanel {}
-                }
+                // Sidebar sub-pages
+                Component { SidebarPanel {} }
                 Component { SidebarSidePanel { side: "left" } }
                 Component { SidebarSidePanel { side: "right" } }
                 Component { SidebarModulesPanel {} }
                 Component { SidebarCalendarPanel {} }
-            }
-        },
-        Component {
-            // Apps
-            StackPage {
-                Component {
-                    AppsPage {}
-                }
-                Component {
-                    AllApps {}
-                }
-                Component {
-                    AppInfo {}
-                }
-            }
-        },
-        Component {
-            // Services
-            StackPage {
-                Component {
-                    ServicesPage {}
-                }
-                Component {
-                    NotificationsPage {}
-                }
-                Component {
-                    // Services → Screen recorder (index 2).
-                    RecorderPanel {}
-                }
-                Component {
-                    // Services → On-screen display (index 3).
-                    OnScreenDisplayPage {}
-                }
-            }
-        },
-        Component {
-            // Language & region
-            StackPage {
-                Component {
-                    LanguageAndRegion {}
-                }
+
+                // Launcher sub-pages
+                Component { AllApps {} }
+                Component { AppInfo {} }
             }
         },
 
-        // About
+        // 3. WiFi / Network
         Component {
             StackPage {
-                Component {
-                    AboutPage {}
-                }
+                Component { NetworkPage {} }
+                Component { EthernetDetailPage {} }
+                Component { AddNetworkPage {} }
+                Component { NetworkDetailPage {} }
+                Component { AddVpnPage {} }
+                Component { AllNetworksPage {} }
+                Component { SavedNetworksPage {} }
+            }
+        },
+
+        // 4. Bluetooth
+        Component {
+            StackPage {
+                Component { BluetoothPage {} }
+                Component { BtDeviceInfo {} }
+                Component { BluetoothPairing {} }
+            }
+        },
+
+        // 5. Audio
+        Component {
+            StackPage {
+                Component { AudioPage {} }
+                Component { AppVolumes {} }
+            }
+        },
+
+        // 6. Power & Sleep
+        Component {
+            StackPage {
+                Component { PowerAndSleepPage {} }
+                Component { LockScreenPage {} }
+            }
+        },
+
+        // 7. Services
+        Component {
+            StackPage {
+                Component { ServicesPage {} }
+                Component { NotificationsPage {} }
+                Component { RecorderPanel {} }
+                Component { OnScreenDisplayPage {} }
+            }
+        },
+
+        // 8. Language & Region
+        Component {
+            StackPage {
+                Component { LanguageAndRegion {} }
+            }
+        },
+
+        // 9. Apps
+        Component {
+            StackPage {
+                Component { AppsPage {} }
+            }
+        },
+
+        // 10. About
+        Component {
+            StackPage {
+                Component { AboutPage {} }
             }
         }
     ]
-
 }

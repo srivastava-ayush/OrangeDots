@@ -116,20 +116,33 @@ Item {
                     visible: recorderCard.active || weatherCard.active
                     spacing: Tokens.spacing.medium
 
-                    Loader {
-                        id: recorderCard
-                        objectName: "overviewRecorder"
+                    ColumnLayout {
+                        id: recorderColumn
 
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.preferredWidth: 0
-                        active: Config.utilities.cards.recorder
-                        visible: active
-                        z: 1
+                        Layout.minimumWidth: 0
+                        spacing: Tokens.spacing.medium
 
-                        sourceComponent: Record {
-                            props: root.props
-                            screenState: root.screenState
+                        BrandingCard {
+                            Layout.fillWidth: true
+                        }
+
+                        Loader {
+                            id: recorderCard
+                            objectName: "overviewRecorder"
+
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: 0
+                            active: Config.utilities.cards.recorder
+                            visible: active
+                            z: 1
+
+                            sourceComponent: Record {
+                                props: root.props
+                                screenState: root.screenState
+                            }
                         }
                     }
 

@@ -89,8 +89,8 @@ Item {
         clip: false
         visible: session.offsetScale < 1
 
-        implicitWidth: session.implicitWidth
-        implicitHeight: session.implicitHeight
+        implicitWidth: session.finalWidth
+        implicitHeight: session.finalHeight
 
         Session.SessionMenuWrapper {
             id: session
@@ -98,9 +98,9 @@ Item {
             screenState: root.screenState
             availableWidth: root.width
             sidebarVisible: false
-
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
+            // Grow from the bottom centre of the screen into the fixed slot.
+            anchorX: root.width / 2 - sessionWrapper.x
+            anchorY: root.height - sessionWrapper.y
         }
     }
 
@@ -177,6 +177,10 @@ Item {
         dashboardOpen: root.screenState.dashboard
         activeScreen: ShellState.forActive() === root.screenState
         hideInset: root.bar.notched ? root.y : 0
+        // In notches mode the taskbar has no full-width surface; the island's
+        // background bridges to the screen edge. Pull the content up by the
+        // same inset so no empty bar-height band sits above the player.
+        topInset: root.bar.notched && root.bar.horizontal ? root.bar.thickness : 0
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 

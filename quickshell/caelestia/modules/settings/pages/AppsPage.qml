@@ -58,20 +58,6 @@ PageBase {
             status: GlobalConfig.general.apps.explorer.join(" ")
             onSelected: app => GlobalConfig.general.apps.explorer = app.command
         }
-
-        // Library
-        SectionHeader {
-            text: qsTr("Library")
-        }
-
-        NavRow {
-            first: true
-            last: true
-            icon: "apps"
-            text: qsTr("All apps")
-            subtext: qsTr("Browse installed apps, set favourites and hidden")
-            onClicked: root.nState.openSubPage(1)
-        }
     }
 
     component DefaultRow: PopupRow {

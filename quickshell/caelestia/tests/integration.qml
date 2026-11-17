@@ -935,6 +935,17 @@ ShellRoot {
                             const pos = item.mapToItem(profile, 0, 0);
                             root.check(pos.x >= 0 && pos.y >= 0 && pos.x + item.width <= profile.width + 0.01 && pos.y + item.height <= profile.height + 0.01, `${name} must fit inside the compact profile card`);
                         }
+                        const branding = root.find(overview, "overviewBranding");
+                        root.check(!!branding && !root.find(profile, "overviewBranding"), "Orange OS branding must be its own dashboard card, not part of the profile card");
+                        root.check(root.find(branding, "overviewBrandName").text === "Orange OS" && root.find(branding, "overviewBrandVersion").text === "AYUSH_GOAT_V5", "Branding card must show the Orange OS name and release version");
+                        const brandName = root.find(branding, "overviewBrandName");
+                        const brandNamePos = brandName.mapToItem(branding, 0, 0);
+                        root.check(Math.abs(brandNamePos.x + brandName.width / 2 - branding.width / 2) < 1, "Branding must be centered inside its card");
+                        const recorder = root.find(scene.contentItem, "overviewRecorder");
+                        const brandPos = branding.mapToItem(overview, 0, 0);
+                        const recorderPos = recorder.mapToItem(overview, 0, 0);
+                        root.check(brandPos.y + branding.height <= recorderPos.y + 0.01, "Branding card must sit above the recorder row");
+                        root.check(recorderPos.y + recorder.height <= overview.height + 0.01, "Recorder must stay inside the dashboard after adding the branding card");
                         root.check(root.find(overview, "overviewSessionControls").children.filter(child => child.icon !== undefined).length === 5, "The minimal profile must retain all five session actions");
                         root.check(!!root.find(overview, "overviewQuickControls") && !!root.find(overview, "overviewRecorder") && !!root.find(overview, "overviewWeather"), "Overview must retain utilities, recorder and weather");
                         Weather.dataQuery = Weather.locationQuery;
@@ -1045,7 +1056,7 @@ ShellRoot {
                         const background = root.findBackground(scene.contentItem, island);
                         const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
                         root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
-                        root.check(island.parent === scene.interactionWrapper.panels && Math.abs(island.y) < 0.01, "The island must live directly inside the shell at the dashboard entry edge");
+                        root.check(island.parent === scene.interactionWrapper.panels && Math.abs(island.y) < 0.01 && island.topInset === 0, "The island must live directly inside the shell at the dashboard entry edge");
                         root.find(island, "islandNext").clicked(null);
                         break;
                     case 2:
@@ -1064,6 +1075,7 @@ ShellRoot {
                         root.check(root.find(island, "islandDuration").text === "--:--" && root.find(island, "islandProgress").value === 0, "Unknown-duration streams must have a safe empty progress bar");
                         const islandBackground = root.findBackground(scene.contentItem, island);
                         root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
+                        root.check(island.topInset === scene.interactionWrapper.panels.y && Math.abs(island.mapToItem(scene.interactionWrapper, 0, 0).y) < 0.01, "Notched shells must lift the island content to the screen edge instead of leaving a bar-height gap");
                         break;
                     case 4:
                         root.check(!island.expanded, "The island must automatically dismiss after its timeout");
@@ -1107,7 +1119,7 @@ ShellRoot {
                     case 11:
                         const playerContent = root.find(island, "mediaIslandContent");
                         root.check(Math.abs(island.width - island.fullWidth * 0.74) < 0.01 && island.opacity === 0.5, "Island must match the dashboard's centered curtain and fade halfway through the animation");
-                        root.check(island.y === (-island.height - island.hideInset - 5) * 0.5, "Island must use the dashboard's slide distance with its top inset");
+                        root.check(island.y === (-island.height - island.hideInset - 5) * 0.5 - island.topInset * 0.5, "Island must use the dashboard's slide distance with its top inset");
                         root.check(playerContent.width === island.fullWidth - 32, "Island content must remain full-sized during the reveal animation");
                         island.offsetScale = 1;
                         console.log("TASKBAR TEST PASS");

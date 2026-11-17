@@ -205,6 +205,10 @@ Scope {
         }
 
         function toggle(): void {
+            if (SettingsWindows.windowOpen) {
+                SettingsWindows.closeWindow();
+                return;
+            }
             const fallbackScreen = Quickshell.screens[0];
             const comps = ShellState.componentsForActive()
                 ?? (fallbackScreen ? ShellState.componentsFor(fallbackScreen) : null);

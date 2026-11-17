@@ -11,8 +11,8 @@ import qs.modules.settings.common
 PageBase {
     id: root
 
-    readonly property string shellName: "Orange OS"
-    readonly property string shellVersion: "AYUSH_GOAT_V5"
+    readonly property string shellName: Branding.name
+    readonly property string shellVersion: Branding.version
 
     property string quickshellVersion
     property string cliVersion

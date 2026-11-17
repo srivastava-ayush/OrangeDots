@@ -53,6 +53,20 @@ return function(settings)
         center = true
     })
 
+    -- Detached Nexus settings window: Quickshell hosts it as a normal XDG
+    -- toplevel (class org.quickshell, title "Nexus"), so float it instead of
+    -- letting it get tiled.
+    hl.window_rule({
+        name  = "nexus-window",
+        match = {
+            class = "^org\\.quickshell$",
+            title = "^Nexus$",
+        },
+
+        float  = true,
+        center = true,
+    })
+
     hl.window_rule({
         name  = "nmtui",
         match = { title = "nmtui" },

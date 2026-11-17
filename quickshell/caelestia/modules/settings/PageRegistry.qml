@@ -1,3 +1,4 @@
+
 pragma Singleton
 
 import QtQuick
@@ -6,7 +7,7 @@ QtObject {
     id: root
 
     readonly property list<var> pages: [
-        // Appearance
+        // 1. Desktop & style
         {
             id: "appearance",
             label: qsTr("Desktop & style"),
@@ -16,24 +17,38 @@ QtObject {
             keywords: ["wallpaper", "background", "theme", "colour", "color", "scheme", "dark", "light", "tint", "transparency", "interface", "rounding", "spacing", "padding", "font", "animation", "desktop", "clock", "visualiser", "visualizer", "appearance"]
         },
 
-        // Connectivity
+        // 2. Panels
+        {
+            id: "panels",
+            label: qsTr("Panels"),
+            icon: "dock_to_bottom",
+            description: qsTr("Dashboard & utilities, taskbar & notifications, launcher, calendar"),
+            category: "shell",
+            keywords: ["panel", "dashboard", "taskbar", "bar", "launcher", "all apps", "favourite", "favorite", "hidden", "sidebar", "calendar", "notification", "shade", "tray", "status", "workspace", "clock", "active window"]
+        },
+
+        // 3. WiFi
         {
             id: "network",
-            label: qsTr("Network"),
+            label: qsTr("WiFi"),
             icon: "wifi",
             description: qsTr("Wi-Fi, ethernet, VPN"),
             category: "connectivity",
             keywords: ["wifi", "wi-fi", "ethernet", "vpn", "network", "internet", "connection"]
         },
+
+        // 4. Bluetooth
         {
             id: "bluetooth",
-            label: qsTr("Connected devices"),
+            label: qsTr("Bluetooth"),
             icon: "devices_other",
             description: qsTr("Bluetooth, pairing"),
             category: "connectivity",
             noFill: true,
             keywords: ["bluetooth", "device", "pair", "pairing", "headphones", "mouse", "keyboard"]
         },
+
+        // 5. Audio
         {
             id: "audio",
             label: qsTr("Audio"),
@@ -43,7 +58,7 @@ QtObject {
             keywords: ["audio", "sound", "volume", "speaker", "microphone", "output", "input"]
         },
 
-        // System
+        // 6. Power & Sleep
         {
             id: "power",
             label: qsTr("Power & sleep"),
@@ -53,23 +68,7 @@ QtObject {
             keywords: ["power", "sleep", "idle", "battery", "suspend", "hibernate", "lock", "screen", "fingerprint", "face", "howdy", "fprint"]
         },
 
-        // Shell
-        {
-            id: "panels",
-            label: qsTr("Panels"),
-            icon: "dock_to_bottom",
-            description: qsTr("Dashboard & utilities, taskbar & notifications, launcher, calendar"),
-            category: "shell",
-            keywords: ["panel", "dashboard", "taskbar", "bar", "launcher", "sidebar", "calendar", "notification", "shade", "tray", "status", "workspace", "clock", "active window"]
-        },
-        {
-            id: "apps",
-            label: qsTr("Apps"),
-            icon: "apps",
-            description: qsTr("Default apps, favourites, hidden apps"),
-            category: "shell",
-            keywords: ["app", "application", "default", "favourite", "favorite", "hidden", "terminal", "browser", "file manager"]
-        },
+        // 7. Services
         {
             id: "services",
             label: qsTr("Services"),
@@ -78,6 +77,8 @@ QtObject {
             category: "shell",
             keywords: ["service", "poll", "lyrics", "recorder", "record", "osd", "on-screen display", "volume", "brightness", "microphone", "notification", "gpu", "weather"]
         },
+
+        // 8. Language & Region
         {
             id: "language",
             label: qsTr("Language & region"),
@@ -87,7 +88,17 @@ QtObject {
             keywords: ["language", "region", "locale", "units", "temperature", "celsius", "fahrenheit", "clock", "twelve", "24 hour"]
         },
 
-        // About
+        // 9. Apps
+        {
+            id: "apps",
+            label: qsTr("Apps"),
+            icon: "apps",
+            description: qsTr("Default applications"),
+            category: "shell",
+            keywords: ["app", "application", "default", "terminal", "audio", "media", "file manager", "browser"]
+        },
+
+        // 10. About
         {
             id: "about",
             label: qsTr("About"),
@@ -95,7 +106,7 @@ QtObject {
             description: qsTr("Orange OS version and system information"),
             category: "about",
             keywords: ["about", "version", "system", "orange", "information", "release"]
-        },
+        }
     ]
 
     // Deep links surfaced by the Nexus search. `subPages` is the chain of
@@ -172,6 +183,15 @@ QtObject {
             page: "panels",
             subPages: [3],
             keywords: ["launcher", "search", "apps", "fuzzy", "action prefix", "wallpaper"]
+        },
+        {
+            label: qsTr("All apps"),
+            description: qsTr("Browse installed apps, set favourites and hidden"),
+            icon: "apps",
+            trail: qsTr("Panels · Launcher"),
+            page: "panels",
+            subPages: [3, 15],
+            keywords: ["app", "apps", "all apps", "application", "browse", "favourite", "favorite", "hidden", "install"]
         },
         {
             label: qsTr("Workspaces"),
@@ -289,7 +309,7 @@ QtObject {
             page: "power",
             subPages: [1],
             keywords: ["lock", "screen", "lock screen", "fingerprint", "face", "howdy", "fprint", "password", "wallpaper"]
-        },
+        }
     ]
 
     function normalise(value: var): string {

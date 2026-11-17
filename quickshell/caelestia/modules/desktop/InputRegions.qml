@@ -34,7 +34,9 @@ Region {
         panel: root.panels.mediaIsland
         y: 0
         width: panel.visible ? panel.width : 0
-        height: panel.visible ? panel.height * (1 - root.panels.mediaIsland.offsetScale) + root.panels.y : 0
+        // The notched island is lifted to the screen edge, so the bridge to its
+        // bottom stops one top inset short of the old bar-height extension.
+        height: panel.visible ? panel.height * (1 - panel.offsetScale) + root.panels.y - panel.topInset * panel.reveal : 0
     }
 
     // Widen only the edge strip, not the invisible area beside the open panel.
@@ -68,9 +70,10 @@ Region {
 
     R {
         panel: root.panels.sessionWrapper
+        x: panel.x + root.panels.x + root.panels.session.x
         y: panel.y + root.panels.y + root.panels.session.y
-        width: panel.visible ? panel.width : 0
-        height: panel.visible ? panel.height : 0
+        width: root.panels.session.width
+        height: root.panels.session.height
     }
 
     R {

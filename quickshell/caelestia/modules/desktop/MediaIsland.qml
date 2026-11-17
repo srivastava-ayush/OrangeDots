@@ -18,6 +18,10 @@ Item {
     required property bool activeScreen
     property bool dashboardOpen: false
     property real hideInset: 0
+    // Notched top bars keep the island's surface attached to the screen edge,
+    // but this item is anchored below the bar. Lift it by the bar thickness as
+    // it reveals so the player fills that band instead of leaving a gap.
+    property real topInset: 0
     property var player: Players.active
     property int displayDuration: 5000
     property bool expanded: false
@@ -63,7 +67,7 @@ Item {
     readonly property real fullWidth: Math.min(440, parent ? parent.width : 440)
     implicitWidth: fullWidth * (0.48 + 0.52 * reveal)
     implicitHeight: 120
-    anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
+    anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale - topInset * reveal
     visible: reveal > 0
     opacity: reveal
     clip: true

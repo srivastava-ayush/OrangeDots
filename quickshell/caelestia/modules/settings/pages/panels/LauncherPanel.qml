@@ -151,5 +151,19 @@ PageBase {
             checked: GlobalConfig.launcher.useFuzzy.wallpapers
             onToggled: GlobalConfig.launcher.useFuzzy.wallpapers = checked
         }
+
+        // Library
+        SectionHeader {
+            text: qsTr("Library")
+        }
+
+        NavRow {
+            first: true
+            last: true
+            icon: "apps"
+            text: qsTr("All apps")
+            subtext: qsTr("Browse installed apps, set favourites and hidden")
+            onClicked: root.nState.openSubPage(15)
+        }
     }
 }
