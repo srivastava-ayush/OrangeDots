@@ -232,19 +232,26 @@ PanelWindow {
             // Mirror the session menu: the card grows out of an anchor point
             // instead of sliding. Here the point starts at the top centre, so
             // opening drops the strip down from the top edge and closing
-            // shrinks it back there. The width only widens from 60% to its
-            // final size rather than unfolding from a point; the height still
-            // grows from the anchor. The content stays at its final size and is
-            // centred inside the growing clip, so the layout never squashes.
+            // shrinks it back there. The width widens from 60% on open but
+            // narrows only to 40% on close; both meet at full width at the
+            // peak. The height still grows from the anchor. The content stays
+            // at its final size and is centred inside the growing clip, so the
+            // layout never squashes.
             readonly property real anchorX: parent ? parent.width / 2 : width / 2
             readonly property real anchorY: 0
             readonly property real targetX: parent ? parent.width / 2 : anchorX
             readonly property real targetY: parent ? parent.height / 2 : anchorY
             readonly property real openingWidthRatio: 0.6
+            readonly property real closingWidthRatio: 0.4
+            // shouldBeActive flips as soon as the state toggles while progress
+            // animates, so it tells us which direction the width is travelling.
+            readonly property real widthRatio: root.shouldBeActive
+                ? (panel.openingWidthRatio + (1 - panel.openingWidthRatio) * root.progress)
+                : (panel.closingWidthRatio + (1 - panel.closingWidthRatio) * root.progress)
 
             x: anchorX + (targetX - anchorX) * root.progress - width / 2
             y: anchorY + (targetY - anchorY) * root.progress - height / 2
-            width: root.stageWidth * (panel.openingWidthRatio + (1 - panel.openingWidthRatio) * root.progress)
+            width: root.stageWidth * panel.widthRatio
             height: root.stageHeight * root.progress
             // The blob behind the card paints the surface. The panel itself
             // stays transparent and only clips the content to the same rounded

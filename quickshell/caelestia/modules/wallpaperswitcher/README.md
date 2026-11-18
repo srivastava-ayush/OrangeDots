@@ -13,7 +13,7 @@ itself stays owned by the `Wallpapers` service.
 `WallpaperSwitcherWindow.qml` renders a transparent full-screen overlay with a
 centred horizontal `PathView`. Opening and closing are a plain vertical slide
 from above the screen: the card keeps its final height and widens from 60% to
-100% on the way in, then runs the same motion backwards on close. The whole
+100% on the way in, then narrows back to only 40% on close. The whole
 layer never slides or squeezes; only the card moves, with the background dim
 fading in independently. The strip is draggable with the mouse and responds to
 the scroll wheel, exactly like the launcher's wallpaper list. Preview changes
