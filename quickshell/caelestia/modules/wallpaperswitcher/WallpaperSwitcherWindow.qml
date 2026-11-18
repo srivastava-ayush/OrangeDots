@@ -23,6 +23,11 @@ PanelWindow {
     // Set while the window pushes its own selection into the PathView, so the
     // view does not echo that change straight back into the state.
     property bool syncingStrip: false
+    // Sign of the last highlight movement. The incoming tile uses it to slide
+    // home from the side it travelled from.
+    property int slideDirection: 1
+    // Last PathView index, used to derive that direction.
+    property int stripIndex: -1
 
     readonly property real screenWidth: screen?.width ?? 1920
 
@@ -81,13 +86,13 @@ PanelWindow {
     // The close animation must not keep intercepting clicks or keyboard input.
     mask: Region { item: root.shouldBeActive ? surface : null }
 
-    // Mirror the session menu's curve but run it faster: the panel is small
-    // enough that a ~210 ms summon still reads as deliberate, while dismissal
-    // stays shorter so it feels crisp.
+    // Opening and closing share the same pace so the 60% -> 100% width widen
+    // and the staggered tile wave read the same way in both directions; only
+    // the curve changes (ease out on open, ease in on close).
     Behavior on progress {
         Anim {
             type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.32 : Tokens.anim.durations.expressiveDefaultSpatial * 0.36
+            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.308
             easing.type: root.shouldBeActive ? Easing.OutQuint : Easing.InCubic
         }
     }
@@ -227,16 +232,19 @@ PanelWindow {
             // Mirror the session menu: the card grows out of an anchor point
             // instead of sliding. Here the point starts at the top centre, so
             // opening drops the strip down from the top edge and closing
-            // shrinks it back there. The content stays at its final size and is
+            // shrinks it back there. The width only widens from 60% to its
+            // final size rather than unfolding from a point; the height still
+            // grows from the anchor. The content stays at its final size and is
             // centred inside the growing clip, so the layout never squashes.
             readonly property real anchorX: parent ? parent.width / 2 : width / 2
             readonly property real anchorY: 0
             readonly property real targetX: parent ? parent.width / 2 : anchorX
             readonly property real targetY: parent ? parent.height / 2 : anchorY
+            readonly property real openingWidthRatio: 0.6
 
             x: anchorX + (targetX - anchorX) * root.progress - width / 2
             y: anchorY + (targetY - anchorY) * root.progress - height / 2
-            width: root.stageWidth * root.progress
+            width: root.stageWidth * (panel.openingWidthRatio + (1 - panel.openingWidthRatio) * root.progress)
             height: root.stageHeight * root.progress
             // The blob behind the card paints the surface. The panel itself
             // stays transparent and only clips the content to the same rounded
@@ -365,11 +373,14 @@ PanelWindow {
                         preferredHighlightBegin: 0.5
                         preferredHighlightEnd: 0.5
                         highlightRangeMode: PathView.StrictlyEnforceRange
-                        highlightMoveDuration: 220
+                        highlightMoveDuration: 260
 
                         // Dragging owns currentIndex while the finger is down;
                         // keep the state as the single source when keys move it.
                         onCurrentIndexChanged: {
+                            if (currentIndex >= 0 && root.stripIndex >= 0 && currentIndex !== root.stripIndex)
+                                root.slideDirection = currentIndex > root.stripIndex ? 1 : -1;
+                            root.stripIndex = currentIndex;
                             if (root.syncingStrip || !root.state.opened || root.state.filteredEntries.length === 0 || currentIndex < 0)
                                 return;
                             if (root.state.selectedIndex !== currentIndex)
@@ -383,6 +394,8 @@ PanelWindow {
                             compactTileWidth: root.compactWidth
                             slotStep: root.slotStep
                             tileGap: root.tileGap
+                            slideDirection: root.slideDirection
+                            maxStaggerOrder: Math.floor(root.pathItemCount / 2)
                             presented: root.state.opened
                             current: PathView.isCurrentItem
                             applied: modelData.path === Wallpapers.actualCurrent

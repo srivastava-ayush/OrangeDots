@@ -27,8 +27,14 @@ Item {
     required property real slotStep
     required property real tileGap
     // True while the strip is open. Delegates are created long before the
-    // switcher is shown, so this drives the staggered reveal.
+    // switcher is shown, so this drives the drop-in reveal.
     required property bool presented
+    // Sign of the last highlight movement. The centre tile uses it to pick the
+    // side it slides in from on a toggle or a selection change.
+    required property int slideDirection
+    // Half the visible path length: the furthest tile from the highlight, and
+    // therefore the longest stagger delay.
+    required property int maxStaggerOrder
 
     signal clicked
 
@@ -39,19 +45,57 @@ Item {
     // compact and full-sized parallelogram forms.
     property real morph: current ? 1 : 0
 
-    // 0 = hidden/staggered out, 1 = fully presented. Same cadence as the
-    // session menu buttons, but the wave radiates from the highlighted card.
+    // 0 = hidden, 1 = fully presented. Every tile travels together so the
+    // strip drops in as one piece each time the switcher opens.
     property real entrance: 0
     property bool ready: false
 
-    // Each tile drops in from slightly above its resting position. The wave
-    // starts with the highlight and fans outwards on every open.
-    readonly property real staggerOffset: Tokens.spacing.extraLarge + Tokens.spacing.medium
+    // Every tile falls from above its resting position and settles back on its
+    // original Y on each open.
+    readonly property real dropOffset: Tokens.spacing.extraLarge + Tokens.spacing.large
 
-    readonly property int order: {
+    // The highlighted tile slides a little sideways into the centre, coming
+    // from the side it travelled from, then settles on the exact path slot so
+    // the strip gaps stay uniform at rest.
+    readonly property real slideDistance: Tokens.spacing.extraLarge + Tokens.spacing.medium
+
+    // Position relative to the highlight, wrapped so cards that wrap around
+    // the end of the path still count as its nearest neighbours. This uses
+    // discrete indices rather than delegate X: PathView keeps animating those
+    // positions after a selection change, so reading them mid-scroll collapsed
+    // the wave on every toggle after the first.
+    readonly property int slotDelta: {
         const view = PathView.view;
-        return Math.min(4, Math.abs(index - (view ? view.currentIndex : index)));
+        const count = view?.count ?? 0;
+        if (!view || count <= 0 || index < 0 || view.currentIndex < 0)
+            return 0;
+        let delta = index - view.currentIndex;
+        if (delta > count / 2)
+            delta -= count;
+        if (delta < -count / 2)
+            delta += count;
+        return delta;
     }
+    readonly property int staggerOrder: Math.min(maxStaggerOrder, Math.abs(slotDelta))
+    // Neighbours enter from their own edge of the strip; the centre tile
+    // follows the last selection movement so the wave still reads as motion.
+    readonly property int slideSide: slotDelta < 0 ? -1 : (slotDelta > 0 ? 1 : (slideDirection < 0 ? -1 : 1))
+    readonly property real slideFrom: slideSide * slideDistance
+    // Opening radiates outwards; closing reverses the wave so the highlight is
+    // the last card to leave.
+    readonly property int slideInDelay: staggerOrder * Tokens.anim.durations.expressiveFastEffects * 0.35
+    readonly property int slideOutDelay: (maxStaggerOrder - staggerOrder) * Tokens.anim.durations.expressiveFastEffects * 0.13
+
+    // Snapshot the cascade when the toggle starts. The highlight can change
+    // again while the strip is revealing; without this the running pauses and
+    // slide destinations would shift underneath the animations.
+    property int activeInDelay: 0
+    property int activeOutDelay: 0
+    property real activeFrom: 0
+    property real slideOffset: 0
+    // True while the opening cascade owns slideOffset, so a highlight change
+    // in the same frame does not cut the stagger short.
+    property bool presenting: false
 
     // Slot offset from the highlighted card, measured from where PathView has
     // actually placed each delegate. Reading the real offset keeps this correct
@@ -83,12 +127,76 @@ Item {
     opacity: (0.65 + 0.35 * morph) * entrance
     scale: 0.9 + entrance * 0.1
 
-    transform: Translate {
-        x: root.morphShift
-        y: (1 - root.entrance) * -Tokens.spacing.extraLargeIncreased
+    transform: [
+        Translate {
+            x: root.morphShift
+            y: -(1 - root.entrance) * root.dropOffset
 
-        Behavior on x {
-            Anim { type: Anim.FastSpatial }
+            Behavior on x {
+                Anim { type: Anim.FastSpatial }
+            }
+        },
+        Translate {
+            x: root.slideOffset
+        }
+    ]
+
+    // A selection change still glides the incoming tile home on its own, but
+    // only when an opening cascade is not already driving every tile.
+    onCurrentChanged: {
+        if (!current || !presented || presenting)
+            return;
+        playSelectionSlide();
+    }
+
+    function playSelectionSlide(): void {
+        slideInAnimation.stop();
+        slideOffset = (slideDirection < 0 ? -1 : 1) * slideDistance;
+        slideAnimation.restart();
+    }
+
+    NumberAnimation {
+        id: slideAnimation
+
+        target: root
+        property: "slideOffset"
+        to: 0
+        // A deliberately long, soft settle: the tile keeps gliding towards the
+        // centre well after the strip has scrolled it under the highlight.
+        duration: Tokens.anim.durations.expressiveSlowSpatial
+        easing.type: Easing.OutCubic
+    }
+
+    // Opening slides the entire strip in from its own sides, one neighbour
+    // after another. Reusing slideOffset keeps the resting geometry untouched:
+    // all travel happens inside the tile transform.
+    SequentialAnimation {
+        id: slideInAnimation
+
+        PauseAnimation { duration: root.activeInDelay }
+        NumberAnimation {
+            target: root
+            property: "slideOffset"
+            to: 0
+            duration: Tokens.anim.durations.expressiveFastSpatial * 0.68
+            easing.type: Easing.OutCubic
+        }
+
+        onFinished: root.presenting = false
+        onStopped: root.presenting = false
+    }
+
+    // Closing runs the same wave backwards while the panel shrinks away.
+    SequentialAnimation {
+        id: slideOutAnimation
+
+        PauseAnimation { duration: root.activeOutDelay }
+        NumberAnimation {
+            target: root
+            property: "slideOffset"
+            to: root.activeFrom
+            duration: Tokens.anim.durations.expressiveFastEffects * 0.6
+            easing.type: Easing.InCubic
         }
     }
 
@@ -109,27 +217,53 @@ Item {
 
         if (presented) {
             exitAnimation.stop();
+            slideOutAnimation.stop();
             playEntrance();
+            playToggleSlideIn();
         } else {
             enterAnimation.stop();
-            exitAnimation.restart();
+            slideAnimation.stop();
+            slideInAnimation.stop();
+            // The highlight may have moved since the open; rebuild the exit
+            // wave from where the strip actually is now.
+            activeOutDelay = slideOutDelay;
+            activeFrom = slideFrom;
+            slideOutAnimation.restart();
         }
+    }
+
+    function playToggleSlideIn(): void {
+        // Snapshot before starting so a selection change during the reveal
+        // cannot rewrite the pauses or destinations of a running cascade.
+        activeInDelay = slideInDelay;
+        activeOutDelay = slideOutDelay;
+        activeFrom = slideFrom;
+        // A tile can still hold its exit frame (or a partial slide) when the
+        // strip is reopened quickly, so reset before replaying the wave.
+        slideAnimation.stop();
+        slideOffset = activeFrom;
+        slideInAnimation.restart();
+        // restart() stops any in-flight run first, which emits stopped() and
+        // clears this flag; claim it after the restart so a selection change
+        // cannot interrupt the cascade we just started.
+        presenting = true;
     }
 
     function playEntrance(): void {
         // Reset first so a tile that was mid-exit always restarts hidden, and
         // every open replays the wave rather than only the first one.
+        activeInDelay = slideInDelay;
         entrance = 0;
         enterAnimation.restart();
     }
 
+    // The fade/scale rides the same wave as the slide. A sideways travel of a
+    // few dozen pixels is easy to miss behind the panel's opening clip; the
+    // staggered reveal is what makes the cascade read on every toggle.
     SequentialAnimation {
         id: enterAnimation
 
-        // Compact cascade: neighbouring tiles lag the highlight by ~38 ms so
-        // the wave still reads clearly, but the whole strip has landed just
-        // after the faster panel reveal finishes.
-        PauseAnimation { duration: root.order * Tokens.anim.durations.expressiveFastEffects * 0.25 }
+        PauseAnimation { duration: root.activeInDelay }
         Anim {
             target: root
             property: "entrance"
@@ -142,14 +276,18 @@ Item {
         }
     }
 
-    Anim {
+    SequentialAnimation {
         id: exitAnimation
 
-        target: root
-        property: "entrance"
-        to: 0
-        type: Anim.FastEffects
-        easing.type: Easing.InCubic
+        PauseAnimation { duration: root.activeOutDelay }
+        Anim {
+            target: root
+            property: "entrance"
+            to: 0
+            type: Anim.FastEffects
+            duration: Tokens.anim.durations.expressiveFastEffects * 0.7
+            easing.type: Easing.InCubic
+        }
     }
 
     Item {

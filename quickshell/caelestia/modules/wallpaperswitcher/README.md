@@ -12,7 +12,7 @@ itself stays owned by the `Wallpapers` service.
 
 `WallpaperSwitcherWindow.qml` renders a transparent full-screen overlay with a
 centred horizontal `PathView`. Opening and closing are a plain vertical slide
-from above the screen: the card keeps its final height and widens from 90% to
+from above the screen: the card keeps its final height and widens from 60% to
 100% on the way in, then runs the same motion backwards on close. The whole
 layer never slides or squeezes; only the card moves, with the background dim
 fading in independently. The strip is draggable with the mouse and responds to
@@ -28,6 +28,9 @@ Each wallpaper tile is drawn as a parallelogram. Unselected tiles are compact
 in width with more rounded corners; moving the selection with the keyboard,
 wheel or a drag animates the tile into a full-sized parallelogram with a
 primary outline, while the previous card collapses back to the compact form.
+Toggling the strip slides every tile in from its own side, one neighbour after
+another in a wave that starts at the highlight, and reverses the wave on close;
+the fade and scale stay synchronised so the strip still reads as one piece.
 Preview changes the live wallpaper and, for dynamic schemes, the Material
 colours immediately.
 
