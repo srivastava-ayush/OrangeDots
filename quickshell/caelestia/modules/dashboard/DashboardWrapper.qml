@@ -70,11 +70,12 @@ Item {
     // Height of the closed-state top edge strip, measured from the screen edge.
     readonly property real hoverHeight: Math.max(Config.border.minThickness, DashboardHover.height)
     readonly property real curtainProgress: Math.max(0, Math.min(1, revealProgress))
-    // Smootherstep brings the curtain's width and fade to rest gently at both
-    // ends, while its full-sized content stays untouched behind the reveal.
+    // Mirror the launcher's curtain: the same smootherstep width bloom and fade
+    // bring the reveal to rest gently at both ends, while its full-sized content
+    // stays untouched behind it.
     readonly property real curtainEase: curtainProgress * curtainProgress * curtainProgress
         * (curtainProgress * (curtainProgress * 6 - 15) + 10)
-    readonly property real curtainWidthScale: 0.6 + 0.4 * curtainEase
+    readonly property real curtainWidthScale: 0.9 + 0.1 * curtainEase
 
     visible: revealProgress > 0
     anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
@@ -88,8 +89,10 @@ Item {
         Anim {
             // Retarget from the current value on interruption, never reset the
             // curtain. Matching curves make closing a true reverse of opening.
+            // Keep the same motion as the launcher, just a touch quicker so
+            // hover-driven reveals feel responsive.
             type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.85 : Tokens.anim.durations.expressiveDefaultSpatial * 0.85
+            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.7 : Tokens.anim.durations.expressiveDefaultSpatial * 0.7
             easing.type: Easing.InOutCubic
         }
     }
