@@ -105,14 +105,11 @@ ShellRoot {
                     const tiles = CUtils.findChildren(strip, "wallpaperSwitcherTile");
                     const center = tiles.find(tile => tile.modelData.path === root.wallpapers[0]);
                     root.check(tiles.length >= 3 && tiles.every(tile => Math.abs(tile.entrance - tiles[0].entrance) < 0.01), "Every wallpaper tile must animate in at the same time");
-                    // The fade/scale layer stays synchronised, but the slide
-                    // fans out from the highlight: neighbours come from their
-                    // own side a little later, and exit reverses the wave.
-                    const paced = tiles.slice().sort((a, b) => a.staggerOrder - b.staggerOrder);
-                    root.check(paced[0].staggerOrder === 0 && paced.some(tile => tile.staggerOrder > 0), "The toggle slide must fan out from the highlighted tile");
-                    root.check(paced.every((tile, i) => i === 0 || tile.slideInDelay >= paced[i - 1].slideInDelay), "Neighbouring tiles must slide in later than the highlight");
-                    root.check(paced.every((tile, i) => i === 0 || tile.slideOutDelay <= paced[i - 1].slideOutDelay), "Closing must reverse the stagger");
-                    root.check(paced.every(tile => tile.slotDelta === 0 || Math.sign(tile.slideFrom) === Math.sign(tile.slotDelta)), "Each neighbour must slide in from its own side of the strip");
+                    // Every tile enters together — no staggered cascade. The
+                    // highlight still comes from above and neighbours from
+                    // their own side of the strip.
+                    root.check(tiles.every(tile => tile.slideInDelay === 0 && tile.slideOutDelay === 0), "Tiles must enter and leave without a stagger");
+                    root.check(tiles.every(tile => tile.centreTile ? (tile.entryFromX === 0 && tile.entryFromY < 0) : Math.sign(tile.entryFromX) === Math.sign(tile.slotDelta)), "Highlight must enter from the top and neighbours from their own side");
                     if (!center || tiles.some(tile => tile.entrance < 1)) {
                         root.check(root.imageWait++ < 40, "Wallpaper tiles must finish their reveal");
                         root.step--;
@@ -121,8 +118,8 @@ ShellRoot {
                     root.check(center.current, "The highlighted tile must be the selected one");
                     // Tiles glide home after the toggle/selection slide; wait
                     // for that settle before measuring the resting gaps.
-                    if (tiles.some(tile => Math.abs(tile.slideOffset) > 0.01)) {
-                        root.check(root.imageWait++ < 40, "The highlighted tile must finish sliding into the centre");
+                    if (tiles.some(tile => Math.abs(tile.entryOffsetX) > 0.01 || Math.abs(tile.entryOffsetY) > 0.01)) {
+                        root.check(root.imageWait++ < 40, "Tiles must finish sliding into the strip");
                         root.step--;
                         return;
                     }
@@ -145,15 +142,12 @@ ShellRoot {
                     // PathView assigns currentIndex while the mouse drags it;
                     // that must drive selection and preview back into the state.
                     strip.currentIndex = 2;
-                    root.check(view.slideDirection === 1, "Moving forward must slide the highlight in from the right");
-                    // PathView is still scrolling here. The stagger must still
-                    // be anchored to the highlight, not to animated positions.
-                    root.check(tiles.find(tile => tile.current)?.staggerOrder === 0 && tiles.filter(tile => tile.staggerOrder > 0).length === tiles.length - 1, "Browsing must not collapse the toggle stagger");
+                    root.check(view.slideDirection === 1, "Moving forward must track the navigation direction");
                     root.check(state.selectedIndex === 2, "Dragging must move the selection");
                     root.check(root.previewed[root.previewed.length - 1] === root.wallpapers[2], "Dragging must preview the card under the cursor");
                     state.select(99);
                     root.check(state.selectedIndex === 0, "Selecting an index must wrap into the list");
-                    root.check(view.slideDirection === -1, "Wrapping backwards must slide the highlight in from the left");
+                    root.check(view.slideDirection === -1, "Wrapping backwards must track the navigation direction");
                     // The search must filter in place and jump to the first match.
                     state.search = "be";
                     root.check(state.filteredEntries.length === 1, "Search must narrow the strip");

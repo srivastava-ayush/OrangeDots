@@ -104,16 +104,11 @@ Singleton {
     }
 
     function reloadHyprRules(): void {
-        // The drawers surface and the standalone wallpaper switcher are
-        // separate layer surfaces, so both need the same blur policy to look
-        // like one shell. The switcher uses a lower alpha threshold: its card
-        // is a floating, translucent surface, while its full-screen scrim must
-        // stay sharp. The scrim/card alphas in WallpaperSwitcherWindow.qml are
-        // paired with this value. The HyprGlass preset is mirrored in
-        // hypr/modules/plugins.lua.
+        // The drawers surface shares the shell's blur policy. The wallpaper
+        // switcher floats as a plain dim overlay, so it has no blur. The
+        // HyprGlass preset is mirrored in hypr/modules/plugins.lua.
         const thresholds = {
-            "caelestia-drawers": Math.max(0, transparency.base - 0.03),
-            "caelestia-wallpaper-switcher": 0.32
+            "caelestia-drawers": Math.max(0, transparency.base - 0.03)
         };
         const commands = [];
 
@@ -125,6 +120,14 @@ Singleton {
                 const enabled = transparency.enabled ? 1 : 0;
                 commands.push(`keyword layerrule blur ${enabled}, match:namespace ${ns}`, `keyword layerrule ignore_alpha ${thresholds[ns]}, match:namespace ${ns}`);
             }
+        }
+
+        // Explicitly disable blur on the switcher layer in case a global rule
+        // would otherwise blur it.
+        if (Hypr.usingLua) {
+            commands.push('eval hl.layer_rule({ match = { namespace = "caelestia-wallpaper-switcher" }, blur = false })');
+        } else {
+            commands.push("keyword layerrule blur 0, match:namespace caelestia-wallpaper-switcher");
         }
 
         Hypr.extras.batchMessage(commands);

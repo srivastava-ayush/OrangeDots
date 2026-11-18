@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import Caelestia.Blobs
 import Caelestia.Config
 import qs.components
 import qs.components.controls
@@ -37,16 +36,21 @@ PanelWindow {
     // the same size.
     readonly property int pathItemCount: 7
     readonly property real padding: Tokens.padding.largeIncreased
-    readonly property real stageWidth: Math.min(1400, Math.max(640, screenWidth - Tokens.padding.extraLarge * 2))
+    readonly property real stageWidth: Math.min(1800, Math.max(640, screenWidth - Tokens.padding.extraLarge * 2))
     readonly property real stripWidth: stageWidth - padding * 2
     readonly property real tileGap: Tokens.spacing.large
-    readonly property real compactRatio: 0.62
-    readonly property real compactWidth: Math.max(64, Math.round(stripWidth * 0.115))
+    // Slimmer neighbours without shrinking the highlight: compactWidth is the
+    // non-selected tile width, while compactRatio maps it back to the same
+    // full-sized card width used by the selected tile.
+    readonly property real compactRatio: 0.53
+    readonly property real compactWidth: Math.max(64, Math.round(stripWidth * 0.12))
     readonly property real cardWidth: Math.max(compactWidth + 24, Math.round(compactWidth / compactRatio))
     // The PathView path holds exactly the compact cards plus their even gaps,
     // so the highlight has room to grow without disturbing the neighbours.
     readonly property real pathLength: pathItemCount * (compactWidth + tileGap)
-    readonly property real pathStart: Math.max(0, (stripWidth - pathLength) / 2)
+    // Allow the path to overhang both edges equally so its midpoint — and the
+    // highlighted tile locked there — stays centred even when tiles are wide.
+    readonly property real pathStart: (stripWidth - pathLength) / 2
     // A filtered list has fewer delegates than slots, and PathView then spreads
     // those delegates over the whole path. Track the real step so the gaps can
     // stay even for any result count.
@@ -57,17 +61,6 @@ PanelWindow {
     readonly property real headerHeight: 44
     readonly property real stripHeight: cardHeight + Tokens.spacing.extraSmall + labelHeight
     readonly property real stageHeight: padding * 2 + headerHeight + Tokens.spacing.medium + stripHeight
-
-    // The card is painted by the same liquid blob material as the session
-    // menu, so it squashes and stretches while the reveal moves it. The blob
-    // shader always fills opaque, so the glass alpha is applied to the whole
-    // backdrop item instead; the value matches the scrim/threshold pairing in
-    // Colours.reloadHyprRules().
-    readonly property color panelColour: Colours.tPalette.m3surfaceContainer
-    readonly property real panelOpacity: panelColour.a
-    readonly property real scrimOpacity: 0.25
-    readonly property real blobDeformScale: (0.2 * contentItem.Config.appearance.deformScale) / 10000
-    readonly property int blobSmoothing: contentItem.Config.border.smoothing
 
     visible: progress > 0 || shouldBeActive
     color: "transparent"
@@ -85,12 +78,12 @@ PanelWindow {
     // The close animation must not keep intercepting clicks or keyboard input.
     mask: Region { item: root.shouldBeActive ? surface : null }
 
-    // Opening is quick at ~200 ms; closing gets a little more room at ~245 ms
-    // so the 100% -> 40% width shrink and the reversed tile wave can settle.
+    // The panel fade matches the tile travel so the whole reveal settles
+    // together: ~360 ms in, ~290 ms out.
     Behavior on progress {
         Anim {
             type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: Tokens.anim.durations.expressiveSlowSpatial * (root.shouldBeActive ? 0.308 : 0.377)
+            duration: Tokens.anim.durations.expressiveSlowSpatial * (root.shouldBeActive ? 0.55 : 0.45)
             easing.type: root.shouldBeActive ? Easing.OutQuint : Easing.InCubic
         }
     }
@@ -136,56 +129,18 @@ PanelWindow {
             event.accepted = true;
         }
 
+        // Full-screen dim behind the floating tiles. It fades with progress so
+        // the desktop darkens as the switcher opens and clears on close.
         StyledRect {
             anchors.fill: parent
-            color: Qt.alpha(Colours.palette.m3scrim, root.scrimOpacity)
-            // Dim promptly, independently of the slower card reveal.
-            opacity: Math.min(1, root.progress * 1.5)
+            color: Qt.alpha(Colours.palette.m3scrim, 0.55)
+            opacity: root.progress
         }
 
         MouseArea {
             anchors.fill: parent
             enabled: root.shouldBeActive
             onClicked: root.state.close()
-        }
-
-        // Liquid card backdrop, matching the session menu. The blob tracks the
-        // growing panel's geometry, so its own velocity drives the squash and
-        // stretch that make the reveal feel like a bubble inflating.
-        Item {
-            id: panelBackdrop
-
-            readonly property real pad: 48
-
-            x: panel.x - pad
-            y: panel.y - pad
-            width: panel.width + pad * 2
-            height: panel.height + pad * 2
-            // Translucent glass: the blob shader's alpha is always opaque, so
-            // the shell transparency is applied to the whole deformed layer.
-            // No layer/shadow effect here: like the session menu, the card is
-            // drawn directly so resizing it every frame does not force a fresh
-            // offscreen pass and blur on each animation frame.
-            opacity: root.panelOpacity
-            visible: panel.width > 0 && panel.height > 0
-
-            BlobGroup {
-                id: panelBlob
-
-                color: root.panelColour
-                smoothing: root.blobSmoothing
-            }
-
-            BlobRect {
-                group: panelBlob
-
-                x: panelBackdrop.pad
-                y: panelBackdrop.pad
-                width: panel.width
-                height: panel.height
-                radius: Tokens.rounding.extraLarge
-                deformScale: root.blobDeformScale
-            }
         }
 
         Connections {
@@ -224,34 +179,14 @@ PanelWindow {
             Accessible.role: Accessible.Dialog
             Accessible.name: qsTr("Wallpaper switcher")
 
-            // Mirror the session menu: the card grows out of an anchor point
-            // instead of sliding. Here the point starts at the top centre, so
-            // opening drops the strip down from the top edge and closing
-            // shrinks it back there. The width widens from 60% on open but
-            // narrows only to 40% on close; both meet at full width at the
-            // peak. The height still grows from the anchor. The content stays
-            // at its final size and is centred inside the growing clip, so the
-            // layout never squashes.
-            readonly property real anchorX: parent ? parent.width / 2 : width / 2
-            readonly property real anchorY: 0
-            readonly property real targetX: parent ? parent.width / 2 : anchorX
-            readonly property real targetY: parent ? parent.height / 2 : anchorY
-            readonly property real openingWidthRatio: 0.6
-            readonly property real closingWidthRatio: 0.4
-            // shouldBeActive flips as soon as the state toggles while progress
-            // animates, so it tells us which direction the width is travelling.
-            readonly property real widthRatio: root.shouldBeActive
-                ? (panel.openingWidthRatio + (1 - panel.openingWidthRatio) * root.progress)
-                : (panel.closingWidthRatio + (1 - panel.closingWidthRatio) * root.progress)
-
-            x: anchorX + (targetX - anchorX) * root.progress - width / 2
-            y: anchorY + (targetY - anchorY) * root.progress - height / 2
-            width: root.stageWidth * panel.widthRatio
-            height: root.stageHeight * root.progress
-            // The blob behind the card paints the surface. The panel itself
-            // stays transparent and only clips the content to the same rounded
-            // shape, so the backdrop can bulge past these bounds while it
-            // deforms.
+            // Fixed full-size clip. The opening/closing motion now comes from
+            // the tiles themselves: the highlight falls from the top and the
+            // neighbours sweep in from the left and right edges. The panel
+            // stays put and simply fades with progress.
+            x: parent ? (parent.width - width) / 2 : 0
+            y: parent ? (parent.height - height) / 2 : 0
+            width: root.stageWidth
+            height: root.stageHeight
             radius: Tokens.rounding.extraLarge
             color: "transparent"
 
@@ -265,15 +200,12 @@ PanelWindow {
             Item {
                 id: stage
 
-                // Fixed final size, centred inside the growing clip, matching
-                // the session menu's reveal scale.
+                // Fixed final size; only the tile transforms animate.
                 width: root.stageWidth
                 height: root.stageHeight
                 x: (parent.width - width) / 2
                 y: (parent.height - height) / 2
-                scale: 0.94 + root.progress * 0.06
                 opacity: root.progress
-                transformOrigin: Item.Center
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -283,23 +215,6 @@ PanelWindow {
                     Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.headerHeight
-
-                        RowLayout {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: Tokens.spacing.small
-
-                            MaterialIcon {
-                                text: "image"
-                                color: Colours.palette.m3primary
-                                fontStyle: Tokens.font.icon.small
-                            }
-
-                            StyledText {
-                                text: qsTr("Wallpaper")
-                                font: Tokens.font.title.small
-                            }
-                        }
 
                         // Search sits in the exact centre of the header and
                         // takes focus as soon as the strip opens, so SUPER+TAB
@@ -311,7 +226,11 @@ PanelWindow {
                             anchors.horizontalCenter: parent.horizontalCenter
                             anchors.verticalCenter: parent.verticalCenter
                             width: Math.min(420, root.stageWidth * 0.46)
-                            placeholderText: qsTr("Search wallpapers")
+                            // No placeholder: the field stays quiet until text
+                            // is typed, with only a faint icon and background.
+                            placeholderText: ""
+                            bg.opacity: 0.3
+                            searchIcon.opacity: 0.45
                             topPadding: Tokens.padding.small
                             bottomPadding: Tokens.padding.small
 

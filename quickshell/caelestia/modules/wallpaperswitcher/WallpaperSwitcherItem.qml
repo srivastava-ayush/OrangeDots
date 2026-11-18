@@ -45,19 +45,16 @@ Item {
     // compact and full-sized parallelogram forms.
     property real morph: current ? 1 : 0
 
-    // 0 = hidden, 1 = fully presented. Every tile travels together so the
-    // strip drops in as one piece each time the switcher opens.
+    // 0 = hidden, 1 = fully presented. Drives only opacity and scale; the
+    // directional travel lives in the entry offsets below.
     property real entrance: 0
     property bool ready: false
 
-    // Every tile falls from above its resting position and settles back on its
-    // original Y on each open.
-    readonly property real dropOffset: Tokens.spacing.extraLarge + Tokens.spacing.large
-
-    // The highlighted tile slides a little sideways into the centre, coming
-    // from the side it travelled from, then settles on the exact path slot so
-    // the strip gaps stay uniform at rest.
-    readonly property real slideDistance: Tokens.spacing.extraLarge + Tokens.spacing.medium
+    // Toggle entry distances, scaled to the card size so the travel reads from
+    // well outside the panel. The highlight drops in from far above while the
+    // neighbours sweep in from far beyond their own edge of the strip.
+    readonly property real dropOffset: fullHeight * 3
+    readonly property real slideDistance: fullTileWidth * 4
 
     // Position relative to the highlight, wrapped so cards that wrap around
     // the end of the path still count as its nearest neighbours. This uses
@@ -77,24 +74,30 @@ Item {
         return delta;
     }
     readonly property int staggerOrder: Math.min(maxStaggerOrder, Math.abs(slotDelta))
-    // Neighbours enter from their own edge of the strip; the centre tile
-    // follows the last selection movement so the wave still reads as motion.
+    // 0 = highlighted tile, negative = left neighbours, positive = right.
+    readonly property bool centreTile: slotDelta === 0
     readonly property int slideSide: slotDelta < 0 ? -1 : (slotDelta > 0 ? 1 : (slideDirection < 0 ? -1 : 1))
-    readonly property real slideFrom: slideSide * slideDistance
-    // Opening radiates outwards; closing reverses the wave so the highlight is
-    // the last card to leave.
-    readonly property int slideInDelay: staggerOrder * Tokens.anim.durations.expressiveFastEffects * 0.35
-    readonly property int slideOutDelay: (maxStaggerOrder - staggerOrder) * Tokens.anim.durations.expressiveFastEffects * 0.13
+
+    // The highlighted tile falls from above; the three tiles on each side
+    // sweep in from their own edge of the strip.
+    readonly property real entryFromX: centreTile ? 0 : slideSide * slideDistance
+    readonly property real entryFromY: centreTile ? -dropOffset : 0
+    // Every tile enters and leaves together — no staggered cascade.
+    readonly property int slideInDelay: 0
+    readonly property int slideOutDelay: 0
 
     // Snapshot the cascade when the toggle starts. The highlight can change
     // again while the strip is revealing; without this the running pauses and
     // slide destinations would shift underneath the animations.
     property int activeInDelay: 0
     property int activeOutDelay: 0
-    property real activeFrom: 0
-    property real slideOffset: 0
-    // True while the opening cascade owns slideOffset, so a highlight change
-    // in the same frame does not cut the stagger short.
+    property real activeFromX: 0
+    property real activeFromY: 0
+    // entryOffsetX/Y carry the toggle wave.
+    property real entryOffsetX: 0
+    property real entryOffsetY: 0
+    // True while the opening cascade owns the entry offsets, so a highlight
+    // change in the same frame does not cut the stagger short.
     property bool presenting: false
 
     // Slot offset from the highlighted card, measured from where PathView has
@@ -130,55 +133,35 @@ Item {
     transform: [
         Translate {
             x: root.morphShift
-            y: -(1 - root.entrance) * root.dropOffset
 
             Behavior on x {
                 Anim { type: Anim.FastSpatial }
             }
         },
         Translate {
-            x: root.slideOffset
+            x: root.entryOffsetX
+            y: root.entryOffsetY
         }
     ]
 
-    // A selection change still glides the incoming tile home on its own, but
-    // only when an opening cascade is not already driving every tile.
-    onCurrentChanged: {
-        if (!current || !presented || presenting)
-            return;
-        playSelectionSlide();
-    }
-
-    function playSelectionSlide(): void {
-        slideInAnimation.stop();
-        slideOffset = (slideDirection < 0 ? -1 : 1) * slideDistance;
-        slideAnimation.restart();
-    }
-
-    NumberAnimation {
-        id: slideAnimation
-
-        target: root
-        property: "slideOffset"
-        to: 0
-        // A deliberately long, soft settle: the tile keeps gliding towards the
-        // centre well after the strip has scrolled it under the highlight.
-        duration: Tokens.anim.durations.expressiveSlowSpatial
-        easing.type: Easing.OutCubic
-    }
-
-    // Opening slides the entire strip in from its own sides, one neighbour
-    // after another. Reusing slideOffset keeps the resting geometry untouched:
-    // all travel happens inside the tile transform.
-    SequentialAnimation {
+    // Toggle open: the highlight falls from above while its neighbours sweep
+    // in from the left and right edges. All tiles move together and all travel
+    // lives in the transform, so resting geometry is never touched.
+    ParallelAnimation {
         id: slideInAnimation
 
-        PauseAnimation { duration: root.activeInDelay }
         NumberAnimation {
             target: root
-            property: "slideOffset"
+            property: "entryOffsetX"
             to: 0
-            duration: Tokens.anim.durations.expressiveFastSpatial * 0.68
+            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.55
+            easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "entryOffsetY"
+            to: 0
+            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.55
             easing.type: Easing.OutCubic
         }
 
@@ -186,16 +169,23 @@ Item {
         onStopped: root.presenting = false
     }
 
-    // Closing runs the same wave backwards while the panel shrinks away.
-    SequentialAnimation {
+    // Closing runs the same motion backwards: neighbours return to their edges
+    // and the highlight lifts back to the top.
+    ParallelAnimation {
         id: slideOutAnimation
 
-        PauseAnimation { duration: root.activeOutDelay }
         NumberAnimation {
             target: root
-            property: "slideOffset"
-            to: root.activeFrom
-            duration: Tokens.anim.durations.expressiveFastEffects * 0.6
+            property: "entryOffsetX"
+            to: root.activeFromX
+            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.45
+            easing.type: Easing.InCubic
+        }
+        NumberAnimation {
+            target: root
+            property: "entryOffsetY"
+            to: root.activeFromY
+            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.45
             easing.type: Easing.InCubic
         }
     }
@@ -222,12 +212,12 @@ Item {
             playToggleSlideIn();
         } else {
             enterAnimation.stop();
-            slideAnimation.stop();
             slideInAnimation.stop();
             // The highlight may have moved since the open; rebuild the exit
             // wave from where the strip actually is now.
             activeOutDelay = slideOutDelay;
-            activeFrom = slideFrom;
+            activeFromX = entryFromX;
+            activeFromY = entryFromY;
             slideOutAnimation.restart();
         }
     }
@@ -237,11 +227,12 @@ Item {
         // cannot rewrite the pauses or destinations of a running cascade.
         activeInDelay = slideInDelay;
         activeOutDelay = slideOutDelay;
-        activeFrom = slideFrom;
+        activeFromX = entryFromX;
+        activeFromY = entryFromY;
         // A tile can still hold its exit frame (or a partial slide) when the
         // strip is reopened quickly, so reset before replaying the wave.
-        slideAnimation.stop();
-        slideOffset = activeFrom;
+        entryOffsetX = activeFromX;
+        entryOffsetY = activeFromY;
         slideInAnimation.restart();
         // restart() stops any in-flight run first, which emits stopped() and
         // clears this flag; claim it after the restart so a selection change
@@ -257,36 +248,28 @@ Item {
         enterAnimation.restart();
     }
 
-    // The fade/scale rides the same wave as the slide. A sideways travel of a
-    // few dozen pixels is easy to miss behind the panel's opening clip; the
-    // staggered reveal is what makes the cascade read on every toggle.
-    SequentialAnimation {
+    // Fade/scale runs together with the slide on every toggle.
+    Anim {
         id: enterAnimation
 
-        PauseAnimation { duration: root.activeInDelay }
-        Anim {
-            target: root
-            property: "entrance"
-            from: 0
-            to: 1
-            type: Anim.FastSpatial
-            duration: Tokens.anim.durations.expressiveFastSpatial * 0.62
-            easing.type: Easing.OutCubic
-        }
+        target: root
+        property: "entrance"
+        from: 0
+        to: 1
+        type: Anim.FastSpatial
+        duration: Tokens.anim.durations.expressiveSlowSpatial * 0.55
+        easing.type: Easing.OutCubic
     }
 
-    SequentialAnimation {
+    Anim {
         id: exitAnimation
 
-        PauseAnimation { duration: root.activeOutDelay }
-        Anim {
-            target: root
-            property: "entrance"
-            to: 0
-            type: Anim.FastEffects
-            duration: Tokens.anim.durations.expressiveFastEffects * 0.7
-            easing.type: Easing.InCubic
-        }
+        target: root
+        property: "entrance"
+        to: 0
+        type: Anim.FastEffects
+        duration: Tokens.anim.durations.expressiveSlowSpatial * 0.45
+        easing.type: Easing.InCubic
     }
 
     Item {

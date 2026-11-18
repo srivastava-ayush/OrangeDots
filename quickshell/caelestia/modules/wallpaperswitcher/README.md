@@ -11,13 +11,16 @@ selected path so model refreshes cannot reorder the strip; the wallpaper model
 itself stays owned by the `Wallpapers` service.
 
 `WallpaperSwitcherWindow.qml` renders a transparent full-screen overlay with a
-centred horizontal `PathView`. Opening and closing are a plain vertical slide
-from above the screen: the card keeps its final height and widens from 60% to
-100% on the way in, then narrows back to only 40% on close. The whole
-layer never slides or squeezes; only the card moves, with the background dim
-fading in independently. The strip is draggable with the mouse and responds to
-the scroll wheel, exactly like the launcher's wallpaper list. Preview changes
-the live wallpaper and, for dynamic schemes, the Material colours immediately.
+centred horizontal `PathView`. There is no card backdrop or scrim: only the
+search field, the wallpaper count and the tile strip float over the desktop.
+The panel stays at its full size and only fades; the opening and closing
+motion comes from the tiles themselves. The highlighted tile falls in from
+above, while the three neighbours on the left sweep in from the left and the
+three on the right sweep in from the right — all at once. Closing reverses the
+same motion. The strip is draggable with the
+mouse and responds to the scroll wheel, exactly like the launcher's wallpaper
+list. Preview changes the live wallpaper and, for dynamic schemes, the
+Material colours immediately.
 
 A search box sits in the centre of the header and takes focus as soon as the
 strip opens, so `SUPER+TAB` followed by typing filters the wallpapers straight
@@ -28,9 +31,10 @@ Each wallpaper tile is drawn as a parallelogram. Unselected tiles are compact
 in width with more rounded corners; moving the selection with the keyboard,
 wheel or a drag animates the tile into a full-sized parallelogram with a
 primary outline, while the previous card collapses back to the compact form.
-Toggling the strip slides every tile in from its own side, one neighbour after
-another in a wave that starts at the highlight, and reverses the wave on close;
-the fade and scale stay synchronised so the strip still reads as one piece.
+Toggling the strip slides every tile in from its own side at once — the
+highlight from above, its neighbours from the left and right edges — and runs
+the same motion in reverse on close. The fade and scale stay synchronised so
+the strip still reads as one piece.
 Preview changes the live wallpaper and, for dynamic schemes, the Material
 colours immediately.
 
