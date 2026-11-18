@@ -11,18 +11,18 @@ return function(settings)
 
 
 
---    hl.config({
- --   plugin = {
-  --      scrolloverview = {
-  --          gesture_distance = 1, 
---            scale = .3,
-    --        workspace_gap = 10,
-      --      layout = "vertical", 
-        --    wallpaper = 0, 
-          --  blur = false, 
-       --},
-   -- },
---})
+   hl.config({
+   plugin = {
+       scrolloverview = {
+           gesture_distance = 1,
+           scale = .3,
+           workspace_gap = 10,
+           layout = "vertical",
+           wallpaper = 0,
+           blur = false,
+       },
+   },
+})
 
 
     if hl.plugin.hyprglass then
@@ -83,6 +83,14 @@ return function(settings)
         hg.layer("caelestia-border-exclusion", { exclude = true })
         hg.layer("quickshell", { exclude = true })
         hg.layer("caelestia-drawers", {
+            preset = "shell-glass",
+            mask_mode = "alpha",
+            mask_threshold = 0.25,
+            live_resample = true,
+        })
+        -- The wallpaper switcher is its own layer surface, so give it the same
+        -- glass treatment as the drawers to keep the shell looking uniform.
+        hg.layer("caelestia-wallpaper-switcher", {
             preset = "shell-glass",
             mask_mode = "alpha",
             mask_threshold = 0.25,

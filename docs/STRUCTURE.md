@@ -8,6 +8,7 @@
 | Hyprland entry point / module load order | `hypr/hyprland.lua` — **Lua**, not `.conf` syntax |
 | Apps and helper paths | `hypr/modules/settings.lua` |
 | Alt+Tab overlay / MRU selection / keyboard handling | `quickshell/caelestia/modules/switcher/` |
+| Super+Tab wallpaper strip / preview / selection | `quickshell/caelestia/modules/wallpaperswitcher/` |
 | Keybinds / input and gestures / window rules | `hypr/modules/keybindings.lua`, `input.lua`, `rules.lua` |
 | Appearance / animations / workspace layouts | `hypr/modules/appearance.lua`, `animations.lua`, `layouts.lua` |
 | Monitor / startup / environment / plugins | `hypr/modules/monitors.lua`, `autostart.lua`, `environment.lua`, `plugins.lua` |
@@ -39,6 +40,7 @@ shell.qml
   │              ├─ PanelLayout    dashboard, launcher, banners, OSD, session menu
   │              └─ TaskbarWrapper → TaskbarLayout → components / popouts
   ├─ ScreenCapture → SelectionOverlay
+  ├─ WindowSwitcher / WallpaperSwitcher   standalone keyboard overlays
   └─ LockScreen → LockSurface → LockView
 ```
 

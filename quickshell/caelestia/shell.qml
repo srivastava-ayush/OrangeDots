@@ -10,6 +10,7 @@ import "modules/background"
 import "modules/screencapture"
 import "modules/lockscreen"
 import "modules/switcher"
+import "modules/wallpaperswitcher"
 import QtQuick
 import Quickshell
 import qs.services
@@ -49,6 +50,9 @@ ShellRoot {
     ConfigToasts {}
     Shortcuts {}
     WindowSwitcher {
+        blocked: lock.lock.locked
+    }
+    WallpaperSwitcher {
         blocked: lock.lock.locked
     }
     BatteryMonitor {}

@@ -34,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "ai-memory", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus", "switcher"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "ai-memory", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "recorder", "recorder-load", "lock-input", "lock-focus", "switcher", "wallpaper-switcher"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     parser.add_argument("--shell-root", type=Path, default=SHELL, help="Load QML modules from a staged/installed shell tree")
     args = parser.parse_args()
@@ -51,7 +51,7 @@ def main():
         config.mkdir()
         for directory in ("modules", "components", "services", "utils", "assets"):
             (config / directory).symlink_to(shell_root / directory, target_is_directory=True)
-        fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml", "switcher": "switcher.qml"}.get(mode, "integration.qml")
+        fixture = {"calendar-notes": "calendar-notes.qml", "wallpaper-transition": "wallpaper-transition.qml", "switcher": "switcher.qml", "wallpaper-switcher": "wallpaper-switcher.qml"}.get(mode, "integration.qml")
         (config / "shell.qml").symlink_to(SHELL / "tests" / fixture)
 
         env = os.environ.copy()
@@ -62,7 +62,7 @@ def main():
             (target / "caelestia").mkdir(parents=True)
             env[f"XDG_{directory.upper()}_HOME"] = str(target)
         env.update(QT_QPA_PLATFORM="wayland", QT_QUICK_BACKEND="software", QS_NO_RELOAD_POPUP="1")
-        if mode == "wallpaper-transition":
+        if mode in ("wallpaper-transition", "wallpaper-switcher"):
             for name, rgb in (("FIRST", (220, 70, 40)), ("SECOND", (40, 90, 220)), ("THIRD", (60, 180, 110))):
                 image = base / f"wallpaper-{name.lower()}.ppm"
                 image.write_bytes(b"P6\n32 32\n255\n" + bytes(rgb) * 32 * 32)

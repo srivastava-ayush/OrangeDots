@@ -217,6 +217,7 @@ saves changes.
 - Wallpaper rendering and transitions are handled by OrangeShell, not hyprpaper.
 - Recursive wallpaper discovery, directory-based categories, search, random selection, cached image loading, and a bundled fallback wallpaper.
 - Wallpaper selection from Nexus, the launcher, IPC, or the external `caelestia wallpaper` command.
+- A dedicated `SUPER+TAB` centred horizontal wallpaper strip with an auto-focused name search, live previews, a frosted liquid-blob card matching the drawer glass, a snappy top-centre open/close reveal, and a staggered tile entrance that radiates from the highlighted card; only the highlighted card expands and shows its filename, separate from the launcher's search/category picker (`SUPER+SHIFT+W`).
 - Preview wallpaper/theme colours before applying them; optional smart scheme selection based on the wallpaper.
 - Material 3 palette loading from runtime `scheme.json`, light/dark modes, transparent palette layers, wallpaper-luminance-aware surfaces, and Hyprland blur-rule updates.
 - Configurable design tokens for typography, icon fonts, component dimensions, rounding, spacing, padding, transparency, and animation curves/durations.
@@ -277,7 +278,8 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence. |
 | `SUPER+L` | Lock session. |
 | `SUPER+X` | Toggle Nexus; one toggle per key press, holding the key does nothing further until it is released. |
-| `SUPER+TAB` | Open the launcher's wallpaper picker. |
+| `SUPER+TAB` | Toggle the standalone centred wallpaper strip and focus its search box: type to filter, Left/Right or Tab to browse, Enter or click to apply, Escape to close. |
+| `SUPER+SHIFT+W` | Open the launcher-based wallpaper picker with search, categories, and live previews. |
 | `SUPER+CapsLock` | Capture the full focused screen and copy it to the clipboard. |
 | `SUPER+SHIFT+CapsLock` | Pick a screenshot region and copy it to the clipboard. |
 | `SUPER+ALT+CapsLock` | External Caelestia region-recording command with sound. |
@@ -293,7 +295,8 @@ Use **`caelestia shell <target> <function> [arguments…]`**. `caelestia shell -
 |---|---|
 | `drawers` | `list()`, `toggle(drawer)`, `isOpen(drawer)`, `toggleBarPersistent()`, `setTab(tab)`; tab names are `media`, `dashboard`, `performance`, `phone`, `calendar`. |
 | `nexus` | `open()`. |
-| `wallpapers` | `pick()` — open the launcher's wallpaper browser. |
+| `wallpapers` | `pick()` — open the launcher's wallpaper browser (`SUPER+SHIFT+W`). |
+| `wallpaperswitcher` | `toggle()`, `open()`, `close()`, `next()`, `previous()`, `select(index)`, `isOpen()`, `status()` — standalone centred strip (`SUPER+TAB`), independent of the launcher picker. |
 | `wallpaper` | `get()`, `set(path)`, `list()` — current selection and discovered files. |
 | `lock` | `lock()`, `unlock()`, `isLocked()`. |
 | `picker` | `open()`, `openFreeze()`, `openClip()`, `openFreezeClip()`. |
@@ -347,6 +350,7 @@ All paths below are relative to **`quickshell/caelestia/`**. Every QML file unde
 | `modules/dashboard/overview/cards/` | `BlackoutCard.qml`, `GameModeCard.qml`, `IdleInhibit.qml`, `Record.qml`, `RecordingList.qml` | Dashboard-owned Caffeine/Blackout/Game mode, recording controls, and recording history. |
 | `modules/sidebar/modules/calendar/` | `CalendarModule.qml`, `CalendarContent.qml` | Sidebar-only calendar agenda and scratchpad. |
 | `modules/emoji/` | `EmojiPicker.qml`, `EmojiPickerContent.qml` | In-shell Material emoji/glyph picker: search over the CLI dataset, scrolling grid, clipboard copy plus auto-paste into the focused window on selection. |
+| `modules/wallpaperswitcher/` | `WallpaperSwitcher.qml`, `WallpaperSwitcherItem.qml`, `WallpaperSwitcherState.qml`, `WallpaperSwitcherWindow.qml` | Dedicated `SUPER+TAB` wallpaper strip: centred horizontal PathView overlay, auto-focused header search, compact parallelogram wallpaper tiles with even gaps of which only the highlighted one expands and shows its filename, draggable mouse browsing, scroll-wheel navigation, a frosted liquid-blob card matching the drawer glass, a snappy top-centre anchored open/close reveal, a staggered tile entrance that radiates from the highlighted card, live background/colour preview, and its own IPC target. Separate from the launcher picker. |
 | `modules/desktop/` | `Desktop.qml`, `DesktopWindow.qml`, `ExclusiveZones.qml`, `InputRegions.qml`, `PanelInteractions.qml`, `PanelLayout.qml` | Per-screen window composition, reserved space, focus, input regions, border rendering, and edge/corner gestures. |
 | `modules/launcher/` | `AppList.qml`, `ContentList.qml`, `LauncherContent.qml`, `LauncherWrapper.qml`, `WallpaperList.qml` | Search input, result lists, wallpaper browser, and launcher panel. |
 | `modules/launcher/items/` | `ActionItem.qml`, `AppItem.qml`, `CalcItem.qml`, `SchemeItem.qml`, `VariantItem.qml`, `WallpaperItem.qml` | Launcher result delegates. |

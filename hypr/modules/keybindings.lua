@@ -13,7 +13,7 @@ return function(settings)
     local mainMod = "SUPER"
 
     -- Overview / shell toggles
-    --hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
+    hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
     hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
     -- Use the shell's registered global shortcut instead of spawning the
     -- caelestia CLI; Python startup would add ~200ms before the lock animates.
@@ -191,13 +191,15 @@ return function(settings)
     hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
     hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus toggle"))
     hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
-    hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
+    -- Standalone centred wallpaper strip (separate from the launcher picker).
+    -- Non-repeating so holding Tab cannot rapidly toggle it open and closed.
+    hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpaperswitcher toggle"), { repeating = false })
 
     -- media-audio-pipewire-restart script
     hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd(hyprScript("restart-pipewire.sh")))
 
 
-    -- Wallpaper picker alternative (same action as SUPER+TAB).
+    -- Launcher-based wallpaper picker (search, categories, live previews).
     hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
 
     -- Clipboard / emoji

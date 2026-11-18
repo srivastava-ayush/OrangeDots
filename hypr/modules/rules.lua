@@ -74,4 +74,17 @@ return function(settings)
         center = true
     })
 
+    ------------------
+    ---- LAYERS ----
+    ------------------
+
+    -- The wallpaper strip draws its own dim and curtain inside a full-screen
+    -- surface. Hyprland's layersIn/Out "slidefade" would otherwise slide that
+    -- whole surface in from the top before the QML animation can be seen.
+    hl.layer_rule({
+        name = "wallpaper-switcher-no-anim",
+        match = { namespace = "^caelestia-wallpaper-switcher$" },
+        no_anim = true,
+    })
+
 end

@@ -337,6 +337,7 @@ Or pick in Nexus, or:
 
 ```bash
 caelestia shell wallpapers pick
+caelestia shell wallpaperswitcher toggle
 caelestia scheme set -n dynamic -m dark
 ```
 

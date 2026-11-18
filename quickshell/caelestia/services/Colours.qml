@@ -104,15 +104,30 @@ Singleton {
     }
 
     function reloadHyprRules(): void {
-        let rule, trEnabled;
-        if (Hypr.usingLua) {
-            rule = `eval hl.layer_rule({ match = { namespace = "caelestia-drawers" }, %1 = %2 })`;
-            trEnabled = transparency.enabled;
-        } else {
-            rule = "keyword layerrule %1 %2, match:namespace caelestia-drawers";
-            trEnabled = transparency.enabled ? 1 : 0;
+        // The drawers surface and the standalone wallpaper switcher are
+        // separate layer surfaces, so both need the same blur policy to look
+        // like one shell. The switcher uses a lower alpha threshold: its card
+        // is a floating, translucent surface, while its full-screen scrim must
+        // stay sharp. The scrim/card alphas in WallpaperSwitcherWindow.qml are
+        // paired with this value. The HyprGlass preset is mirrored in
+        // hypr/modules/plugins.lua.
+        const thresholds = {
+            "caelestia-drawers": Math.max(0, transparency.base - 0.03),
+            "caelestia-wallpaper-switcher": 0.32
+        };
+        const commands = [];
+
+        for (const ns of Object.keys(thresholds)) {
+            if (Hypr.usingLua) {
+                const rule = `eval hl.layer_rule({ match = { namespace = "${ns}" }, %1 = %2 })`;
+                commands.push(rule.arg("blur").arg(transparency.enabled), rule.arg("ignore_alpha").arg(thresholds[ns]));
+            } else {
+                const enabled = transparency.enabled ? 1 : 0;
+                commands.push(`keyword layerrule blur ${enabled}, match:namespace ${ns}`, `keyword layerrule ignore_alpha ${thresholds[ns]}, match:namespace ${ns}`);
+            }
         }
-        Hypr.extras.batchMessage([rule.arg("blur").arg(trEnabled), rule.arg("ignore_alpha").arg(Math.max(0, transparency.base - 0.03))]);
+
+        Hypr.extras.batchMessage(commands);
     }
 
     function requestReloadHyprRules(): void {
