@@ -44,6 +44,10 @@ Item {
     property real entrance: 0
     property bool ready: false
 
+    // Each tile drops in from slightly above its resting position. The wave
+    // starts with the highlight and fans outwards on every open.
+    readonly property real staggerOffset: Tokens.spacing.extraLarge + Tokens.spacing.medium
+
     readonly property int order: {
         const view = PathView.view;
         return Math.min(4, Math.abs(index - (view ? view.currentIndex : index)));

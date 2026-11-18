@@ -26,18 +26,18 @@ PanelWindow {
 
     readonly property real screenWidth: screen?.width ?? 1920
 
-    // Five cards on the path with the highlight locked to the middle. PathView
+    // Seven cards on the path with the highlight locked to the middle. PathView
     // spreads the visible delegates evenly over the path; the path is sized so
     // compact cards sit one gap apart. The highlighted card expands to a much
     // wider shape, and every delegate nudges itself so all visible gaps stay
     // the same size.
-    readonly property int pathItemCount: 5
+    readonly property int pathItemCount: 7
     readonly property real padding: Tokens.padding.largeIncreased
-    readonly property real stageWidth: Math.min(1320, Math.max(640, screenWidth - Tokens.padding.extraLarge * 2))
+    readonly property real stageWidth: Math.min(1400, Math.max(640, screenWidth - Tokens.padding.extraLarge * 2))
     readonly property real stripWidth: stageWidth - padding * 2
     readonly property real tileGap: Tokens.spacing.large
     readonly property real compactRatio: 0.62
-    readonly property real compactWidth: Math.max(64, Math.round(stripWidth * 0.125))
+    readonly property real compactWidth: Math.max(64, Math.round(stripWidth * 0.115))
     readonly property real cardWidth: Math.max(compactWidth + 24, Math.round(compactWidth / compactRatio))
     // The PathView path holds exactly the compact cards plus their even gaps,
     // so the highlight has room to grow without disturbing the neighbours.
