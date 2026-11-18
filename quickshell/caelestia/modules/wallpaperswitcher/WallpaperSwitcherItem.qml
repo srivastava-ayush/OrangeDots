@@ -271,8 +271,7 @@ Item {
             to: 1
             type: Anim.FastSpatial
             duration: Tokens.anim.durations.expressiveFastSpatial * 0.62
-            easing.type: Easing.OutBack
-            easing.overshoot: 0.65
+            easing.type: Easing.OutCubic
         }
     }
 

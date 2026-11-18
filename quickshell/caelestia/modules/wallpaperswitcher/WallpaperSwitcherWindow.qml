@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
@@ -86,13 +85,12 @@ PanelWindow {
     // The close animation must not keep intercepting clicks or keyboard input.
     mask: Region { item: root.shouldBeActive ? surface : null }
 
-    // Opening and closing share the same pace so the 60% -> 100% width widen
-    // and the staggered tile wave read the same way in both directions; only
-    // the curve changes (ease out on open, ease in on close).
+    // Opening is quick at ~200 ms; closing gets a little more room at ~245 ms
+    // so the 100% -> 40% width shrink and the reversed tile wave can settle.
     Behavior on progress {
         Anim {
             type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: Tokens.anim.durations.expressiveSlowSpatial * 0.308
+            duration: Tokens.anim.durations.expressiveSlowSpatial * (root.shouldBeActive ? 0.308 : 0.377)
             easing.type: root.shouldBeActive ? Easing.OutQuint : Easing.InCubic
         }
     }
@@ -165,14 +163,11 @@ PanelWindow {
             height: panel.height + pad * 2
             // Translucent glass: the blob shader's alpha is always opaque, so
             // the shell transparency is applied to the whole deformed layer.
+            // No layer/shadow effect here: like the session menu, the card is
+            // drawn directly so resizing it every frame does not force a fresh
+            // offscreen pass and blur on each animation frame.
             opacity: root.panelOpacity
             visible: panel.width > 0 && panel.height > 0
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                blurMax: 15
-                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.9 * root.progress)
-            }
 
             BlobGroup {
                 id: panelBlob
