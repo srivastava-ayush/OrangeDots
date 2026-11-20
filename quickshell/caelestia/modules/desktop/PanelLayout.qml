@@ -166,6 +166,9 @@ Item {
 
         screenState: root.screenState
         hideInset: root.bar.notched ? root.y : 0
+        // The clock yields the centre on any top bar, so the dashboard can use
+        // that band instead of leaving an empty strip between it and the edge.
+        topInset: root.bar.horizontal ? root.bar.thickness : 0
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top

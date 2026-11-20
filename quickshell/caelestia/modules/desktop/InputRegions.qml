@@ -27,7 +27,9 @@ Region {
     R {
         panel: root.panels.dashboard
         y: 0
-        height: panel.height * (1 - root.panels.dashboard.offsetScale) + root.panels.y
+        // The open dashboard is lifted into the top bar band, so its input
+        // region must end at the panel's real bottom, not bar thickness lower.
+        height: panel.height * (1 - panel.offsetScale) + root.panels.y - panel.topInset * (1 - panel.offsetScale)
     }
 
     R {

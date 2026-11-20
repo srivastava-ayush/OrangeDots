@@ -173,7 +173,9 @@ Item {
                 spacing: Tokens.spacing.extraSmall
 
                 PowerButton {
+                    objectName: "overviewSessionLock"
                     icon: "lock"
+                    accent: Colours.palette.m3primary
                     onClicked: {
                         root.screenState.dashboard = false;
                         // Keep the lock request in the shell's IPC path; the
@@ -182,19 +184,27 @@ Item {
                     }
                 }
                 PowerButton {
+                    objectName: "overviewSessionSleep"
                     icon: "bedtime"
+                    accent: Colours.palette.m3tertiary
                     onClicked: SessionManager.suspend()
                 }
                 PowerButton {
+                    objectName: "overviewSessionHibernate"
                     icon: Config.session.icons.hibernate
+                    accent: Colours.palette.m3secondary
                     onClicked: SessionManager.hibernate()
                 }
                 PowerButton {
+                    objectName: "overviewSessionReboot"
                     icon: Config.session.icons.reboot
+                    accent: Colours.palette.m3primary
                     onClicked: SessionManager.reboot()
                 }
                 PowerButton {
+                    objectName: "overviewSessionShutdown"
                     icon: Config.session.icons.shutdown
+                    accent: Colours.palette.m3error
                     onClicked: SessionManager.poweroff()
                 }
             }
@@ -202,9 +212,17 @@ Item {
     }
 
     component PowerButton: IconButton {
+        property color accent: Colours.palette.m3primary
+
         Layout.fillWidth: true
         type: IconButton.Tonal
         font: Tokens.font.icon.medium
         padding: Tokens.padding.extraSmall
+        // Tint the tonal pill with its semantic accent so the icon reads as
+        // lock/sleep/restart/power off at a glance, like the session menu.
+        inactiveColour: Qt.alpha(accent, 0.14)
+        inactiveOnColour: accent
+        activeColour: Qt.alpha(accent, 0.22)
+        activeOnColour: accent
     }
 }

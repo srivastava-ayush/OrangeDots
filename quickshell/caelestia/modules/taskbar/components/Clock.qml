@@ -14,14 +14,15 @@ StyledRect {
     readonly property var font: Tokens.font.body.builders.small.scale(1.1)
     readonly property bool horizontal: Taskbar.horizontal
     readonly property bool showDate: Config.bar.clock.showDate || Taskbar.notched
-    // Set by the taskbar layout from the screen's media island state. Only the
-    // top bar yields its centre; the vertical left bar must keep the date/time.
+    // Set by the taskbar layout from the screen's overlay states. Only the top
+    // bar yields its centre; the vertical left bar must keep the date/time.
     property bool mediaIslandExpanded: false
+    property bool dashboardOpen: false
     // Animated 0..1. Collapsing the entry's implicit width also removes its
-    // notch background, so the island is not stacked beneath an empty clock
-    // notch. The island grows out of this same notch, so the clock fades in
-    // place while its width collapses instead of sliding out of the bar.
-    property real hideProgress: horizontal && mediaIslandExpanded ? 1 : 0
+    // notch background, so the island/dashboard is not stacked beneath an empty
+    // clock notch. The overlay grows out of this same centre, so the clock
+    // fades in place while its width collapses instead of sliding out of the bar.
+    property real hideProgress: horizontal && (mediaIslandExpanded || dashboardOpen) ? 1 : 0
 
     signal clicked
 

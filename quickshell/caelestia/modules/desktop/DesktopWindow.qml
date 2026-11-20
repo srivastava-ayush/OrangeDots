@@ -218,15 +218,16 @@ StyledWindow {
             // Let the shared liquid edge soften during the curtain's motion,
             // then settle back to the original shape once fully open/closed.
             deformAmount: 0.1 + Math.sin(panel.curtainProgress * Math.PI) * 0.14
-            // In notch mode the full-width bar no longer bridges this gap.
-            // Continue the dashboard's own surface behind the shell's top edge,
-            // across its whole width, rather than hanging it from the clock.
-            y: bar.notched ? -root.borderRounding : panel.y + panels.y
+            // Notched bars have no full-width surface, and a top unified bar
+            // yields its centre to the open dashboard. In both cases continue
+            // the dashboard's own surface behind the shell's top edge instead
+            // of leaving an empty bar-height strip above it.
+            y: bar.notched || bar.horizontal ? -root.borderRounding : panel.y + panels.y
             implicitWidth: panel.visible ? panel.width : 0
             implicitHeight: {
                 if (!panel.visible)
                     return 0;
-                if (!bar.notched)
+                if (!bar.notched && !bar.horizontal)
                     return panel.height;
                 const bottom = panel.y + panels.y + panel.height;
                 return bottom > 0 ? bottom - y : 0;

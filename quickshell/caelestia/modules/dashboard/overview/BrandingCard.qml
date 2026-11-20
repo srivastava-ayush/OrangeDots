@@ -18,26 +18,42 @@ StyledRect {
     border.width: 1
     border.color: Qt.alpha(Colours.palette.m3primary, 0.16)
 
-    ColumnLayout {
+    RowLayout {
         id: layout
 
+        objectName: "overviewBrandRow"
         anchors.centerIn: parent
-        spacing: 0
+        spacing: Tokens.spacing.medium
 
-        StyledText {
-            objectName: "overviewBrandName"
-            Layout.alignment: Qt.AlignHCenter
-            text: Branding.name
-            font: Tokens.font.title.medium
-            color: Colours.palette.m3onSurface
+        Image {
+            objectName: "overviewBrandLogo"
+            Layout.alignment: Qt.AlignVCenter
+            Layout.preferredWidth: 44
+            Layout.preferredHeight: 44
+            source: Qt.resolvedUrl("../../../assets/orange.svg")
+            sourceSize.width: 88
+            sourceSize.height: 88
+            fillMode: Image.PreserveAspectFit
         }
 
-        StyledText {
-            objectName: "overviewBrandVersion"
-            Layout.alignment: Qt.AlignHCenter
-            text: Branding.version
-            font: Tokens.font.label.small
-            color: Colours.palette.m3primary
+        ColumnLayout {
+            spacing: 0
+
+            StyledText {
+                objectName: "overviewBrandName"
+                Layout.alignment: Qt.AlignHCenter
+                text: Branding.name
+                font: Tokens.font.title.medium
+                color: Colours.palette.m3onSurface
+            }
+
+            StyledText {
+                objectName: "overviewBrandVersion"
+                Layout.alignment: Qt.AlignHCenter
+                text: Branding.version
+                font: Tokens.font.label.small
+                color: Colours.palette.m3primary
+            }
         }
     }
 }

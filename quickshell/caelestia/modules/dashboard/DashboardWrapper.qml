@@ -48,6 +48,10 @@ Item {
     // A top taskbar can inset the dashboard below the screen edge. Include that
     // gap in the slide-out distance so no background remains inside the screen.
     property real hideInset: 0
+    // On a top bar the clock hides while the dashboard is open. Lift the content
+    // into that vacated bar band so no empty bar-height strip is reserved above
+    // the dashboard, while the shared surface still bridges to the screen edge.
+    property real topInset: 0
     // One reversible timeline scrubs every part of the reveal together. The
     // vertical curve leads the width on entry and trails its narrowing on exit.
     property real revealProgress: shouldBeActive ? 1 : 0
@@ -78,7 +82,7 @@ Item {
     readonly property real curtainWidthScale: 0.9 + 0.1 * curtainEase
 
     visible: revealProgress > 0
-    anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale
+    anchors.topMargin: -topInset + (-implicitHeight - hideInset - 5) * offsetScale
     implicitHeight: naturalHeight * dashboardScale
     implicitWidth: fullWidth * curtainWidthScale
     // Keep the narrowing curtain visible until it slips back into the edge.

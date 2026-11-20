@@ -909,6 +909,7 @@ ShellRoot {
                     const scene = fullSceneLoader.item;
                     switch (root.step) {
                     case 0:
+                        Taskbar.orientation = "top";
                         scene.screenState.dashboardTab = 0;
                         scene.screenState.dashboard = true;
                         break;
@@ -918,6 +919,9 @@ ShellRoot {
                         const overview = root.find(scene.contentItem, "dashboardOverview");
                         const gloss = root.find(scene.interactionWrapper.panels.dashboard, "dashboardGloss");
                         root.check(!!gloss && gloss.opacity === 0.25 && gloss.width === scene.interactionWrapper.panels.dashboard.width && gloss.height === scene.interactionWrapper.panels.dashboard.height, "Dashboard must share the island's edge-to-edge gloss and strength");
+                        const dashPanel = scene.interactionWrapper.panels.dashboard;
+                        root.check(Taskbar.style === "unified" && dashPanel.topInset === scene.bar.thickness && dashPanel.y === -dashPanel.topInset, "Unified dashboard must use the clock's vacated bar band instead of leaving an empty strip above it");
+                        root.check(root.findBackground(scene.contentItem, dashPanel).y < 0, "Unified dashboard surface must bridge to the shell's top edge");
                         const profile = root.find(overview, "overviewProfileCard");
                         if (root.find(profile, "overviewAvatar").width <= 0 && root.mediaWaitTicks++ < 10)
                             return;
@@ -938,15 +942,24 @@ ShellRoot {
                         const branding = root.find(overview, "overviewBranding");
                         root.check(!!branding && !root.find(profile, "overviewBranding"), "Orange OS branding must be its own dashboard card, not part of the profile card");
                         root.check(root.find(branding, "overviewBrandName").text === "Orange OS" && root.find(branding, "overviewBrandVersion").text === "AYUSH_GOAT_V5", "Branding card must show the Orange OS name and release version");
+                        const brandRow = root.find(branding, "overviewBrandRow");
+                        const brandRowPos = brandRow.mapToItem(branding, 0, 0);
+                        root.check(Math.abs(brandRowPos.x + brandRow.width / 2 - branding.width / 2) < 1, "Branding row must be centered inside its card");
+                        const brandLogo = root.find(branding, "overviewBrandLogo");
                         const brandName = root.find(branding, "overviewBrandName");
-                        const brandNamePos = brandName.mapToItem(branding, 0, 0);
-                        root.check(Math.abs(brandNamePos.x + brandName.width / 2 - branding.width / 2) < 1, "Branding must be centered inside its card");
+                        const logoEnd = brandLogo.mapToItem(branding, brandLogo.width, 0).x;
+                        const nameStart = brandName.mapToItem(branding, 0, 0).x;
+                        root.check(!!brandLogo && brandLogo.status === Image.Ready && logoEnd <= nameStart + 1, "Orange logo must sit left of the Orange OS name/version");
                         const recorder = root.find(scene.contentItem, "overviewRecorder");
                         const brandPos = branding.mapToItem(overview, 0, 0);
                         const recorderPos = recorder.mapToItem(overview, 0, 0);
                         root.check(brandPos.y + branding.height <= recorderPos.y + 0.01, "Branding card must sit above the recorder row");
                         root.check(recorderPos.y + recorder.height <= overview.height + 0.01, "Recorder must stay inside the dashboard after adding the branding card");
                         root.check(root.find(overview, "overviewSessionControls").children.filter(child => child.icon !== undefined).length === 5, "The minimal profile must retain all five session actions");
+                        const sleepButton = root.find(profile, "overviewSessionSleep");
+                        const powerButton = root.find(profile, "overviewSessionShutdown");
+                        root.check(!!sleepButton && Qt.colorEqual(sleepButton.label.color, Colours.palette.m3tertiary), "Sleep must use its semantic tertiary accent");
+                        root.check(!!powerButton && Qt.colorEqual(powerButton.label.color, Colours.palette.m3error), "Power off must use the error accent");
                         root.check(!!root.find(overview, "overviewQuickControls") && !!root.find(overview, "overviewRecorder") && !!root.find(overview, "overviewWeather"), "Overview must retain utilities, recorder and weather");
                         Weather.dataQuery = Weather.locationQuery;
                         Weather.weather = {
@@ -1090,6 +1103,8 @@ ShellRoot {
                         break;
                     case 5:
                         root.check(!island.expanded, "Late artist metadata must not retrigger the island");
+                        const dashboardClock = root.find(scene.contentItem, "taskbarClock");
+                        root.check(!!dashboardClock && dashboardClock.hideProgress > 0.99 && dashboardClock.opacity < 0.01 && dashboardClock.implicitWidth < 1, "Opening the dashboard must hide the top clock/date just like the media island");
                         root.islandPlayer.togglePlaying();
                         break;
                     case 6:
@@ -1107,6 +1122,8 @@ ShellRoot {
                         break;
                     case 8:
                         root.check(!island.expanded, "An unfocused screen must not reveal an island");
+                        const afterDashboardClock = root.find(scene.contentItem, "taskbarClock");
+                        root.check(!!afterDashboardClock && afterDashboardClock.hideProgress < 0.01 && afterDashboardClock.opacity > 0.99 && afterDashboardClock.implicitWidth > 0, "Closing the dashboard must restore the top clock/date");
                         island.activeScreen = true;
                         root.islandPlayer.previous();
                         break;

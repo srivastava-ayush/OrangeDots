@@ -365,6 +365,7 @@ GridLayout {
 
                         objectName: "taskbarClock"
                         mediaIslandExpanded: root.screenState.mediaIslandExpanded
+                        dashboardOpen: root.screenState.dashboard && root.Config.dashboard.enabled
                         // GridLayout rounds cells to logical pixels. Correct
                         // that rounding so the date/time stays at the exact
                         // screen midpoint, including odd widths and scaling.
