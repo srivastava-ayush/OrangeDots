@@ -1057,6 +1057,7 @@ ShellRoot {
                         const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
                         root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
                         root.check(island.parent === scene.interactionWrapper.panels && island.topInset === scene.interactionWrapper.panels.y && Math.abs(island.y + island.topInset) < 0.01 && island.hideInset === scene.interactionWrapper.panels.y, "A top taskbar island must lift into the bar band at the screen edge");
+                        root.check(island.collapsedHeight === island.topInset && island.collapsedHeight > 0, "A unified bar must start the island flush with the bar's bottom edge so its reveal is not hidden behind the bar");
                         root.find(island, "islandNext").clicked(null);
                         break;
                     case 2:
@@ -1075,6 +1076,7 @@ ShellRoot {
                         root.check(root.find(island, "islandDuration").text === "--:--" && root.find(island, "islandProgress").value === 0, "Unknown-duration streams must have a safe empty progress bar");
                         const islandBackground = root.findBackground(scene.contentItem, island);
                         root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
+                        root.check(island.collapsedHeight === 0, "Notched shells must keep growing from zero inside the open centre notch");
                         root.check(island.topInset === scene.interactionWrapper.panels.y && Math.abs(island.mapToItem(scene.interactionWrapper, 0, 0).y) < 0.01, "Notched shells must lift the island content to the screen edge instead of leaving a bar-height gap");
                         break;
                     case 4:

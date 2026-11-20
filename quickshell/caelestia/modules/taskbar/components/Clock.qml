@@ -36,8 +36,9 @@ StyledRect {
     Behavior on hideProgress {
         Anim {
             type: Anim.FastSpatial
-            // Match the media island's slide timing exactly.
-            easing.type: Easing.OutCubic
+            // Match the media island's timing exactly, including its
+            // smooth InOut reverse on close.
+            easing.type: Easing.InOutCubic
         }
     }
 

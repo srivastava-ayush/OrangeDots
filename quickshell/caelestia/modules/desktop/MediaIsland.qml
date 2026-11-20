@@ -66,9 +66,12 @@ Item {
 
     readonly property real fullWidth: Math.min(440, parent ? parent.width : 440)
     readonly property real expandedHeight: 120
-    // Grow out of the bar band like a Dynamic Island instead of sliding in from
-    // above: the surface starts at the clock notch's height and expands down.
-    readonly property real collapsedHeight: Math.min(expandedHeight, Tokens.sizes.bar.innerWidth)
+    // A unified bar paints a full-width surface over this panel, so height grown
+    // inside the bar band stays hidden until the island clears the bar and then
+    // pops into view. Start flush with the bar's bottom edge so every frame of
+    // the reveal is visible below it. Notched bars have no surface across the
+    // centre notch, so they keep growing from zero and stay unchanged.
+    readonly property real collapsedHeight: Math.min(expandedHeight, Taskbar.notched ? 0 : topInset)
     implicitWidth: fullWidth * (0.48 + 0.52 * reveal)
     implicitHeight: collapsedHeight + (expandedHeight - collapsedHeight) * reveal
     anchors.topMargin: -topInset
@@ -79,7 +82,9 @@ Item {
     Behavior on offsetScale {
         Anim {
             type: Anim.FastSpatial
-            easing.type: Easing.OutCubic
+            // InOut keeps closing a true reverse of opening: no lingering
+            // half-sized pill at the tail of the animation.
+            easing.type: Easing.InOutCubic
         }
     }
 
