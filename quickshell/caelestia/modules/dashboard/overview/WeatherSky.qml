@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Shapes
 import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
@@ -27,8 +28,8 @@ ClippingRectangle {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0; color: Qt.alpha("#243e73", Colours.light ? 0.18 : 0.42) }
-                GradientStop { position: 1; color: Qt.alpha("#726290", Colours.light ? 0.12 : 0.2) }
+                GradientStop { position: 0; color: Qt.alpha("#2b4d94", Colours.light ? 0.24 : 0.6) }
+                GradientStop { position: 1; color: Qt.alpha("#8a72b4", Colours.light ? 0.18 : 0.34) }
             }
         }
 
@@ -42,7 +43,7 @@ ClippingRectangle {
                 width: 2
                 height: 2
                 radius: 1
-                color: Qt.alpha("#e4edff", Colours.light ? 0.3 : 0.38)
+                color: Qt.alpha("#eef4ff", Colours.light ? 0.5 : 0.65)
             }
         }
 
@@ -54,7 +55,7 @@ ClippingRectangle {
             text: "bedtime"
             fill: 1
             fontStyle: Tokens.font.icon.builders.extraLarge.scale(1.8).build()
-            color: Qt.alpha("#d5e3ff", Colours.light ? 0.2 : 0.23)
+            color: Qt.alpha("#dbe7ff", Colours.light ? 0.34 : 0.42)
         }
     }
 
@@ -65,29 +66,44 @@ ClippingRectangle {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0; color: Qt.alpha("#59a7dc", Colours.light ? 0.32 : 0.22) }
-                GradientStop { position: 0.6; color: Qt.alpha("#b2c8d0", Colours.light ? 0.16 : 0.06) }
-                GradientStop { position: 1; color: Qt.alpha("#f1bf7a", Colours.light ? 0.24 : 0.12) }
+                GradientStop { position: 0; color: Qt.alpha("#4aa8ec", Colours.light ? 0.4 : 0.36) }
+                GradientStop { position: 1; color: Qt.alpha("#ffffff", Colours.light ? 0.4 : 0.28) }
             }
         }
 
-        Rectangle {
-            id: sun
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: 52
-            anchors.topMargin: 48
-            width: 40
-            height: 40
-            radius: 20
-            color: Qt.alpha("#ffe0a3", Colours.light ? 0.55 : 0.25)
+        // Muted yellow glow pooling at the bottom edge.
+        Shape {
+            id: sunBlob
 
-            Rectangle {
-                anchors.centerIn: parent
-                width: 76
-                height: 76
-                radius: 38
-                color: Qt.alpha("#ffe0a3", 0.035)
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            width: root.width
+            height: root.height * 0.9
+            preferredRendererType: Shape.CurveRenderer
+
+            ShapePath {
+                strokeWidth: 0
+                strokeColor: "transparent"
+                fillGradient: RadialGradient {
+                    centerX: sunBlob.width / 2
+                    centerY: sunBlob.height
+                    centerRadius: sunBlob.width / 2
+                    focalX: centerX
+                    focalY: centerY
+
+                    GradientStop { position: 0; color: Qt.alpha("#dfb45c", Colours.light ? 0.34 : 0.26) }
+                    GradientStop { position: 0.55; color: Qt.alpha("#dfb45c", Colours.light ? 0.16 : 0.12) }
+                    GradientStop { position: 1; color: Qt.alpha("#dfb45c", 0) }
+                }
+
+                PathAngleArc {
+                    centerX: sunBlob.width / 2
+                    centerY: sunBlob.height
+                    radiusX: sunBlob.width / 2
+                    radiusY: sunBlob.height
+                    startAngle: 0
+                    sweepAngle: 360
+                }
             }
         }
     }
@@ -98,7 +114,7 @@ ClippingRectangle {
         text: "cloud"
         fill: 1
         fontStyle: Tokens.font.icon.builders.extraLarge.scale(3).build()
-        color: Qt.alpha(Colours.light ? "#ffffff" : "#dce8f7", root.cloudy ? 0.11 : 0.055)
+        color: Qt.alpha(Colours.light ? "#ffffff" : "#e2ecfa", root.cloudy ? 0.2 : 0.1)
     }
 
     MaterialIcon {
@@ -107,6 +123,6 @@ ClippingRectangle {
         text: "cloud"
         fill: 1
         fontStyle: Tokens.font.icon.builders.extraLarge.scale(2).build()
-        color: Qt.alpha(Colours.light ? "#ffffff" : "#dce8f7", root.cloudy ? 0.065 : 0.03)
+        color: Qt.alpha(Colours.light ? "#ffffff" : "#e2ecfa", root.cloudy ? 0.12 : 0.055)
     }
 }

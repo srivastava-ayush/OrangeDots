@@ -16,6 +16,11 @@ StyledRect {
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
 
+    // Weather accents: the active Material scheme is monochrome, so use explicit
+    // sky/sun hues here to keep the card lively instead of grey-on-grey.
+    readonly property color accentCool: Colours.light ? "#1a6da8" : "#8fd0ff"
+    readonly property color accentSun: Colours.light ? "#c98200" : "#ffd54a"
+
     Ref { service: Weather }
 
     WeatherSky {
@@ -97,7 +102,7 @@ StyledRect {
 
                 MaterialIcon {
                     text: Weather.condition(Weather.weather?.code ?? -1, Weather.weather?.isDay ?? true).icon
-                    color: Colours.palette.m3primary
+                    color: root.accentSun
                     fontStyle: Tokens.font.icon.extraLarge
                 }
             }
@@ -108,7 +113,7 @@ StyledRect {
 
                 MaterialIcon {
                     text: "humidity_percentage"
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: root.accentCool
                     fontStyle: Tokens.font.icon.small
                 }
 
@@ -122,7 +127,7 @@ StyledRect {
 
                 MaterialIcon {
                     text: "air"
-                    color: Colours.palette.m3onSurfaceVariant
+                    color: root.accentCool
                     fontStyle: Tokens.font.icon.small
                 }
 
@@ -172,7 +177,7 @@ StyledRect {
                         MaterialIcon {
                             Layout.alignment: Qt.AlignHCenter
                             text: Weather.condition(day.modelData.code).icon
-                            color: Colours.palette.m3secondary
+                            color: root.accentCool
                             fontStyle: Tokens.font.icon.medium
                         }
 
@@ -218,7 +223,7 @@ StyledRect {
             MaterialIcon {
                 Layout.alignment: Qt.AlignHCenter
                 text: Weather.loading ? "cloud_sync" : Weather.error ? "cloud_off" : "partly_cloudy_day"
-                color: Colours.palette.m3primary
+                color: Weather.error ? Colours.palette.m3error : root.accentCool
                 fontStyle: Tokens.font.icon.extraLarge
             }
 
