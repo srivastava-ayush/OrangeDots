@@ -279,10 +279,11 @@ GridLayout {
                     if (before < 0) before = enabled.findIndex(e => e.id === "statusIcons");
                     enabled.splice(before < 0 ? enabled.length : before, 0, { id: "focusCountdown", enabled: true });
                 }
-                // On horizontal bars, hide the clock and its spacers when the media island is expanded.
-                // The media island occupies the center; the clock would be redundant.
-                const hideClock = root.horizontal && root.screenState.mediaIslandExpanded;
-                if (!root.centeredClock || hideClock)
+                // Keep the centered grouping even while the media island is
+                // expanded. Falling back to the raw entry list here would
+                // surface entries that notched bars intentionally leave out,
+                // like the active-window title, for the island's lifetime.
+                if (!root.centeredClock)
                     return enabled;
                 const start = enabled.filter(e => root.entryGroup(e.id) === 0);
                 const end = enabled.filter(e => root.entryGroup(e.id) === 2);
