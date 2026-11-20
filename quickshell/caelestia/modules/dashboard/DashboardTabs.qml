@@ -97,11 +97,15 @@ Item {
         }
 
         Behavior on x {
-            Anim {}
+            Anim {
+                type: Anim.Emphasized
+            }
         }
 
         Behavior on implicitWidth {
-            Anim {}
+            Anim {
+                type: Anim.Emphasized
+            }
         }
     }
 

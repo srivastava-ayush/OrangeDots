@@ -58,7 +58,6 @@ Item {
 
     readonly property real nonAnimWidth: view.implicitWidth + viewWrapper.anchors.margins * 2
     readonly property real nonAnimHeight: tabs.implicitHeight + tabs.anchors.topMargin + view.implicitHeight + viewWrapper.anchors.margins * 2
-    readonly property bool overviewSelected: dashboardTabs[screenState.dashboardTab]?.component === dashComponent
     property real performanceHeight: Tokens.sizes.dashboard.mediaTabHeight
 
     implicitWidth: nonAnimWidth
@@ -103,6 +102,9 @@ Item {
 
             flickableDirection: Flickable.HorizontalFlick
 
+            // Never drag past the first/last module: there is no content there.
+            boundsBehavior: Flickable.StopAtBounds
+
             implicitWidth: currentItem?.implicitWidth ?? 0
             implicitHeight: currentItem?.implicitHeight ?? 0
 
@@ -110,29 +112,63 @@ Item {
             contentWidth: row.implicitWidth
             contentHeight: row.implicitHeight
 
-            onContentXChanged: {
-                if (!moving || !currentItem)
-                    return;
+            // Remember how far the pointer actually dragged. movementEnded can
+            // fire (and reset contentX) before dragEnded, so reading contentX
+            // there would always look like a zero-distance drag.
+            property real dragStartX: 0
+            property real dragDelta: 0
+            property bool dragSettling: false
 
-                const x = contentX - currentItem.x;
-                if (x > currentItem.implicitWidth / 2)
-                    root.screenState.dashboardTab = Math.min(root.screenState.dashboardTab + 1, tabs.count - 1);
-                else if (x < -currentItem.implicitWidth / 2)
-                    root.screenState.dashboardTab = Math.max(root.screenState.dashboardTab - 1, 0);
+            // Flickable writes contentX itself while dragging, which severs the
+            // declarative binding above. Restore it once the gesture is over so
+            // tab presses and IPC switches keep sliding to the selected module.
+            function syncToCurrent(): void {
+                contentX = Qt.binding(() => currentItem?.x ?? 0);
+            }
+
+            onDragStarted: {
+                dragStartX = contentX;
+                dragDelta = 0;
+                dragSettling = true;
+            }
+
+            onContentXChanged: {
+                if (dragging)
+                    dragDelta = contentX - dragStartX;
             }
 
             onDragEnded: {
                 if (!currentItem)
                     return;
 
-                const x = contentX - currentItem.x;
-                if (x > currentItem.implicitWidth / 10)
+                const dx = dragDelta;
+                // A short-but-fast fling should also move one module over.
+                const threshold = Math.min(currentItem.implicitWidth / 10, 80);
+                const flung = Math.abs(horizontalVelocity) > 400;
+
+                if (dx > threshold || (flung && horizontalVelocity > 0))
                     root.screenState.dashboardTab = Math.min(root.screenState.dashboardTab + 1, tabs.count - 1);
-                else if (x < -currentItem.implicitWidth / 10)
+                else if (dx < -threshold || (flung && horizontalVelocity < 0))
                     root.screenState.dashboardTab = Math.max(root.screenState.dashboardTab - 1, 0);
-                else
-                    contentX = Qt.binding(() => currentItem?.x ?? 0);
+
+                // Snap to the selected module instead of continuing Flickable's
+                // physics; the Behavior below eases the rest of the distance.
+                dragSettling = false;
+                cancelFlick();
+                syncToCurrent();
             }
+
+            // Recover the binding after wheel scrolling or an uncancelled flick,
+            // where no dragEnded is delivered. While a drag is settling, let
+            // dragEnded decide first so movementEnded can't reset the offset.
+            onMovementEnded: {
+                if (!dragSettling)
+                    syncToCurrent();
+            }
+
+            // One module per gesture: drop any momentum and ease into the chosen
+            // module instead of gliding past several of them.
+            onFlickStarted: cancelFlick()
 
             RowLayout {
                 id: row
@@ -147,24 +183,17 @@ Item {
                     delegate: Loader {
                         id: paneLoader
 
-                        required property int index
                         required property var modelData
 
                         Layout.alignment: Qt.AlignTop
 
                         sourceComponent: modelData.component
 
-                        Component.onCompleted: active = Qt.binding(() => {
-                            if (index === view.currentIndex)
-                                return true;
-                            // Measure the existing Performance pane, not a duplicate,
-                            // so Overview can match its actual configured height.
-                            if (modelData.component === performanceComponent && root.overviewSelected)
-                                return true;
-                            const vx = Math.floor(view.visibleArea.xPosition * view.contentWidth);
-                            const vex = Math.floor(vx + view.visibleArea.widthRatio * view.contentWidth);
-                            return (vx >= x && vx <= x + implicitWidth) || (vex >= x && vex <= x + implicitWidth);
-                        })
+                        // Keep every module instantiated while the dashboard is
+                        // open. Inactive loaders collapse to zero width, which
+                        // shifts neighbouring modules mid-slide and makes jumps
+                        // between distant tabs look like a teleport.
+                        active: true
                     }
                 }
             }
@@ -205,16 +234,27 @@ Item {
             }
 
             Behavior on contentX {
-                Anim {}
+                // Track the pointer 1:1 while dragging/flicking, then ease the
+                // snap to the selected module. No spatial overshoot here: a
+                // bounce past the edge would expose the blank strip outside the
+                // first/last module.
+                enabled: !view.dragging && !view.flicking
+                Anim {
+                    type: Anim.Emphasized
+                }
             }
         }
     }
 
     Behavior on implicitWidth {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 
     Behavior on implicitHeight {
-        Anim {}
+        Anim {
+            type: Anim.Emphasized
+        }
     }
 }
