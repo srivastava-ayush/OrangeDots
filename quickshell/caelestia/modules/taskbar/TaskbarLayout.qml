@@ -367,11 +367,10 @@ GridLayout {
                         // GridLayout rounds cells to logical pixels. Correct
                         // that rounding so the date/time stays at the exact
                         // screen midpoint, including odd widths and scaling.
-                        // The extra slide lifts the text out of the top edge
-                        // while the media island occupies the centre.
+                        // The island grows out of this notch, so only the
+                        // horizontal centering correction is needed here.
                         transform: Translate {
                             x: root.horizontal ? root.width / 2 - clock.parent.x - clock.x - clock.width / 2 : 0
-                            y: clock.hideOffset
                         }
 
                         onClicked: {

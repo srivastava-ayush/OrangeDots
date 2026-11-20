@@ -65,9 +65,13 @@ Item {
     }
 
     readonly property real fullWidth: Math.min(440, parent ? parent.width : 440)
+    readonly property real expandedHeight: 120
+    // Grow out of the bar band like a Dynamic Island instead of sliding in from
+    // above: the surface starts at the clock notch's height and expands down.
+    readonly property real collapsedHeight: Math.min(expandedHeight, Tokens.sizes.bar.innerWidth)
     implicitWidth: fullWidth * (0.48 + 0.52 * reveal)
-    implicitHeight: 120
-    anchors.topMargin: (-implicitHeight - hideInset - 5) * offsetScale - topInset * reveal
+    implicitHeight: collapsedHeight + (expandedHeight - collapsedHeight) * reveal
+    anchors.topMargin: -topInset
     visible: reveal > 0
     opacity: reveal
     clip: true
@@ -125,7 +129,12 @@ Item {
     Item {
         id: pill
         objectName: "mediaIslandCurtain"
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        // Keep the player at its expanded size while the island's own height
+        // grows, so the content is revealed instead of squashed.
+        height: root.expandedHeight
 
         InsetGloss {
             objectName: "mediaIslandGloss"

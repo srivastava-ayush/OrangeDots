@@ -1056,7 +1056,7 @@ ShellRoot {
                         const background = root.findBackground(scene.contentItem, island);
                         const dashboardBackground = root.findBackground(scene.contentItem, scene.interactionWrapper.panels.dashboard);
                         root.check(background.group === dashboardBackground.group && background.group.color === scene.surfaceColour, "Island and dashboard must share the actual shell background renderer, not separate transparent windows");
-                        root.check(island.parent === scene.interactionWrapper.panels && Math.abs(island.y) < 0.01 && island.topInset === 0, "The island must live directly inside the shell at the dashboard entry edge");
+                        root.check(island.parent === scene.interactionWrapper.panels && island.topInset === scene.interactionWrapper.panels.y && Math.abs(island.y + island.topInset) < 0.01 && island.hideInset === scene.interactionWrapper.panels.y, "A top taskbar island must lift into the bar band at the screen edge");
                         root.find(island, "islandNext").clicked(null);
                         break;
                     case 2:
@@ -1119,7 +1119,7 @@ ShellRoot {
                     case 11:
                         const playerContent = root.find(island, "mediaIslandContent");
                         root.check(Math.abs(island.width - island.fullWidth * 0.74) < 0.01 && island.opacity === 0.5, "Island must match the dashboard's centered curtain and fade halfway through the animation");
-                        root.check(island.y === (-island.height - island.hideInset - 5) * 0.5 - island.topInset * 0.5, "Island must use the dashboard's slide distance with its top inset");
+                        root.check(island.y === -island.topInset && island.height > island.collapsedHeight && island.height < island.expandedHeight, "Island must stay attached to the screen edge and grow out of the bar band instead of sliding in");
                         root.check(playerContent.width === island.fullWidth - 32, "Island content must remain full-sized during the reveal animation");
                         island.offsetScale = 1;
                         console.log("TASKBAR TEST PASS");

@@ -176,11 +176,11 @@ Item {
         fullscreen: root.fullscreen
         dashboardOpen: root.screenState.dashboard
         activeScreen: ShellState.forActive() === root.screenState
-        hideInset: root.bar.notched ? root.y : 0
-        // In notches mode the taskbar has no full-width surface; the island's
-        // background bridges to the screen edge. Pull the content up by the
-        // same inset so no empty bar-height band sits above the player.
-        topInset: root.bar.notched && root.bar.horizontal ? root.bar.thickness : 0
+        // Top bars leave the island anchored below the bar band. Bridge its
+        // surface to the screen edge and lift the content by the bar thickness
+        // so the expanded island fills that band instead of floating under it.
+        hideInset: root.bar.notched || root.bar.horizontal ? root.y : 0
+        topInset: root.bar.horizontal ? root.bar.thickness : 0
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 

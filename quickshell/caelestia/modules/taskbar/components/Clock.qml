@@ -19,9 +19,9 @@ StyledRect {
     property bool mediaIslandExpanded: false
     // Animated 0..1. Collapsing the entry's implicit width also removes its
     // notch background, so the island is not stacked beneath an empty clock
-    // notch. Opacity and an upward slide hide the text while it collapses.
+    // notch. The island grows out of this same notch, so the clock fades in
+    // place while its width collapses instead of sliding out of the bar.
     property real hideProgress: horizontal && mediaIslandExpanded ? 1 : 0
-    readonly property real hideOffset: horizontal ? -hideProgress * (implicitHeight + Tokens.padding.large) : 0
 
     signal clicked
 

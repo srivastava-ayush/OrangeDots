@@ -238,12 +238,14 @@ StyledWindow {
             panel: panels.mediaIsland
             deformAmount: 0.1
             // The same BlobGroup, tint, glass mask and top-edge bridge as dashBg.
-            y: bar.notched ? -root.borderRounding : panel.y + panels.y
+            // Any top bar lifts the island into the bar band, so bridge the
+            // surface all the way to the screen edge instead of starting below it.
+            y: bar.notched || bar.horizontal ? -root.borderRounding : panel.y + panels.y
             implicitWidth: panel.visible ? panel.width : 0
             implicitHeight: {
                 if (!panel.visible)
                     return 0;
-                if (!bar.notched)
+                if (!bar.notched && !bar.horizontal)
                     return panel.height;
                 const bottom = panel.y + panels.y + panel.height;
                 return bottom > 0 ? bottom - y : 0;
