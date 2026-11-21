@@ -81,7 +81,6 @@ Item {
                 objectName: "dashboardMediaEmpty"
 
                 anchors.centerIn: parent
-                asynchronous: true
                 active: opacity > 0
                 opacity: 0
 
@@ -125,7 +124,6 @@ Item {
                 objectName: "dashboardMediaContent"
 
                 anchors.fill: parent
-                asynchronous: true
                 active: opacity > 0
 
                 sourceComponent: RowLayout {
