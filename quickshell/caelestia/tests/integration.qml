@@ -1143,7 +1143,7 @@ ShellRoot {
                         const closeFirst = closeSamples[0];
                         root.check(closeFirst.p > 0.9 && Math.abs(closeFirst.lift) < 0.001, "First close frame must keep the open size and no lift jump");
                         const closeAt120 = root.morphNear(closeSamples, 120);
-                        root.check(closeAt120.stage < 0.05 && closeAt120.p > 0.15 && closeAt120.h > dashPanel.pillHeight, "Content must clear before the container finishes collapsing");
+                        root.check(closeAt120.stage < 0.05 && closeAt120.p > 0.15 && closeAt120.h > dashPanel.pillHeight, `Content must clear before the container finishes collapsing (t=${closeAt120.t}, stage=${closeAt120.stage}, p=${closeAt120.p}, h=${closeAt120.h}, pill=${dashPanel.pillHeight})`);
                         const liftPeak = root.morphMin(closeSamples, "lift");
                         root.check(liftPeak < -dashPanel.pillHeight, `Closing must lift the whole panel past the edge (peak=${liftPeak}, pill=${dashPanel.pillHeight})`);
                         const closeExit = root.morphNear(closeSamples, 280);
