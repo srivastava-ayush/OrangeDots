@@ -153,8 +153,6 @@ ShellRoot {
         const curtain = root.find(panel, "dashboardCurtain");
         const contentLoader = root.find(panel, "dashboardContentLoader");
         const bg = root.findBackground(scene.contentItem, panel);
-        // layer.effect is a Component, so read the normalized effect values from
-        // the panel that owns the live MultiEffect binding.
         root.dashMorphSamples.push({
             phase: root.dashMorphPhase,
             t: Date.now() - root.dashMorphStarted,
@@ -184,11 +182,10 @@ ShellRoot {
             curtainH: curtain ? curtain.height : Number.NaN,
             curtainOpacity: curtain ? curtain.opacity : Number.NaN,
             curtainScale: curtain ? curtain.scale : Number.NaN,
-            layerEnabled: curtain ? curtain.layer.enabled : false,
-            blur: panel.contentBlur,
-            blurEnabled: panel.blurActive,
             contentScale: contentLoader ? contentLoader.scale : Number.NaN,
-            dashboardScale: panel.dashboardScale
+            dashboardScale: panel.dashboardScale,
+            tabStage: contentLoader?.item ? contentLoader.item.nestedStage(0, 1) : Number.NaN,
+            paneStage: contentLoader?.item ? contentLoader.item.nestedStage(1, 1) : Number.NaN
         });
     }
 
@@ -239,9 +236,12 @@ ShellRoot {
             curtainH: curtain ? curtain.height : Number.NaN,
             curtainOpacity: curtain ? curtain.opacity : Number.NaN,
             curtainScale: curtain ? curtain.scale : Number.NaN,
-            layerEnabled: curtain ? curtain.layer.enabled : false,
-            blur: panel.contentBlur,
-            blurEnabled: panel.blurActive
+            staggerFirst: panel.nestedStage(0, 5),
+            staggerPrev: panel.nestedStage(2, 5),
+            staggerNext: panel.nestedStage(4, 5),
+            staggerLast: panel.nestedStage(5, 5),
+            prevOpacity: root.find(panel, "islandPrevious")?.opacity ?? Number.NaN,
+            nextOpacity: root.find(panel, "islandNext")?.opacity ?? Number.NaN
         });
     }
 
@@ -256,14 +256,10 @@ ShellRoot {
         root.check(sample.clip, `${sample.phase}: the morphing island must clip natural-sized content`);
         root.check(Math.abs(sample.curtainW - sample.fullW) < 0.01 && Math.abs(sample.curtainH - sample.fullH) < 0.01, `${sample.phase}: island content must keep its natural size instead of being squeezed`);
         const expectedStage = Math.min(1, Math.max(0, (sample.p - sample.start) / Math.max(0.001, 1 - sample.start)));
-        const effectActive = sample.stage > 0.001 && sample.stage < 0.999;
         root.check(Math.abs(sample.stage - expectedStage) < 0.001, `${sample.phase}: island content stage must be a remap of the one spring`);
         root.check(Math.abs(sample.curtainOpacity - sample.stage) < 0.001 && Math.abs(sample.curtainScale - (0.85 + 0.15 * sample.stage)) < 0.001, `${sample.phase}: island fade/scale must be derived from the spring`);
-        root.check(sample.layerEnabled === effectActive, `${sample.phase}: the island effect layer must only be enabled while content animates`);
-        if (effectActive) {
-            root.check(sample.blurEnabled, `${sample.phase}: the island blur effect must stay configured while content animates`);
-            root.check(Math.abs(sample.blur - (1 - sample.stage)) < 0.001, `${sample.phase}: island blur must fall from 16px to 0 with the content stage`);
-        }
+        root.check(sample.staggerFirst >= sample.staggerPrev - 0.001 && sample.staggerPrev >= sample.staggerNext - 0.001 && sample.staggerNext >= sample.staggerLast - 0.001, `${sample.phase}: island nested stages must cascade from artwork to scrubber`);
+        root.check(Math.abs(sample.prevOpacity - sample.staggerPrev) < 0.001 && Math.abs(sample.nextOpacity - sample.staggerNext) < 0.001, `${sample.phase}: island child opacity must come from its staggered stage`);
         root.check(Math.abs(sample.curtainY) < 0.01, `${sample.phase}: island content must not have a separate lift`);
         if (sample.phase === "open")
             root.check(Math.abs(sample.lift) < 0.001, `${sample.phase}: opening must not lift the island`);
@@ -302,15 +298,11 @@ ShellRoot {
         const expectedStage = Math.min(1, Math.max(0, (sample.p - sample.start) / Math.max(0.001, 1 - sample.start)));
         const expectedOpacity = sample.stage;
         const expectedScale = 0.85 + 0.15 * sample.stage;
-        const expectedBlur = 1 - sample.stage;
-        const effectActive = sample.stage > 0.001 && sample.stage < 0.999;
         root.check(Math.abs(sample.stage - expectedStage) < 0.001, `${sample.phase}: content stage must be a remap of the one spring`);
         root.check(Math.abs(sample.curtainOpacity - expectedOpacity) < 0.001 && Math.abs(sample.curtainScale - expectedScale) < 0.001, `${sample.phase}: content fade/scale must be derived from the spring`);
-        root.check(sample.layerEnabled === effectActive, `${sample.phase}: the effect layer must only be enabled while content animates`);
-        if (effectActive) {
-            root.check(sample.blurEnabled, `${sample.phase}: the blur effect must stay configured while content animates (stage=${sample.stage}, layer=${sample.layerEnabled}, blur=${sample.blur}, blurEnabled=${sample.blurEnabled})`);
-            root.check(Math.abs(sample.blur - expectedBlur) < 0.001, `${sample.phase}: blur must fall from 16px to 0 with the content stage`);
-        }
+
+        if (Number.isFinite(sample.tabStage) && Number.isFinite(sample.paneStage))
+            root.check(sample.tabStage >= sample.paneStage - 0.001, `${sample.phase}: dashboard tabs must lead the active pane`);
 
         // pullHint is negative (up in item coordinates). It moves the entire
         // surface on close; content has no independent offset.
@@ -1141,6 +1133,8 @@ ShellRoot {
                         // block the test shell before the spring gets its first
                         // frame. Measure staging from the first animated frame.
                         root.check(!!openMotion && !!openFirstContent && openFirstContent.t - openMotion.t >= 0 && openFirstContent.t - openMotion.t < 180, `Content must start staging shortly into the open (relative=${openFirstContent && openMotion ? openFirstContent.t - openMotion.t : Number.NaN})`);
+                        const dashOpenSpread = openSamples.reduce((max, sample) => Number.isFinite(sample.tabStage) ? Math.max(max, sample.tabStage - sample.paneStage) : max, 0);
+                        root.check(dashOpenSpread > 0.05, `Opening dashboard must stagger tabs ahead of the pane (spread=${dashOpenSpread})`);
                         if (!root.find(scene.contentItem, "overviewSessionControls") && root.mediaWaitTicks++ < 10)
                             return;
                         const overview = root.find(scene.contentItem, "dashboardOverview");
@@ -1233,6 +1227,8 @@ ShellRoot {
                             root.checkMorphSample(sample);
                         const closeFirst = closeSamples[0];
                         root.check(closeFirst.p > 0.9 && Math.abs(closeFirst.lift) < 0.001, "First close frame must keep the open size and no lift jump");
+                        const dashCloseSpread = closeSamples.reduce((max, sample) => Number.isFinite(sample.tabStage) ? Math.max(max, sample.tabStage - sample.paneStage) : max, 0);
+                        root.check(dashCloseSpread > 0.05, `Closing dashboard must stagger the pane out ahead of the tabs (spread=${dashCloseSpread})`);
                         const closeAt120 = root.morphNear(closeSamples, 120);
                         root.check(closeAt120.stage < 0.05 && closeAt120.p > 0.15 && closeAt120.h > dashPanel.pillHeight, `Content must clear before the container finishes collapsing (t=${closeAt120.t}, stage=${closeAt120.stage}, p=${closeAt120.p}, h=${closeAt120.h}, pill=${dashPanel.pillHeight})`);
                         const liftPeak = root.morphMin(closeSamples, "lift");
@@ -1320,6 +1316,8 @@ ShellRoot {
                         const islandOpenMotion = openIslandSamples.find(sample => sample.p > 0.001);
                         const islandFirstContent = openIslandSamples.find(sample => sample.stage > 0.001);
                         root.check(!!islandOpenMotion && !!islandFirstContent && islandFirstContent.t - islandOpenMotion.t >= 0 && islandFirstContent.t - islandOpenMotion.t < 180, `Island content must start staging shortly into the open (relative=${islandFirstContent && islandOpenMotion ? islandFirstContent.t - islandOpenMotion.t : Number.NaN})`);
+                        const islandOpenSpread = openIslandSamples.reduce((max, sample) => Math.max(max, sample.staggerFirst - sample.staggerLast), 0);
+                        root.check(islandOpenSpread > 0.05, `Opening island must stagger nested content (spread=${islandOpenSpread})`);
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
                         const clock = root.find(scene.contentItem, "taskbarClock");
                         root.check(!!clock && clock.hideProgress > 0.99 && clock.opacity < 0.01 && clock.implicitWidth < 1, "A top taskbar clock must animate out and collapse while the media island is expanded");
@@ -1372,6 +1370,8 @@ ShellRoot {
                         if (islandCloseMotion) {
                             const islandAt120 = root.morphNear(closeIslandSamples, islandCloseMotion.t + 120);
                             root.check(islandAt120.stage < 0.05 && islandAt120.p > 0.15 && islandAt120.h > island.pillHeight, `Island content must clear before the container finishes collapsing (t=${islandAt120.t}, stage=${islandAt120.stage}, p=${islandAt120.p}, h=${islandAt120.h}, pill=${island.pillHeight})`);
+                            const islandCloseSpread = closeIslandSamples.reduce((max, sample) => Math.max(max, sample.staggerFirst - sample.staggerLast), 0);
+                            root.check(islandCloseSpread > 0.05, `Closing island must stagger nested content in reverse (spread=${islandCloseSpread})`);
                             const islandLiftPeak = root.morphMin(closeIslandSamples, "lift");
                             root.check(islandLiftPeak < -island.pillHeight, `Closing island must lift the whole panel past the edge (peak=${islandLiftPeak}, pill=${island.pillHeight})`);
                             const islandCloseExit = root.morphNear(closeIslandSamples, islandCloseMotion.t + 280);

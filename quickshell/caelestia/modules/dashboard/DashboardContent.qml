@@ -17,6 +17,17 @@ Item {
     required property ScreenState screenState
     required property FileDialog facePicker
     required property FileDialog phoneFilePicker
+    // The wrapper's reversible content stage. Nested elements take delayed
+    // slices of it, so the cascade reverses on close without a separate
+    // timeline or a jump when the spring is retargeted mid-flight.
+    required property real revealStage
+
+    readonly property real staggerSpan: 0.45
+    function nestedStage(order: int, steps: int): real {
+        const last = Math.max(1, steps);
+        const delay = Math.min(Math.max(order, 0), last) / last * staggerSpan;
+        return Math.min(1, Math.max(0, (root.revealStage - delay) / (1 - staggerSpan)));
+    }
 
     readonly property var dashboardTabs: {
         const allTabs = [
@@ -75,6 +86,13 @@ Item {
         nonAnimWidth: root.nonAnimWidth - anchors.margins * 2
         screenState: root.screenState
         tabs: root.dashboardTabs
+        revealStage: root.revealStage
+
+        // The tab strip leads the cascade, then the individual tabs stagger in.
+        opacity: root.nestedStage(0, 1)
+        transform: Translate {
+            y: (1 - root.nestedStage(0, 1)) * 8
+        }
     }
 
     ClippingRectangle {
@@ -88,6 +106,12 @@ Item {
 
         radius: Tokens.rounding.large
         color: "transparent"
+
+        // The active pane trails the tabs on open and clears first on close.
+        opacity: root.nestedStage(1, 1)
+        transform: Translate {
+            y: (1 - root.nestedStage(1, 1)) * 8
+        }
 
         Flickable {
             id: view

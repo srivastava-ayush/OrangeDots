@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import Quickshell
 import Caelestia
 import Caelestia.Config
@@ -81,12 +80,6 @@ Item {
     readonly property real contentStage: Math.min(
         1,
         Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
-    // Expose the live blur state for integration tests. `layer.effect` is a
-    // Component in QtQuick, so the instantiated effect cannot be read back from
-    // the layer property itself.
-    readonly property real contentBlur: 1 - contentStage
-    readonly property bool blurActive: contentStage > 0.001 && contentStage < 0.999
-
     // Closing lifts the whole surface by its own pill height plus a small
     // margin, so the empty notch leaves the viewport instead of hanging around.
     // It is derived from the same spring, never animated on its own, and the
@@ -208,17 +201,6 @@ Item {
         height: root.fullHeight
         transformOrigin: Item.Top
 
-        // The effect layer is expensive; keep it alive only while the content
-        // stage is actually between its hidden and settled endpoints.
-        layer.enabled: root.contentStage > 0.001 && root.contentStage < 0.999
-        layer.effect: MultiEffect {
-            objectName: "dashboardBlur"
-            blurEnabled: true
-            blur: 1 - root.contentStage
-            blurMax: 16
-            blurMultiplier: 1
-        }
-
         opacity: root.contentStage
         scale: 0.85 + 0.15 * root.contentStage
 
@@ -237,6 +219,9 @@ Item {
                 screenState: root.screenState
                 facePicker: root.facePicker
                 phoneFilePicker: root.phoneFilePicker
+                // Nested elements derive their own staggered stage from the
+                // wrapper's single spring, so they cannot drift out of sync.
+                revealStage: root.contentStage
             }
         }
     }

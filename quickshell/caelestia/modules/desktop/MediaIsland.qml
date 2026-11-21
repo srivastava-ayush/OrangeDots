@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
@@ -62,11 +61,16 @@ Item {
     readonly property real contentStage: Math.min(
         1,
         Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
-    // Expose the live blur state for integration tests. `layer.effect` is a
-    // Component in QtQuick, so the instantiated effect cannot be read back from
-    // the layer property itself.
-    readonly property real contentBlur: 1 - contentStage
-    readonly property bool blurActive: contentStage > 0.001 && contentStage < 0.999
+    // Nested content rides the same reversible timeline. Each child takes a
+    // delayed slice of contentStage, so a fixed order reads forwards while
+    // opening and in reverse while closing without ever retargeting an
+    // animation: reversing mid-flight keeps every child exactly where it was.
+    readonly property real staggerSpan: 0.45
+    function nestedStage(order: int, steps: int): real {
+        const last = Math.max(1, steps);
+        const delay = Math.min(Math.max(order, 0), last) / last * staggerSpan;
+        return Math.min(1, Math.max(0, (root.contentStage - delay) / (1 - staggerSpan)));
+    }
 
     // Closing lifts the whole surface by its own pill height plus a small
     // margin, so the vacated notch leaves the viewport instead of hanging
@@ -207,16 +211,6 @@ Item {
         height: root.expandedHeight
         transformOrigin: Item.Top
 
-        // The effect layer is expensive; keep it alive only while the content
-        // stage is actually between its hidden and settled endpoints.
-        layer.enabled: root.contentStage > 0.001 && root.contentStage < 0.999
-        layer.effect: MultiEffect {
-            blurEnabled: true
-            blur: 1 - root.contentStage
-            blurMax: 16
-            blurMultiplier: 1
-        }
-
         opacity: root.contentStage
         scale: 0.85 + 0.15 * root.contentStage
 
@@ -237,6 +231,12 @@ Item {
                 radius: 18
                 color: Colours.palette.m3secondaryContainer
 
+                // Artwork leads the cascade on open and leaves last on close.
+                opacity: root.nestedStage(0, 5)
+                transform: Translate {
+                    y: (1 - root.nestedStage(0, 5)) * 8
+                }
+
                 MaterialIcon {
                     anchors.centerIn: parent
                     text: "music_note"
@@ -255,6 +255,11 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
+
+                opacity: root.nestedStage(1, 5)
+                transform: Translate {
+                    y: (1 - root.nestedStage(1, 5)) * 8
+                }
 
                 StyledText {
                     Layout.fillWidth: true
@@ -293,6 +298,10 @@ Item {
                 icon: "skip_previous"
                 type: IconButton.Text
                 enabled: root.player?.canGoPrevious ?? false
+                opacity: root.nestedStage(2, 5)
+                transform: Translate {
+                    y: (1 - root.nestedStage(2, 5)) * 8
+                }
                 onClicked: root.player?.previous()
             }
 
@@ -301,6 +310,10 @@ Item {
                 icon: root.player?.isPlaying ? "pause" : "play_arrow"
                 type: IconButton.Filled
                 enabled: root.player?.canTogglePlaying ?? false
+                opacity: root.nestedStage(3, 5)
+                transform: Translate {
+                    y: (1 - root.nestedStage(3, 5)) * 8
+                }
                 onClicked: root.player?.togglePlaying()
             }
 
@@ -309,6 +322,10 @@ Item {
                 icon: "skip_next"
                 type: IconButton.Text
                 enabled: root.player?.canGoNext ?? false
+                opacity: root.nestedStage(4, 5)
+                transform: Translate {
+                    y: (1 - root.nestedStage(4, 5)) * 8
+                }
                 onClicked: root.player?.next()
             }
         }
@@ -319,6 +336,12 @@ Item {
             anchors.bottomMargin: 12
             width: root.fullWidth - 32
             spacing: 10
+
+            // The scrubber closes the cascade and is the first thing to leave.
+            opacity: root.nestedStage(5, 5)
+            transform: Translate {
+                y: (1 - root.nestedStage(5, 5)) * 8
+            }
 
             StyledText {
                 objectName: "islandElapsed"

@@ -71,15 +71,17 @@ StyledRect {
             sourceComponent: ColumnLayout {
                 spacing: layout.spacing - 4
 
-                StyledText {
+                BlurText {
                     Layout.alignment: Qt.AlignHCenter
+                    hideProgress: root.hideProgress
                     text: Time.format("ddd")
                     font: Tokens.font.body.builders.small.scale(0.9).build()
                     color: root.colour
                 }
 
-                StyledText {
+                BlurText {
                     Layout.alignment: Qt.AlignHCenter
+                    hideProgress: root.hideProgress
                     text: Time.format("d")
                     font: root.font.scale(1.1).build()
                     color: root.colour
@@ -97,8 +99,9 @@ StyledRect {
             }
         }
 
-        StyledText {
+        BlurText {
             Layout.alignment: Qt.AlignHCenter
+            hideProgress: root.hideProgress
             text: Time.hourStr
             font: {
                 const scale = text === "11" ? 1.15 : Math.min(1.05, Math.max(hourMetrics.width, minMetrics.width) / hourMetrics.width);
@@ -114,9 +117,10 @@ StyledRect {
             }
         }
 
-        StyledText {
+        BlurText {
             Layout.topMargin: -parent.spacing - 4
             Layout.alignment: Qt.AlignHCenter
+            hideProgress: root.hideProgress
             text: Time.minuteStr
             font: {
                 const scale = text === "11" ? 1.15 : Math.min(1.05, Math.max(hourMetrics.width, minMetrics.width) / minMetrics.width);
@@ -139,7 +143,8 @@ StyledRect {
             active: GlobalConfig.services.useTwelveHourClock
             visible: active
 
-            sourceComponent: StyledText {
+            sourceComponent: BlurText {
+                hideProgress: root.hideProgress
                 text: Time.amPmStr.toLowerCase()
                 font: Tokens.font.body.builders.small.scale(0.9).build()
                 color: root.colour
@@ -161,14 +166,16 @@ StyledRect {
             color: root.colour
         }
 
-        StyledText {
+        BlurText {
             visible: root.showDate
+            hideProgress: root.hideProgress
             text: Time.format("ddd, d MMM")
             font: root.font.build()
             color: root.colour
         }
 
-        StyledText {
+        BlurText {
+            hideProgress: root.hideProgress
             text: `${Time.hourStr}:${Time.minuteStr}${GlobalConfig.services.useTwelveHourClock ? ` ${Time.amPmStr.toLowerCase()}` : ""}`
             font: root.font.build()
             color: root.colour

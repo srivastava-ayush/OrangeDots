@@ -15,8 +15,19 @@ Item {
     required property real nonAnimWidth
     required property ScreenState screenState
     required property var tabs
+    required property real revealStage
 
     readonly property alias count: bar.count
+
+    // Each tab takes a delayed slice of the wrapper's content stage. A fixed
+    // order means the strip cascades left-to-right on open and right-to-left on
+    // close, and a mid-flight reversal never moves a tab discontinuously.
+    readonly property real staggerSpan: 0.45
+    function nestedStage(order: int, steps: int): real {
+        const last = Math.max(1, steps);
+        const delay = Math.min(Math.max(order, 0), last) / last * staggerSpan;
+        return Math.min(1, Math.max(0, (root.revealStage - delay) / (1 - staggerSpan)));
+    }
 
     implicitHeight: bar.implicitHeight + bar.anchors.topMargin + indicator.implicitHeight + indicator.anchors.topMargin + separator.implicitHeight
 
@@ -131,6 +142,11 @@ Item {
         implicitWidth: implicitContentWidth
         implicitHeight: implicitContentHeight
         background: null
+
+        opacity: root.nestedStage(TabBar.index, Math.max(1, bar.count - 1))
+        transform: Translate {
+            y: (1 - root.nestedStage(TabBar.index, Math.max(1, bar.count - 1))) * 6
+        }
 
         contentItem: CustomMouseArea {
             id: mouse
