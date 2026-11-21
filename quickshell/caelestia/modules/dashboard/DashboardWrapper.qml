@@ -93,8 +93,6 @@ Item {
         Anim {
             // Retarget from the current value on interruption, never reset the
             // curtain. Matching curves make closing a true reverse of opening.
-            // Keep the same motion as the launcher, just a touch quicker so
-            // hover-driven reveals feel responsive.
             type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
             duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.7 : Tokens.anim.durations.expressiveDefaultSpatial * 0.7
             easing.type: Easing.InOutCubic
