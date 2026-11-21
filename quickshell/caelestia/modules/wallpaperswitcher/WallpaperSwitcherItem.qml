@@ -318,8 +318,16 @@ Item {
         id: tileMask
 
         anchors.fill: tile
-        visible: false
+        // Keep the mask rendered: an invisible layer is not guaranteed to be
+        // refreshed while its geometry changes, so MultiEffect can sample a
+        // stale/empty mask and hide the thumbnail. The opaque placeholder in
+        // imageLayer is painted above this, so it stays visually hidden.
         layer.enabled: true
+        // Keep the mask texture at a fixed resolution while the card morphs.
+        // Letting it follow tile.width reallocates the layer texture every
+        // animation frame, and MultiEffect sometimes samples a stale/empty
+        // mask, leaving the thumbnail hidden behind the placeholder.
+        layer.textureSize: Qt.size(Math.round(root.fullTileWidth), Math.round(root.fullHeight))
 
         Shape {
             anchors.fill: parent
@@ -348,6 +356,7 @@ Item {
 
         anchors.fill: tile
         layer.enabled: true
+        layer.textureSize: Qt.size(Math.round(root.fullTileWidth), Math.round(root.fullHeight))
         layer.effect: Mask {
             maskSource: tileMask
         }

@@ -27,9 +27,10 @@ Region {
     R {
         panel: root.panels.dashboard
         y: 0
-        // The open dashboard is lifted into the top bar band, so its input
-        // region must end at the panel's real bottom, not bar thickness lower.
-        height: panel.height * (1 - panel.offsetScale) + root.panels.y - panel.topInset * (1 - panel.offsetScale)
+        // Follow the panel's real bottom edge, including its close lift, so
+        // the input region leaves the viewport with the surface. While hidden,
+        // keep reserving only the top bar band as before.
+        height: panel.visible ? Math.max(root.panels.y, panel.y + panel.height + root.panels.y) : root.panels.y
     }
 
     R {

@@ -87,10 +87,17 @@ CustomMouseArea {
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
-        const panelHeight = panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
+        // The dashboard morphs its own height, but its closed pill is invisible:
+        // only the configured top strip should react while it is collapsed.
+        // The remaining top panels slide via offsetScale and need their
+        // revealed height calculated here.
+        const panelBottom = panels.y + panel.y + panel.height;
+        const panelHeight = panel === panels.dashboard
+            ? (panel.visible ? Math.max(0, panelBottom) : 0)
+            : panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
         // When the dashboard is closed, only the configured top strip triggers it.
         // Once it starts opening, the revealed panel keeps the hover target alive.
-        const bottom = panel === panels.dashboard ? (panelHeight > 0 ? Math.max(panels.dashboard.hoverHeight, panels.y + panelHeight) : panels.dashboard.hoverHeight) : panels.y + panelHeight;
+        const bottom = panel === panels.dashboard ? (panel.visible ? Math.max(panels.dashboard.hoverHeight, panelBottom) : panels.dashboard.hoverHeight) : panels.y + panelHeight;
         return y < Math.max(Config.border.minThickness, bottom) && withinPanelWidth(panel, x, y);
     }
 

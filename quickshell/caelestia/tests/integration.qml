@@ -27,6 +27,10 @@ ShellRoot {
 
     property int step
     property int mediaWaitTicks
+    property real dashOpenHeight: 0
+    property var dashMorphSamples: []
+    property real dashMorphStarted: 0
+    property string dashMorphPhase: ""
     property var aiRequests: []
     property var aiMemoryState
     Component {
@@ -133,6 +137,105 @@ ShellRoot {
     function check(condition: bool, message: string): void {
         if (!condition)
             throw new Error(message);
+    }
+
+    function sampleDashboardMorph(): void {
+        if (!root.dashMorphPhase || !fullSceneLoader.item)
+            return;
+        const scene = fullSceneLoader.item;
+        const panel = scene.interactionWrapper?.panels?.dashboard;
+        if (!panel)
+            return;
+        const curtain = root.find(panel, "dashboardCurtain");
+        const contentLoader = root.find(panel, "dashboardContentLoader");
+        const bg = root.findBackground(scene.contentItem, panel);
+        // layer.effect is a Component, so read the normalized effect values from
+        // the panel that owns the live MultiEffect binding.
+        root.dashMorphSamples.push({
+            phase: root.dashMorphPhase,
+            t: Date.now() - root.dashMorphStarted,
+            p: panel.revealProgress,
+            stage: panel.contentStage,
+            start: panel.contentStart,
+            lift: panel.pullHint,
+            liftLimit: panel.closeLiftAmount,
+            curtainY: curtain ? curtain.y : Number.NaN,
+            w: panel.width,
+            h: panel.height,
+            expectedW: panel.pillWidth + (panel.targetWidth - panel.pillWidth) * panel.sizeProgress,
+            expectedH: panel.pillHeight + (panel.targetHeight - panel.pillHeight) * panel.sizeProgress,
+            fullW: panel.fullWidth,
+            fullH: panel.fullHeight,
+            y: panel.y,
+            topInset: panel.topInset,
+            bottom: panel.y + panel.height,
+            screenTop: -panel.topInset,
+            cx: panel.x + panel.width / 2,
+            center: panel.parent ? panel.parent.width / 2 : Number.NaN,
+            radius: panel.surfaceRadius,
+            maxRadius: panel.maxSurfaceRadius,
+            bgRadius: bg ? bg.radius : Number.NaN,
+            clip: panel.clip,
+            curtainW: curtain ? curtain.width : Number.NaN,
+            curtainH: curtain ? curtain.height : Number.NaN,
+            curtainOpacity: curtain ? curtain.opacity : Number.NaN,
+            curtainScale: curtain ? curtain.scale : Number.NaN,
+            layerEnabled: curtain ? curtain.layer.enabled : false,
+            blur: panel.contentBlur,
+            blurEnabled: panel.blurActive,
+            contentScale: contentLoader ? contentLoader.scale : Number.NaN,
+            dashboardScale: panel.dashboardScale
+        });
+    }
+
+    function morphPhase(phase: string): var {
+        return root.dashMorphSamples.filter(sample => sample.phase === phase);
+    }
+
+    function morphNear(samples: var, time: real): var {
+        if (!samples.length)
+            return null;
+        return samples.reduce((best, sample) => Math.abs(sample.t - time) < Math.abs(best.t - time) ? sample : best, samples[0]);
+    }
+
+    function morphMin(samples: var, field: string): real {
+        return samples.reduce((min, sample) => Math.min(min, sample[field]), Infinity);
+    }
+
+    function morphMax(samples: var, field: string): real {
+        return samples.reduce((max, sample) => Math.max(max, sample[field]), -Infinity);
+    }
+
+    function checkMorphSample(sample: var): void {
+        root.check(Math.abs(sample.w - sample.expectedW) < 0.5 && Math.abs(sample.h - sample.expectedH) < 0.5, `${sample.phase}: panel size must come from the single spring (${sample.w}x${sample.h}, expected ${sample.expectedW}x${sample.expectedH})`);
+        // Opening grows from the pill in place; closing carries the whole
+        // surface upward so the vacated notch leaves the viewport.
+        const expectedY = -sample.topInset + (sample.phase === "close" ? sample.lift : 0);
+        root.check(Math.abs(sample.y - expectedY) < 0.01 && Math.abs(sample.cx - sample.center) < 1, `${sample.phase}: panel must stay centred while following its one spring`);
+        root.check(Math.abs(sample.radius - Math.min(sample.h / 2, sample.maxRadius)) < 0.01 && Math.abs(sample.bgRadius - sample.radius) < 0.01, `${sample.phase}: shared surface radius must follow live height`);
+        root.check(sample.clip, `${sample.phase}: the morphing surface must clip natural-sized content`);
+        root.check(Math.abs(sample.curtainW - sample.fullW) < 0.01 && Math.abs(sample.curtainH - sample.fullH) < 0.01, `${sample.phase}: content must keep its natural size instead of being squeezed`);
+        root.check(Math.abs(sample.contentScale - sample.dashboardScale) < 0.01, `${sample.phase}: content layout must use dashboardScale, not the reveal spring`);
+        const expectedStage = Math.min(1, Math.max(0, (sample.p - sample.start) / Math.max(0.001, 1 - sample.start)));
+        const expectedOpacity = sample.stage;
+        const expectedScale = 0.85 + 0.15 * sample.stage;
+        const expectedBlur = 1 - sample.stage;
+        const effectActive = sample.stage > 0.001 && sample.stage < 0.999;
+        root.check(Math.abs(sample.stage - expectedStage) < 0.001, `${sample.phase}: content stage must be a remap of the one spring`);
+        root.check(Math.abs(sample.curtainOpacity - expectedOpacity) < 0.001 && Math.abs(sample.curtainScale - expectedScale) < 0.001, `${sample.phase}: content fade/scale must be derived from the spring`);
+        root.check(sample.layerEnabled === effectActive, `${sample.phase}: the effect layer must only be enabled while content animates`);
+        if (effectActive) {
+            root.check(sample.blurEnabled, `${sample.phase}: the blur effect must stay configured while content animates (stage=${sample.stage}, layer=${sample.layerEnabled}, blur=${sample.blur}, blurEnabled=${sample.blurEnabled})`);
+            root.check(Math.abs(sample.blur - expectedBlur) < 0.001, `${sample.phase}: blur must fall from 16px to 0 with the content stage`);
+        }
+
+        // pullHint is negative (up in item coordinates). It moves the entire
+        // surface on close; content has no independent offset.
+        root.check(Math.abs(sample.curtainY) < 0.01, `${sample.phase}: content must not have a separate lift`);
+        if (sample.phase === "open")
+            root.check(Math.abs(sample.lift) < 0.001, `${sample.phase}: opening must not lift the surface`);
+        else
+            root.check(sample.lift <= 0.001 && sample.lift >= -sample.liftLimit - 0.001, `${sample.phase}: close lift must stay within the offscreen distance (${sample.lift}, limit ${sample.liftLimit})`);
     }
 
     function find(item: Item, name: string): Item {
@@ -340,8 +443,16 @@ ShellRoot {
         }
     }
 
+    // Sample the real dashboard spring often enough to verify ordering.
     Timer {
-        interval: ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
+        interval: 16
+        repeat: true
+        running: Quickshell.env("TASKBAR_TEST_MODE") === "overview" && root.dashMorphPhase !== ""
+        onTriggered: root.sampleDashboardMorph()
+    }
+
+    Timer {
+        interval: Quickshell.env("TASKBAR_TEST_MODE") === "overview" ? 1200 : ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
         running: true
         repeat: true
 
@@ -907,19 +1018,43 @@ ShellRoot {
 
                 if (Quickshell.env("TASKBAR_TEST_MODE") === "overview") {
                     const scene = fullSceneLoader.item;
+                    const panels = scene.interactionWrapper.panels;
+                    const dashPanel = panels.dashboard;
+                    const dashBg = root.findBackground(scene.contentItem, dashPanel);
+                    const curtain = root.find(dashPanel, "dashboardCurtain");
                     switch (root.step) {
                     case 0:
                         Taskbar.orientation = "top";
                         scene.screenState.dashboardTab = 0;
+                        root.check(!dashPanel.visible && dashPanel.implicitWidth === dashPanel.pillWidth && dashPanel.implicitHeight === dashPanel.pillHeight, "Closed dashboard must be a 190x34 pill");
+                        root.check(dashPanel.y === -dashPanel.topInset && Math.abs(dashPanel.x + dashPanel.width / 2 - panels.width / 2) < 1, "Closed pill must stay pinned to the top centre");
+                        root.check(dashPanel.surfaceRadius === Math.min(dashPanel.height / 2, dashPanel.maxSurfaceRadius) && dashBg.radius === dashPanel.surfaceRadius, "Closed pill must use the shared animated radius");
+                        root.dashMorphSamples = [];
+                        root.dashMorphStarted = Date.now();
+                        root.dashMorphPhase = "open";
                         scene.screenState.dashboard = true;
+                        root.sampleDashboardMorph();
+                        root.check(dashPanel.revealProgress < 0.1 && dashPanel.height < 100, "Dashboard must start opening from the collapsed pill instead of snapping open");
                         break;
                     case 1:
+                        root.dashMorphPhase = "";
+                        const openSamples = root.morphPhase("open");
+                        root.check(openSamples.length > 8, `Opening dashboard must be sampled while the spring runs (n=${openSamples.length})`);
+                        for (const sample of openSamples)
+                            root.checkMorphSample(sample);
+                        const openPeak = root.morphMax(openSamples, "p");
+                        root.check(openPeak > 1.02 && openPeak < 1.08, `Opening spring must overshoot slightly then settle (peak=${openPeak})`);
+                        const openMotion = openSamples.find(sample => sample.p > 0.001);
+                        const openFirstContent = openSamples.find(sample => sample.stage > 0.001);
+                        // The first open creates the dashboard Loader, which can
+                        // block the test shell before the spring gets its first
+                        // frame. Measure staging from the first animated frame.
+                        root.check(!!openMotion && !!openFirstContent && openFirstContent.t - openMotion.t >= 0 && openFirstContent.t - openMotion.t < 180, `Content must start staging shortly into the open (relative=${openFirstContent && openMotion ? openFirstContent.t - openMotion.t : Number.NaN})`);
                         if (!root.find(scene.contentItem, "overviewSessionControls") && root.mediaWaitTicks++ < 10)
                             return;
                         const overview = root.find(scene.contentItem, "dashboardOverview");
                         const gloss = root.find(scene.interactionWrapper.panels.dashboard, "dashboardGloss");
                         root.check(!!gloss && gloss.opacity === 0.25 && gloss.width === scene.interactionWrapper.panels.dashboard.width && gloss.height === scene.interactionWrapper.panels.dashboard.height, "Dashboard must share the island's edge-to-edge gloss and strength");
-                        const dashPanel = scene.interactionWrapper.panels.dashboard;
                         root.check(Taskbar.style === "unified" && dashPanel.topInset === scene.bar.thickness && dashPanel.y === -dashPanel.topInset, "Unified dashboard must use the clock's vacated bar band instead of leaving an empty strip above it");
                         root.check(root.findBackground(scene.contentItem, dashPanel).y < 0, "Unified dashboard surface must bridge to the shell's top edge");
                         const profile = root.find(overview, "overviewProfileCard");
@@ -991,6 +1126,30 @@ ShellRoot {
                     case 4:
                         root.check(root.find(scene.contentItem, "overviewWeatherStatus").visible, "Weather must retain its setup and unavailable-data state");
                         root.check(!root.find(scene.contentItem, "overviewWeatherSky").visible, "Weather without data must retain its neutral setup background");
+                        root.dashOpenHeight = dashPanel.height;
+                        root.dashMorphSamples = [];
+                        root.dashMorphStarted = Date.now();
+                        root.dashMorphPhase = "close";
+                        scene.screenState.dashboard = false;
+                        root.sampleDashboardMorph();
+                        root.check(dashPanel.revealProgress > 0.9 && dashPanel.height > root.dashOpenHeight * 0.9, "Closing must start from the open surface instead of snapping to the pill");
+                        break;
+                    case 5:
+                        root.dashMorphPhase = "";
+                        const closeSamples = root.morphPhase("close");
+                        root.check(closeSamples.length > 5, "Closing dashboard must be sampled while the spring runs");
+                        for (const sample of closeSamples)
+                            root.checkMorphSample(sample);
+                        const closeFirst = closeSamples[0];
+                        root.check(closeFirst.p > 0.9 && Math.abs(closeFirst.lift) < 0.001, "First close frame must keep the open size and no lift jump");
+                        const closeAt120 = root.morphNear(closeSamples, 120);
+                        root.check(closeAt120.stage < 0.05 && closeAt120.p > 0.15 && closeAt120.h > dashPanel.pillHeight, "Content must clear before the container finishes collapsing");
+                        const liftPeak = root.morphMin(closeSamples, "lift");
+                        root.check(liftPeak < -dashPanel.pillHeight, `Closing must lift the whole panel past the edge (peak=${liftPeak}, pill=${dashPanel.pillHeight})`);
+                        const closeExit = root.morphNear(closeSamples, 280);
+                        root.check(closeExit.bottom <= closeExit.screenTop + 1, `Closing panel must carry the notch out of the viewport (bottom=${closeExit.bottom}, top=${closeExit.screenTop})`);
+                        const closeLast = closeSamples[closeSamples.length - 1];
+                        root.check(Math.abs(closeLast.lift) < 0.01 && Math.abs(closeLast.y + closeLast.topInset) < 0.01, "Finished close must rest at the pinned pill before the next open");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                         break;
@@ -1175,14 +1334,17 @@ ShellRoot {
                         root.check(dashboard.dashboardScale > 0 && dashboard.dashboardScale <= requestedScale + 0.001, `Dashboard scale must respect the requested size and screen bounds (case=${index}, actual=${dashboard.dashboardScale}, requested=${requestedScale}, config=${GlobalConfig.dashboard.scale}, screenConfig=${GlobalConfig.forScreen(scene.screen.name).dashboard.scale})`);
                         root.check(Math.abs(dashboard.fullWidth - dashboard.naturalWidth * dashboard.dashboardScale) < 0.01, "Dashboard background and input width must follow the scaled content");
                         root.check(dashboard.fullWidth <= panels.width + 0.01 && dashboard.height <= panels.height + 0.01, "Scaled dashboard must fit inside the screen");
+                        root.check(dashboard.y === -dashboard.topInset, "Open dashboard must stay pinned to the top-centre instead of sliding down");
+                        root.check(dashboard.surfaceRadius === Math.min(dashboard.height / 2, dashboard.maxSurfaceRadius) && dashBg.radius === dashboard.surfaceRadius, "Shared dashboard surface must follow the animated pill-to-card radius");
                         root.check(panels.dashboard.visible && dashBg.width === panels.dashboard.width, "Dashboard background must span its full width");
+                        root.dashOpenHeight = dashboard.height;
                         root.check(dashBg.y < 0 && dashBg.y + dashBg.height >= panels.y + panels.dashboard.y + panels.dashboard.height - 1, "Dashboard must connect directly to the shell's top edge");
                         scene.screenState.dashboard = false;
                         popup.currentName = entry.name;
                         popup.hasCurrent = true;
                     } else if (phase === 2) {
                         root.check(dashBg.width === 0 && dashBg.height === 0, "Closed dashboard must leave no ghost background");
-                        root.check(panels.y + panels.dashboard.y + panels.dashboard.height <= 0, "Dashboard must slide completely past the screen edge");
+                        root.check(!panels.dashboard.visible && panels.dashboard.y === -panels.dashboard.topInset && panels.dashboard.height < root.dashOpenHeight, "Closed dashboard must settle hidden back at the pinned pill after its offscreen close lift");
                         root.check(popupBg.width > 0 && popupBg.height > 0, "Popout must have a background");
                         if (Taskbar.horizontal)
                             root.check(popupBg.y < 0 && popupBg.width === popup.width, `${entry.name}: top popout must attach to the shell across its full width`);

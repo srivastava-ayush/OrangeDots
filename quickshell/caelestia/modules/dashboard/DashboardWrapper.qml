@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Caelestia
 import Caelestia.Config
@@ -45,19 +46,125 @@ Item {
     // Dashboard no longer contains an editable Calendar scratchpad.
     readonly property bool notesActive: false
     readonly property bool shouldBeActive: screenState.dashboard && Config.dashboard.enabled
-    // A top taskbar can inset the dashboard below the screen edge. Include that
-    // gap in the slide-out distance so no background remains inside the screen.
+    // Notched bars bridge the closed pill to the screen edge, so the pill itself
+    // must be at least as tall as the band it covers. Kept separate from the
+    // bar's vacated band (topInset), which lifts the content into the top bar.
     property real hideInset: 0
-    // On a top bar the clock hides while the dashboard is open. Lift the content
-    // into that vacated bar band so no empty bar-height strip is reserved above
-    // the dashboard, while the shared surface still bridges to the screen edge.
     property real topInset: 0
-    // One reversible timeline scrubs every part of the reveal together. The
-    // vertical curve leads the width on entry and trails its narrowing on exit.
-    property real revealProgress: shouldBeActive ? 1 : 0
-    property real offsetScale: Math.pow(1 - revealProgress, 3)
-    // Reveal a full-sized dashboard through a centered curtain instead of
-    // squeezing its cards/text as the hover surface expands from the top.
+
+    // One reversible spring is the only animated timeline. The target is kept
+    // separate so direction-specific tuning can be applied before the spring
+    // is retargeted; changing a SpringAnimation's tuning in the same binding
+    // update as its target makes the first close frame snap.
+    property bool revealTarget: shouldBeActive
+    property real revealProgress: revealTarget ? 1 : 0
+    readonly property real sizeProgress: Math.max(0, revealProgress)
+    readonly property real visualProgress: Math.min(1, sizeProgress)
+    readonly property real reveal: visualProgress
+
+    Behavior on revealProgress {
+        SpringAnimation {
+            id: surfaceSpring
+
+            spring: 3.4
+            damping: 0.30
+            mass: 1
+            epsilon: 0.002
+        }
+    }
+
+    // Content is not animated separately. Its stage is a directional remap of
+    // the same progress value: 0.69 is ~100ms into the open spring, 0.25 is
+    // ~120ms into the close spring. A reversal keeps the current remap so the
+    // content never jumps while the surface keeps its velocity.
+    property real contentStart: shouldBeActive ? 0.69 : 0.25
+    readonly property real contentStage: Math.min(
+        1,
+        Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
+    // Expose the live blur state for integration tests. `layer.effect` is a
+    // Component in QtQuick, so the instantiated effect cannot be read back from
+    // the layer property itself.
+    readonly property real contentBlur: 1 - contentStage
+    readonly property bool blurActive: contentStage > 0.001 && contentStage < 0.999
+
+    // Closing lifts the whole surface by its own pill height plus a small
+    // margin, so the empty notch leaves the viewport instead of hanging around.
+    // It is derived from the same spring, never animated on its own, and the
+    // anchor keeps it continuous when the spring reverses. At the settled
+    // closed endpoint the panel is hidden, so the offset returns to zero before
+    // the next open.
+    readonly property real closeLiftAmount: pillHeight + 4
+    property real liftAnchorProgress: visualProgress
+    property real liftAnchorValue: 0
+    readonly property real pullHint: {
+        const p = visualProgress;
+        if (!revealTarget && p <= 0.001)
+            return 0;
+        const anchor = liftAnchorProgress;
+        if (revealTarget) {
+            const span = Math.max(0.001, 1 - anchor);
+            const u = Math.min(1, Math.max(0, (p - anchor) / span));
+            return liftAnchorValue * (1 - u);
+        }
+        const span = Math.max(0.001, anchor);
+        const u = Math.min(1, Math.max(0, (anchor - p) / span));
+        const eased = u * u * u * (u * (u * 6 - 15) + 10);
+        const hint = liftAnchorValue * (1 - u) - closeLiftAmount * eased;
+        return Math.max(-closeLiftAmount, Math.min(0, hint));
+    }
+
+    onShouldBeActiveChanged: {
+        const stage = root.contentStage;
+        const hint = root.pullHint;
+        const hintProgress = root.visualProgress;
+        // A progress value that is merely close to an endpoint is not enough:
+        // with the current start it can still produce a visible stage below
+        // saturation, and resetting the start there would make content jump.
+        const nearClosed = hintProgress <= 0.001 && stage <= 0.001;
+        const nearOpen = hintProgress >= 0.999 && stage >= 0.999;
+        const settled = nearClosed || nearOpen;
+
+        // Open: ~4.6% overshoot, settled by ~450ms. Close: a stiffer, gentler
+        // spring with no visible bounce; the surface is down by ~300ms while
+        // content has already finished leaving at ~120ms.
+        surfaceSpring.spring = shouldBeActive ? 3.4 : 4.0;
+        surfaceSpring.damping = shouldBeActive ? 0.30 : 0.40;
+
+        // Only re-anchor at a settled endpoint. Retargeting mid-flight keeps the
+        // existing content stage and lift at this instant, so reversing cannot
+        // make either pop or snap. A saturated stage needs no inversion: keeping
+        // its current start already keeps the content fully shown or fully
+        // hidden, while recomputing from a value that close to 0/1 is both
+        // unnecessary and numerically unstable.
+        if (settled) {
+            root.contentStart = shouldBeActive ? 0.69 : 0.25;
+            root.liftAnchorValue = 0;
+        } else {
+            if (stage > 0.02 && stage < 0.98)
+                root.contentStart = (root.revealProgress - stage) / (1 - stage);
+            root.liftAnchorValue = hint;
+        }
+        root.liftAnchorProgress = hintProgress;
+
+        root.revealTarget = shouldBeActive;
+    }
+
+    Component.onCompleted: {
+        surfaceSpring.spring = shouldBeActive ? 3.4 : 4.0;
+        surfaceSpring.damping = shouldBeActive ? 0.30 : 0.40;
+        root.contentStart = shouldBeActive ? 0.69 : 0.25;
+        root.liftAnchorProgress = root.visualProgress;
+        root.liftAnchorValue = 0;
+    }
+
+    // ---- Dynamic Island geometry ----------------------------------------
+    readonly property real pillWidth: 190
+    readonly property real pillHeight: Math.max(34, hideInset)
+    readonly property real maxSurfaceRadius: 44
+    readonly property real surfaceRadius: Math.min(implicitHeight / 2, maxSurfaceRadius)
+
+    // ---------------------------------------------------------------------
+
     readonly property real naturalWidth: content.implicitWidth || 854
     readonly property real naturalHeight: content.implicitHeight
     readonly property real dashboardScale: Math.min(
@@ -65,59 +172,72 @@ Item {
         parent && parent.width > 0 ? parent.width / naturalWidth : 1.4,
         parent && parent.height > 0 && naturalHeight > 0 ? parent.height / naturalHeight : 1.4)
     readonly property real fullWidth: naturalWidth * dashboardScale
-    // Keep the edge target generous even while the curtain is collapsed.
+    readonly property real fullHeight: naturalHeight * dashboardScale
+    readonly property real targetWidth: Math.max(pillWidth, fullWidth)
+    readonly property real targetHeight: Math.max(pillHeight, fullHeight)
+    // Keep the edge target generous even while the pill is collapsed.
     // A configured width overrides the automatic dashboard-sized target.
     readonly property real hoverWidth: {
         const autoWidth = Math.min(parent ? parent.width : fullWidth + 200, fullWidth + 200);
         return DashboardHover.width > 0 ? Math.min(parent ? parent.width : DashboardHover.width, DashboardHover.width) : autoWidth;
     }
-    // Height of the closed-state top edge strip, measured from the screen edge.
     readonly property real hoverHeight: Math.max(Config.border.minThickness, DashboardHover.height)
-    readonly property real curtainProgress: Math.max(0, Math.min(1, revealProgress))
-    // Mirror the launcher's curtain: the same smootherstep width bloom and fade
-    // bring the reveal to rest gently at both ends, while its full-sized content
-    // stays untouched behind it.
-    readonly property real curtainEase: curtainProgress * curtainProgress * curtainProgress
-        * (curtainProgress * (curtainProgress * 6 - 15) + 10)
-    readonly property real curtainWidthScale: 0.9 + 0.1 * curtainEase
 
-    visible: revealProgress > 0
-    anchors.topMargin: -topInset + (-implicitHeight - hideInset - 5) * offsetScale
-    implicitHeight: naturalHeight * dashboardScale
-    implicitWidth: fullWidth * curtainWidthScale
-    // Keep the narrowing curtain visible until it slips back into the edge.
-    opacity: 1 - offsetScale
+    // Grows in place while open. On close the whole surface is pulled up far
+    // enough to carry the vacated notch out of the viewport.
+    anchors.topMargin: -topInset + pullHint
+    implicitWidth: pillWidth + (targetWidth - pillWidth) * sizeProgress
+    implicitHeight: pillHeight + (targetHeight - pillHeight) * sizeProgress
+    visible: shouldBeActive || revealProgress > 0.001 || contentStage > 0.001
     clip: true
-
-    Behavior on revealProgress {
-        Anim {
-            // Retarget from the current value on interruption, never reset the
-            // curtain. Matching curves make closing a true reverse of opening.
-            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.7 : Tokens.anim.durations.expressiveDefaultSpatial * 0.7
-            easing.type: Easing.InOutCubic
-        }
-    }
 
     InsetGloss {
         objectName: "dashboardGloss"
         anchors.fill: parent
     }
 
-    Loader {
-        id: content
+    Item {
+        id: curtain
 
+        objectName: "dashboardCurtain"
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
+        // Full-sized content is clipped by the morphing parent, never resized
+        // by the layout. Only the staging transform scales it during the reveal.
+        width: root.fullWidth
+        height: root.fullHeight
         transformOrigin: Item.Top
-        scale: root.dashboardScale
 
-        active: root.shouldBeActive || root.visible
+        // The effect layer is expensive; keep it alive only while the content
+        // stage is actually between its hidden and settled endpoints.
+        layer.enabled: root.contentStage > 0.001 && root.contentStage < 0.999
+        layer.effect: MultiEffect {
+            objectName: "dashboardBlur"
+            blurEnabled: true
+            blur: 1 - root.contentStage
+            blurMax: 16
+            blurMultiplier: 1
+        }
 
-        sourceComponent: DashboardContent {
-            screenState: root.screenState
-            facePicker: root.facePicker
-            phoneFilePicker: root.phoneFilePicker
+        opacity: root.contentStage
+        scale: 0.85 + 0.15 * root.contentStage
+
+        Loader {
+            id: content
+
+            objectName: "dashboardContentLoader"
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            transformOrigin: Item.Top
+            scale: root.dashboardScale
+
+            active: root.shouldBeActive || root.visible
+
+            sourceComponent: DashboardContent {
+                screenState: root.screenState
+                facePicker: root.facePicker
+                phoneFilePicker: root.phoneFilePicker
+            }
         }
     }
 }

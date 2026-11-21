@@ -215,9 +215,12 @@ StyledWindow {
             id: dashBg
 
             panel: panels.dashboard
-            // Let the shared liquid edge soften during the curtain's motion,
-            // then settle back to the original shape once fully open/closed.
-            deformAmount: 0.1 + Math.sin(panel.curtainProgress * Math.PI) * 0.14
+            // The shared edge is the island surface, so its rounding must follow
+            // the dashboard's pill-to-card morph instead of staying fixed.
+            radius: panel.surfaceRadius
+            // Let the shared liquid edge soften during the morph, then settle
+            // back to the original shape once fully open/closed.
+            deformAmount: 0.1 + Math.sin(panel.visualProgress * Math.PI) * 0.14
             // Notched bars have no full-width surface, and a top unified bar
             // yields its centre to the open dashboard. In both cases continue
             // the dashboard's own surface behind the shell's top edge instead
