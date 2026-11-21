@@ -87,17 +87,23 @@ CustomMouseArea {
     }
 
     function inTopPanel(panel: Item, x: real, y: real): bool {
-        // The dashboard morphs its own height, but its closed pill is invisible:
-        // only the configured top strip should react while it is collapsed.
-        // The remaining top panels slide via offsetScale and need their
-        // revealed height calculated here.
+        // The dashboard and media island morph their own height, but their
+        // closed pills are invisible: only the configured top strip should
+        // react while they are collapsed. The remaining top panels slide via
+        // offsetScale and need their revealed height calculated here.
+        const morphTopPanel = panel === panels.dashboard || panel === panels.mediaIsland;
         const panelBottom = panels.y + panel.y + panel.height;
-        const panelHeight = panel === panels.dashboard
+        const panelHeight = morphTopPanel
             ? (panel.visible ? Math.max(0, panelBottom) : 0)
             : panel.height * (1 - (panel.offsetScale ?? 0)); // qmllint disable missing-property
-        // When the dashboard is closed, only the configured top strip triggers it.
-        // Once it starts opening, the revealed panel keeps the hover target alive.
-        const bottom = panel === panels.dashboard ? (panel.visible ? Math.max(panels.dashboard.hoverHeight, panelBottom) : panels.dashboard.hoverHeight) : panels.y + panelHeight;
+        // When a morphing panel is closed, only the dashboard's configured top
+        // strip triggers it; the island has no hover target. Once it starts
+        // opening, the revealed surface keeps the target alive.
+        const bottom = panel === panels.dashboard
+            ? (panel.visible ? Math.max(panels.dashboard.hoverHeight, panelBottom) : panels.dashboard.hoverHeight)
+            : panel === panels.mediaIsland
+                ? (panel.visible ? Math.max(0, panelBottom) : 0)
+                : panels.y + panelHeight;
         return y < Math.max(Config.border.minThickness, bottom) && withinPanelWidth(panel, x, y);
     }
 

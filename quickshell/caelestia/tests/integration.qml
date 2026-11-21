@@ -31,6 +31,10 @@ ShellRoot {
     property var dashMorphSamples: []
     property real dashMorphStarted: 0
     property string dashMorphPhase: ""
+    property var islandMorphSamples: []
+    property real islandMorphStarted: 0
+    property string islandMorphPhase: ""
+    property real islandCloseStarted: 0
     property var aiRequests: []
     property var aiMemoryState
     Component {
@@ -186,6 +190,85 @@ ShellRoot {
             contentScale: contentLoader ? contentLoader.scale : Number.NaN,
             dashboardScale: panel.dashboardScale
         });
+    }
+
+    function sampleIslandMorph(): void {
+        if (!root.islandMorphPhase || !fullSceneLoader.item)
+            return;
+        const scene = fullSceneLoader.item;
+        const panel = scene.mediaIsland;
+        if (!panel)
+            return;
+        const curtain = root.find(panel, "mediaIslandCurtain");
+        const bg = root.findBackground(scene.contentItem, panel);
+        // The close phase is started before the timeout fires, so measure its
+        // timing from the first frame that actually leaves the open endpoint.
+        // Samples taken before that get a large negative stamp so they cannot
+        // be mistaken for the collapse when checking staged timing.
+        const now = Date.now();
+        if (root.islandMorphPhase === "close" && !root.islandCloseStarted && panel.revealProgress < 0.999)
+            root.islandCloseStarted = now;
+        root.islandMorphSamples.push({
+            phase: root.islandMorphPhase,
+            t: root.islandMorphPhase === "close"
+                ? (root.islandCloseStarted ? now - root.islandCloseStarted : now - root.islandMorphStarted - 100000)
+                : now - root.islandMorphStarted,
+            p: panel.revealProgress,
+            stage: panel.contentStage,
+            start: panel.contentStart,
+            lift: panel.pullHint,
+            liftLimit: panel.closeLiftAmount,
+            curtainY: curtain ? curtain.y : Number.NaN,
+            w: panel.width,
+            h: panel.height,
+            expectedW: panel.pillWidth + (panel.targetWidth - panel.pillWidth) * panel.sizeProgress,
+            expectedH: panel.pillHeight + (panel.targetHeight - panel.pillHeight) * panel.sizeProgress,
+            fullW: panel.fullWidth,
+            fullH: panel.expandedHeight,
+            y: panel.y,
+            topInset: panel.topInset,
+            bottom: panel.y + panel.height,
+            screenTop: -panel.topInset,
+            cx: panel.x + panel.width / 2,
+            center: panel.parent ? panel.parent.width / 2 : Number.NaN,
+            radius: panel.surfaceRadius,
+            maxRadius: panel.maxSurfaceRadius,
+            bgRadius: bg ? bg.radius : Number.NaN,
+            clip: panel.clip,
+            curtainW: curtain ? curtain.width : Number.NaN,
+            curtainH: curtain ? curtain.height : Number.NaN,
+            curtainOpacity: curtain ? curtain.opacity : Number.NaN,
+            curtainScale: curtain ? curtain.scale : Number.NaN,
+            layerEnabled: curtain ? curtain.layer.enabled : false,
+            blur: panel.contentBlur,
+            blurEnabled: panel.blurActive
+        });
+    }
+
+    function islandPhase(phase: string): var {
+        return root.islandMorphSamples.filter(sample => sample.phase === phase);
+    }
+
+    function checkIslandMorphSample(sample: var): void {
+        root.check(Math.abs(sample.w - sample.expectedW) < 0.5 && Math.abs(sample.h - sample.expectedH) < 0.5, `${sample.phase}: island size must come from the single spring (${sample.w}x${sample.h}, expected ${sample.expectedW}x${sample.expectedH})`);
+        root.check(Math.abs(sample.y - (-sample.topInset + sample.lift)) < 0.01 && Math.abs(sample.cx - sample.center) < 1, `${sample.phase}: island must stay centred while following its one spring`);
+        root.check(Math.abs(sample.radius - Math.min(sample.h / 2, sample.maxRadius)) < 0.01 && Math.abs(sample.bgRadius - sample.radius) < 0.01, `${sample.phase}: shared island radius must follow live height`);
+        root.check(sample.clip, `${sample.phase}: the morphing island must clip natural-sized content`);
+        root.check(Math.abs(sample.curtainW - sample.fullW) < 0.01 && Math.abs(sample.curtainH - sample.fullH) < 0.01, `${sample.phase}: island content must keep its natural size instead of being squeezed`);
+        const expectedStage = Math.min(1, Math.max(0, (sample.p - sample.start) / Math.max(0.001, 1 - sample.start)));
+        const effectActive = sample.stage > 0.001 && sample.stage < 0.999;
+        root.check(Math.abs(sample.stage - expectedStage) < 0.001, `${sample.phase}: island content stage must be a remap of the one spring`);
+        root.check(Math.abs(sample.curtainOpacity - sample.stage) < 0.001 && Math.abs(sample.curtainScale - (0.85 + 0.15 * sample.stage)) < 0.001, `${sample.phase}: island fade/scale must be derived from the spring`);
+        root.check(sample.layerEnabled === effectActive, `${sample.phase}: the island effect layer must only be enabled while content animates`);
+        if (effectActive) {
+            root.check(sample.blurEnabled, `${sample.phase}: the island blur effect must stay configured while content animates`);
+            root.check(Math.abs(sample.blur - (1 - sample.stage)) < 0.001, `${sample.phase}: island blur must fall from 16px to 0 with the content stage`);
+        }
+        root.check(Math.abs(sample.curtainY) < 0.01, `${sample.phase}: island content must not have a separate lift`);
+        if (sample.phase === "open")
+            root.check(Math.abs(sample.lift) < 0.001, `${sample.phase}: opening must not lift the island`);
+        else
+            root.check(sample.lift <= 0.001 && sample.lift >= -sample.liftLimit - 0.001, `${sample.phase}: close lift must stay within the offscreen distance (${sample.lift}, limit ${sample.liftLimit})`);
     }
 
     function morphPhase(phase: string): var {
@@ -451,8 +534,16 @@ ShellRoot {
         onTriggered: root.sampleDashboardMorph()
     }
 
+    // Sample the media island's one spring with the same cadence.
     Timer {
-        interval: Quickshell.env("TASKBAR_TEST_MODE") === "overview" ? 1200 : ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
+        interval: 16
+        repeat: true
+        running: Quickshell.env("TASKBAR_TEST_MODE") === "media-island" && root.islandMorphPhase !== ""
+        onTriggered: root.sampleIslandMorph()
+    }
+
+    Timer {
+        interval: ["overview", "media-island"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 1200 : ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
         running: true
         repeat: true
 
@@ -1207,13 +1298,28 @@ ShellRoot {
                         root.check(island.displayDuration === 5000, "Media island must default to a five-second timeout");
                         Taskbar.style = "unified";
                         Taskbar.orientation = "top";
-                        island.displayDuration = 850;
+                        island.displayDuration = 1500;
                         island.activeScreen = true;
                         island.fullscreen = false;
+                        root.islandMorphSamples = [];
+                        root.islandMorphStarted = Date.now();
+                        root.islandCloseStarted = 0;
+                        root.islandMorphPhase = "open";
                         island.player = root.islandPlayer;
                         scene.screenState.dashboard = false;
+                        root.sampleIslandMorph();
                         break;
                     case 1:
+                        root.islandMorphPhase = "";
+                        const openIslandSamples = root.islandPhase("open");
+                        root.check(openIslandSamples.length > 8, `Opening island must be sampled while the spring runs (n=${openIslandSamples.length})`);
+                        for (const sample of openIslandSamples)
+                            root.checkIslandMorphSample(sample);
+                        const islandOpenPeak = root.morphMax(openIslandSamples, "p");
+                        root.check(islandOpenPeak > 1.02 && islandOpenPeak < 1.08, `Opening island spring must overshoot slightly then settle (peak=${islandOpenPeak})`);
+                        const islandOpenMotion = openIslandSamples.find(sample => sample.p > 0.001);
+                        const islandFirstContent = openIslandSamples.find(sample => sample.stage > 0.001);
+                        root.check(!!islandOpenMotion && !!islandFirstContent && islandFirstContent.t - islandOpenMotion.t >= 0 && islandFirstContent.t - islandOpenMotion.t < 180, `Island content must start staging shortly into the open (relative=${islandFirstContent && islandOpenMotion ? islandFirstContent.t - islandOpenMotion.t : Number.NaN})`);
                         root.check(island.expanded && island.visible && !scene.screenState.dashboard, "Playback must reveal only the separate island");
                         const clock = root.find(scene.contentItem, "taskbarClock");
                         root.check(!!clock && clock.hideProgress > 0.99 && clock.opacity < 0.01 && clock.implicitWidth < 1, "A top taskbar clock must animate out and collapse while the media island is expanded");
@@ -1250,8 +1356,29 @@ ShellRoot {
                         root.check(islandBackground.y < 0 && island.hideInset === scene.interactionWrapper.panels.y, "Notched shells must bridge the island surface all the way to the screen edge");
                         root.check(island.collapsedHeight === 0, "Notched shells must keep growing from zero inside the open centre notch");
                         root.check(island.topInset === scene.interactionWrapper.panels.y && Math.abs(island.mapToItem(scene.interactionWrapper, 0, 0).y) < 0.01, "Notched shells must lift the island content to the screen edge instead of leaving a bar-height gap");
+                        root.islandMorphSamples = [];
+                        root.islandMorphStarted = Date.now();
+                        root.islandCloseStarted = 0;
+                        root.islandMorphPhase = "close";
                         break;
                     case 4:
+                        root.islandMorphPhase = "";
+                        const closeIslandSamples = root.islandPhase("close");
+                        root.check(closeIslandSamples.length > 5, `Closing island must be sampled while the spring runs (n=${closeIslandSamples.length})`);
+                        for (const sample of closeIslandSamples)
+                            root.checkIslandMorphSample(sample);
+                        const islandCloseMotion = closeIslandSamples.find(sample => sample.p < 0.999);
+                        root.check(!!islandCloseMotion && islandCloseMotion.p > 0.9 && Math.abs(islandCloseMotion.lift) < 0.05, `First island close frame must keep the open size and no lift jump (motion=${islandCloseMotion ? `t=${islandCloseMotion.t}, p=${islandCloseMotion.p}, lift=${islandCloseMotion.lift}` : "none"}, first=${closeIslandSamples[0] ? `t=${closeIslandSamples[0].t}, p=${closeIslandSamples[0].p}, lift=${closeIslandSamples[0].lift}` : "none"})`);
+                        if (islandCloseMotion) {
+                            const islandAt120 = root.morphNear(closeIslandSamples, islandCloseMotion.t + 120);
+                            root.check(islandAt120.stage < 0.05 && islandAt120.p > 0.15 && islandAt120.h > island.pillHeight, `Island content must clear before the container finishes collapsing (t=${islandAt120.t}, stage=${islandAt120.stage}, p=${islandAt120.p}, h=${islandAt120.h}, pill=${island.pillHeight})`);
+                            const islandLiftPeak = root.morphMin(closeIslandSamples, "lift");
+                            root.check(islandLiftPeak < -island.pillHeight, `Closing island must lift the whole panel past the edge (peak=${islandLiftPeak}, pill=${island.pillHeight})`);
+                            const islandCloseExit = root.morphNear(closeIslandSamples, islandCloseMotion.t + 280);
+                            root.check(islandCloseExit.bottom <= islandCloseExit.screenTop + 1, `Closing island must carry the notch out of the viewport (bottom=${islandCloseExit.bottom}, top=${islandCloseExit.screenTop})`);
+                        }
+                        const islandCloseLast = closeIslandSamples[closeIslandSamples.length - 1];
+                        root.check(!!islandCloseLast && Math.abs(islandCloseLast.lift) < 0.01 && Math.abs(islandCloseLast.y + islandCloseLast.topInset) < 0.01, `Finished island close must rest at the pinned pill before the next reveal (last=${islandCloseLast ? `t=${islandCloseLast.t}, p=${islandCloseLast.p}, lift=${islandCloseLast.lift}, y=${islandCloseLast.y}` : "none"})`);
                         root.check(!island.expanded, "The island must automatically dismiss after its timeout");
                         root.check(!root.find(island, "mediaIslandEq"), "Hidden island must unload its equaliser");
                         const restoredClock = root.find(scene.contentItem, "taskbarClock");
@@ -1291,15 +1418,19 @@ ShellRoot {
                         island.player = null;
                         break;
                     case 10:
-                        root.check(!island.expanded && !island.visible, "Player removal must dismiss the island");
-                        island.offsetScale = 0.5;
+                        root.check(!island.expanded && !island.visible && island.revealProgress < 0.001 && island.contentStage < 0.001, "Player removal must dismiss and settle the island");
+                        root.check(island.surfaceRadius === Math.min(island.height / 2, island.maxSurfaceRadius) && root.findBackground(scene.contentItem, island).radius === island.surfaceRadius, "Closed island must use the shared animated radius");
                         break;
                     case 11:
                         const playerContent = root.find(island, "mediaIslandContent");
-                        root.check(Math.abs(island.width - island.fullWidth * 0.74) < 0.01 && island.opacity === 0.5, "Island must match the dashboard's centered curtain and fade halfway through the animation");
-                        root.check(island.y === -island.topInset && island.height > island.collapsedHeight && island.height < island.expandedHeight, "Island must stay attached to the screen edge and grow out of the bar band instead of sliding in");
-                        root.check(playerContent.width === island.fullWidth - 32, "Island content must remain full-sized during the reveal animation");
-                        island.offsetScale = 1;
+                        root.check(Math.abs(island.width - island.pillWidth) < 0.01 && Math.abs(island.height - island.pillHeight) < 0.01, "Settled island must return to its clipped pill endpoint");
+                        root.check(Math.abs(island.y + island.topInset) < 0.01 && Math.abs(island.pullHint) < 0.01, "Closed island must rest at the screen edge without a leftover lift");
+                        root.check(playerContent.width === island.fullWidth - 32, "Island content must remain full-sized inside the clipped surface");
+                        island.expanded = true;
+                        break;
+                    case 12:
+                        root.check(island.expanded && island.visible && island.revealProgress > 0.99 && Math.abs(island.width - island.fullWidth) < 0.01 && Math.abs(island.height - island.expandedHeight) < 0.01, "Forcing the island open must settle at the expanded surface");
+                        root.check(Math.abs(island.y + island.topInset) < 0.01 && island.contentStage > 0.99, "Open island must settle with content fully revealed");
                         console.log("TASKBAR TEST PASS");
                         Qt.quit();
                         break;

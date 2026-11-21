@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Widgets
@@ -31,9 +32,110 @@ Item {
     readonly property real position: Math.max(0, Math.min(player?.position ?? 0, duration))
     readonly property string eventKey: player
         ? `${player.uniqueId}\n${player.trackTitle || player.metadata["xesam:url"] || ""}\n${player.isPlaying}` : ""
-    // Keep the same slide, centered curtain and fade as DashboardWrapper.
-    property real offsetScale: expanded ? 0 : 1
-    readonly property real reveal: Math.max(0, Math.min(1, 1 - offsetScale))
+
+    // One reversible spring is the only animated timeline. The target is kept
+    // separate so direction-specific tuning can be applied before the spring
+    // is retargeted; changing a SpringAnimation's tuning in the same update as
+    // its target makes the first close frame snap.
+    property bool revealTarget: false
+    property real revealProgress: revealTarget ? 1 : 0
+    readonly property real sizeProgress: Math.max(0, revealProgress)
+    readonly property real visualProgress: Math.min(1, sizeProgress)
+    readonly property real reveal: visualProgress
+
+    Behavior on revealProgress {
+        SpringAnimation {
+            id: surfaceSpring
+
+            spring: 3.4
+            damping: 0.30
+            mass: 1
+            epsilon: 0.002
+        }
+    }
+
+    // Content is not animated separately. Its stage is a directional remap of
+    // the same progress value: 0.69 is ~100ms into the open spring, 0.25 is
+    // ~120ms into the close spring. A reversal keeps the current remap so the
+    // content never jumps while the surface keeps its velocity.
+    property real contentStart: 0.25
+    readonly property real contentStage: Math.min(
+        1,
+        Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
+    // Expose the live blur state for integration tests. `layer.effect` is a
+    // Component in QtQuick, so the instantiated effect cannot be read back from
+    // the layer property itself.
+    readonly property real contentBlur: 1 - contentStage
+    readonly property bool blurActive: contentStage > 0.001 && contentStage < 0.999
+
+    // Closing lifts the whole surface by its own pill height plus a small
+    // margin, so the vacated notch leaves the viewport instead of hanging
+    // around. It is derived from the same spring, never animated on its own,
+    // and the anchor keeps it continuous when the spring reverses. At the
+    // settled closed endpoint the island is hidden, so the offset returns to
+    // zero before the next reveal.
+    readonly property real closeLiftAmount: pillHeight + 4
+    property real liftAnchorProgress: visualProgress
+    property real liftAnchorValue: 0
+    readonly property real pullHint: {
+        const p = visualProgress;
+        if (!revealTarget && p <= 0.001)
+            return 0;
+        const anchor = liftAnchorProgress;
+        if (revealTarget) {
+            const span = Math.max(0.001, 1 - anchor);
+            const u = Math.min(1, Math.max(0, (p - anchor) / span));
+            return liftAnchorValue * (1 - u);
+        }
+        const span = Math.max(0.001, anchor);
+        const u = Math.min(1, Math.max(0, (anchor - p) / span));
+        const eased = u * u * u * (u * (u * 6 - 15) + 10);
+        const hint = liftAnchorValue * (1 - u) - closeLiftAmount * eased;
+        return Math.max(-closeLiftAmount, Math.min(0, hint));
+    }
+
+    onExpandedChanged: {
+        const stage = root.contentStage;
+        const hint = root.pullHint;
+        const hintProgress = root.visualProgress;
+        // A progress value that is merely close to an endpoint is not enough:
+        // with the current start it can still produce a visible stage below
+        // saturation, and resetting the start there would make content jump.
+        const nearClosed = hintProgress <= 0.001 && stage <= 0.001;
+        const nearOpen = hintProgress >= 0.999 && stage >= 0.999;
+        const settled = nearClosed || nearOpen;
+
+        // Open: ~4.6% overshoot, settled by ~450ms. Close: a stiffer, gentler
+        // spring with no visible bounce; the surface is down by ~300ms while
+        // content has already finished leaving at ~120ms.
+        surfaceSpring.spring = expanded ? 3.4 : 4.0;
+        surfaceSpring.damping = expanded ? 0.30 : 0.40;
+
+        // Only re-anchor at a settled endpoint. Retargeting mid-flight keeps the
+        // existing content stage and lift at this instant, so reversing cannot
+        // make either pop or snap. A saturated stage needs no inversion: keeping
+        // its current start already keeps content fully shown or hidden.
+        if (settled) {
+            root.contentStart = expanded ? 0.69 : 0.25;
+            root.liftAnchorValue = 0;
+        } else {
+            if (stage > 0.02 && stage < 0.98)
+                root.contentStart = (root.revealProgress - stage) / (1 - stage);
+            root.liftAnchorValue = hint;
+        }
+        root.liftAnchorProgress = hintProgress;
+
+        root.revealTarget = expanded;
+    }
+
+    Component.onCompleted: {
+        surfaceSpring.spring = expanded ? 3.4 : 4.0;
+        surfaceSpring.damping = expanded ? 0.30 : 0.40;
+        root.contentStart = expanded ? 0.69 : 0.25;
+        root.revealTarget = expanded;
+        root.liftAnchorProgress = root.visualProgress;
+        root.liftAnchorValue = 0;
+    }
 
     onEventKeyChanged: {
         if (dashboardOpen) {
@@ -64,7 +166,9 @@ Item {
         return `${minutes}:${(total % 60).toString().padStart(2, "0")}`;
     }
 
+    // ---- Dynamic Island geometry ----------------------------------------
     readonly property real fullWidth: Math.min(440, parent ? parent.width : 440)
+    readonly property real pillWidth: fullWidth * 0.48
     readonly property real expandedHeight: 120
     // A unified bar paints a full-width surface over this panel, so height grown
     // inside the bar band stays hidden until the island clears the bar and then
@@ -72,79 +176,49 @@ Item {
     // the reveal is visible below it. Notched bars have no surface across the
     // centre notch, so they keep growing from zero and stay unchanged.
     readonly property real collapsedHeight: Math.min(expandedHeight, Taskbar.notched ? 0 : topInset)
-    implicitWidth: fullWidth * (0.48 + 0.52 * reveal)
-    implicitHeight: collapsedHeight + (expandedHeight - collapsedHeight) * reveal
-    anchors.topMargin: -topInset
-    visible: reveal > 0
-    opacity: reveal
+    readonly property real pillHeight: collapsedHeight
+    readonly property real maxSurfaceRadius: 44
+    readonly property real surfaceRadius: Math.min(implicitHeight / 2, maxSurfaceRadius)
+    readonly property real targetWidth: fullWidth
+    readonly property real targetHeight: expandedHeight
+
+    // Grows in place while open. On close the whole surface is pulled up far
+    // enough to carry the vacated notch out of the viewport.
+    anchors.topMargin: -topInset + pullHint
+    implicitWidth: pillWidth + (targetWidth - pillWidth) * sizeProgress
+    implicitHeight: pillHeight + (targetHeight - pillHeight) * sizeProgress
+    visible: expanded || revealProgress > 0.001 || contentStage > 0.001
     clip: true
 
-    Behavior on offsetScale {
-        Anim {
-            type: Anim.FastSpatial
-            // InOut keeps closing a true reverse of opening: no lingering
-            // half-sized pill at the tail of the animation.
-            easing.type: Easing.InOutCubic
-        }
-    }
-
-    Timer {
-        id: eventDelay
-        interval: 250
-        onTriggered: {
-            if (!root.player) {
-                root.lastEventKey = "";
-                root.dismiss();
-                return;
-            }
-            if (root.eventKey === root.lastEventKey)
-                return;
-            root.lastEventKey = root.eventKey;
-            if (root.fullscreen || !root.activeScreen || root.dashboardOpen)
-                return;
-            root.expanded = true;
-            hideTimer.restart();
-        }
-    }
-
-    Timer {
-        id: hideTimer
-        interval: root.displayDuration
-        onTriggered: {
-            if (hover.hovered || progress.dragging)
-                restart();
-            else
-                root.expanded = false;
-        }
-    }
-
-    HoverHandler {
-        id: hover
-        onHoveredChanged: if (!hovered && root.expanded) hideTimer.restart()
-    }
-
-    Timer {
-        running: root.visible && (root.player?.isPlaying ?? false) && (root.player?.positionSupported ?? false)
-        interval: GlobalConfig.dashboard.mediaUpdateInterval
-        triggeredOnStart: true
-        repeat: true
-        onTriggered: root.player?.positionChanged()
+    InsetGloss {
+        objectName: "mediaIslandGloss"
+        anchors.fill: parent
     }
 
     Item {
-        id: pill
-        objectName: "mediaIslandCurtain"
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        // Keep the player at its expanded size while the island's own height
-        // grows, so the content is revealed instead of squashed.
-        height: root.expandedHeight
+        id: curtain
 
-        InsetGloss {
-            objectName: "mediaIslandGloss"
-            anchors.fill: parent
+        objectName: "mediaIslandCurtain"
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        // Full-sized content is clipped by the morphing parent, never resized
+        // by the layout. Only the staging transform scales it during the reveal.
+        width: root.fullWidth
+        height: root.expandedHeight
+        transformOrigin: Item.Top
+
+        // The effect layer is expensive; keep it alive only while the content
+        // stage is actually between its hidden and settled endpoints.
+        layer.enabled: root.contentStage > 0.001 && root.contentStage < 0.999
+        layer.effect: MultiEffect {
+            blurEnabled: true
+            blur: 1 - root.contentStage
+            blurMax: 16
+            blurMultiplier: 1
         }
+
+        opacity: root.contentStage
+        scale: 0.85 + 0.15 * root.contentStage
 
         RowLayout {
             objectName: "mediaIslandContent"
@@ -276,5 +350,48 @@ Item {
                 color: Colours.palette.m3onSurfaceVariant
             }
         }
+    }
+
+    Timer {
+        id: eventDelay
+        interval: 250
+        onTriggered: {
+            if (!root.player) {
+                root.lastEventKey = "";
+                root.dismiss();
+                return;
+            }
+            if (root.eventKey === root.lastEventKey)
+                return;
+            root.lastEventKey = root.eventKey;
+            if (root.fullscreen || !root.activeScreen || root.dashboardOpen)
+                return;
+            root.expanded = true;
+            hideTimer.restart();
+        }
+    }
+
+    Timer {
+        id: hideTimer
+        interval: root.displayDuration
+        onTriggered: {
+            if (hover.hovered || progress.dragging)
+                restart();
+            else
+                root.expanded = false;
+        }
+    }
+
+    HoverHandler {
+        id: hover
+        onHoveredChanged: if (!hovered && root.expanded) hideTimer.restart()
+    }
+
+    Timer {
+        running: root.visible && (root.player?.isPlaying ?? false) && (root.player?.positionSupported ?? false)
+        interval: GlobalConfig.dashboard.mediaUpdateInterval
+        triggeredOnStart: true
+        repeat: true
+        onTriggered: root.player?.positionChanged()
     }
 }

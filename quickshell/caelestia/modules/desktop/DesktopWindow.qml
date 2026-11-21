@@ -240,7 +240,10 @@ StyledWindow {
         PanelBg {
             objectName: "mediaIslandBackground"
             panel: panels.mediaIsland
-            deformAmount: 0.1
+            // Match the dashboard's pill-to-card surface: the shared edge must
+            // use the same live radius and soften only while the spring morphs.
+            radius: panel.surfaceRadius
+            deformAmount: 0.1 + Math.sin(panel.visualProgress * Math.PI) * 0.14
             // The same BlobGroup, tint, glass mask and top-edge bridge as dashBg.
             // Any top bar lifts the island into the bar band, so bridge the
             // surface all the way to the screen edge instead of starting below it.

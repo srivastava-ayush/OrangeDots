@@ -37,9 +37,10 @@ Region {
         panel: root.panels.mediaIsland
         y: 0
         width: panel.visible ? panel.width : 0
-        // The notched island is lifted to the screen edge, so the bridge to its
-        // bottom stops one top inset short of the old bar-height extension.
-        height: panel.visible ? panel.height * (1 - panel.offsetScale) + root.panels.y - panel.topInset * panel.reveal : 0
+        // Follow the island's real bottom edge, including its close lift, so
+        // the input region leaves the viewport with the surface. While hidden,
+        // keep reserving only the top bar band as before.
+        height: panel.visible ? Math.max(root.panels.y, panel.y + panel.height + root.panels.y) : 0
     }
 
     // Widen only the edge strip, not the invisible area beside the open panel.
