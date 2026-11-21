@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Widgets
 import Caelestia.Config
@@ -12,6 +13,22 @@ Item {
 
     required property DesktopEntry modelData
     required property ScreenState screenState
+
+    readonly property bool isFavourite: !!root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
+    readonly property bool favouriteByRegex: {
+        if (!root.modelData)
+            return false;
+        const regexChecker = /^\^.*\$$/;
+        return GlobalConfig.launcher.favouriteApps.some(f => regexChecker.test(f) && new RegExp(f).test(root.modelData.id));
+    }
+
+    function toggleFavourite(): void {
+        if (!root.modelData || root.favouriteByRegex)
+            return;
+
+        const apps = GlobalConfig.launcher.favouriteApps;
+        GlobalConfig.launcher.favouriteApps = root.isFavourite ? apps.filter(a => a !== root.modelData.id) : [...apps, root.modelData.id];
+    }
 
     implicitHeight: Tokens.sizes.launcher.itemHeight
 
@@ -47,7 +64,7 @@ Item {
             anchors.leftMargin: Tokens.spacing.medium
             anchors.verticalCenter: icon.verticalCenter
 
-            implicitWidth: parent.width - icon.width - favouriteIcon.width
+            implicitWidth: parent.width - icon.width - favouriteArea.width - Tokens.spacing.medium
             implicitHeight: name.implicitHeight + comment.implicitHeight
 
             StyledText {
@@ -65,24 +82,61 @@ Item {
                 color: Colours.palette.m3outline
 
                 elide: Text.ElideRight
-                width: root.width - icon.width - favouriteIcon.width - Tokens.rounding.extraLargeIncreased
+                width: root.width - icon.width - favouriteArea.width - Tokens.rounding.extraLargeIncreased
 
                 anchors.top: name.bottom
             }
         }
 
-        Loader {
-            id: favouriteIcon
+        Item {
+            id: favouriteArea
 
-            asynchronous: true
+            readonly property int iconSize: 22
+
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
-            active: root.modelData && Strings.testRegexList(GlobalConfig.launcher.favouriteApps, root.modelData.id)
 
-            sourceComponent: MaterialIcon {
-                text: "favorite"
-                fill: 1
-                color: Colours.palette.m3primary
+            implicitWidth: iconSize + Tokens.padding.small * 2
+            implicitHeight: iconSize + Tokens.padding.small * 2
+            width: implicitWidth
+            height: implicitHeight
+
+            StateLayer {
+                id: favouriteButton
+
+                anchors.fill: parent
+                radius: Tokens.rounding.full
+                disabled: root.favouriteByRegex
+                opacity: root.isFavourite || containsMouse ? 1 : 0.6
+                onClicked: root.toggleFavourite()
+
+                Behavior on opacity {
+                    Anim {
+                        type: Anim.DefaultEffects
+                    }
+                }
+
+                Image {
+                    anchors.centerIn: parent
+                    width: favouriteArea.iconSize
+                    height: width
+                    source: Qt.resolvedUrl("../../../assets/orange.svg")
+                    sourceSize.width: width * 2
+                    sourceSize.height: height * 2
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        saturation: root.isFavourite ? 0 : -1
+
+                        Behavior on saturation {
+                            Anim {
+                                type: Anim.DefaultEffects
+                            }
+                        }
+                    }
+                }
             }
         }
     }
