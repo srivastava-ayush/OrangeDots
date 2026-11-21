@@ -55,12 +55,34 @@ ConnectedRect {
         }
 
         StyledSpinBox {
+            id: spin
+
+            property bool ready: false
+
             from: root.from
             to: root.to
             stepSize: root.stepSize
-            value: root.value
             cLayer: 2
-            onValueModified: root.moved(value)
+
+            Component.onCompleted: {
+                value = root.value;
+                Qt.callLater(() => spin.ready = true);
+            }
+
+            Connections {
+                target: root
+                function onValueChanged(): void {
+                    if (spin.value !== root.value)
+                        spin.value = root.value;
+                }
+            }
+
+            onValueModified: {
+                if (!ready)
+                    return;
+                if (value !== root.value)
+                    root.moved(value);
+            }
         }
     }
 }

@@ -22,7 +22,7 @@ Item {
     // Each tab takes a delayed slice of the wrapper's content stage. A fixed
     // order means the strip cascades left-to-right on open and right-to-left on
     // close, and a mid-flight reversal never moves a tab discontinuously.
-    readonly property real staggerSpan: 0.45
+    readonly property real staggerSpan: 0.6
     function nestedStage(order: int, steps: int): real {
         const last = Math.max(1, steps);
         const delay = Math.min(Math.max(order, 0), last) / last * staggerSpan;

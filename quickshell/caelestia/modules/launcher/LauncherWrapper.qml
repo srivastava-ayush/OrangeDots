@@ -23,37 +23,92 @@ Item {
         return max;
     }
 
-    // Mirror the dashboard curtain from the bottom edge, with one reversible
-    // timeline for the slide, centered width reveal and fade.
-    property real revealProgress: shouldBeActive ? 1 : 0
-    property real offsetScale: Math.pow(1 - revealProgress, 3)
-    readonly property real curtainProgress: Math.max(0, Math.min(1, revealProgress))
-    readonly property real curtainEase: curtainProgress * curtainProgress * curtainProgress
-        * (curtainProgress * (curtainProgress * 6 - 15) + 10)
+    // One reversible spring is the only animated timeline. The target is kept
+    // separate so direction-specific tuning can be applied before the spring
+    // is retargeted; changing a SpringAnimation's tuning in the same update as
+    // its target makes the first close frame snap. Open is slower and looser so
+    // the reveal has time to breathe, close stays stiff and gets out of the way.
+    property bool revealTarget: shouldBeActive
+    property real revealProgress: revealTarget ? 1 : 0
+    readonly property real visualProgress: Math.min(1, Math.max(0, revealProgress))
+    readonly property real curtainProgress: visualProgress
     readonly property real fullWidth: content.implicitWidth || 630
+
+    // Quadratic instead of cubic: the slide stays continuous through the
+    // spring's overshoot, turning it into a short lift at the end of the open
+    // instead of either a dead-stop or a big bounce.
+    readonly property real offsetScale: Math.pow(1 - revealProgress, 2)
+    readonly property real curtainEase: {
+        const p = curtainProgress;
+        return p * p * p * (p * (p * 6 - 15) + 10);
+    }
     readonly property real curtainWidthScale: 0.9 + 0.1 * curtainEase
 
+    // Content is staged from the same spring, never animated on its own. Open
+    // starts content almost immediately so the launcher feels instant, while
+    // close clears it early enough for the surface to collapse underneath. A
+    // reversal keeps the current remap, so content never jumps while the sheet
+    // keeps the spring's velocity.
+    property real contentStart: shouldBeActive ? 0.22 : 0.45
+    readonly property real contentStage: Math.min(
+        1,
+        Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
+
+    // Shared by the background blob and the content transform so the liquid
+    // edge bulge peaks with the reveal instead of drifting out of phase.
+    readonly property real liquidDeform: 0.1 + Math.sin(curtainProgress * Math.PI) * 0.17
+
     onShouldBeActiveChanged: {
+        surfaceSpring.spring = shouldBeActive ? 2.2 : 5.4;
+        surfaceSpring.damping = shouldBeActive ? 0.22 : 0.50;
+
+        const stage = root.contentStage;
+        const progress = root.revealProgress;
+        const settled = shouldBeActive
+            ? progress >= 0.999 && stage >= 0.999
+            : progress <= 0.001 && stage <= 0.001;
+        if (settled) {
+            root.contentStart = shouldBeActive ? 0.22 : 0.45;
+        } else if (stage > 0.02 && stage < 0.98) {
+            // Invert the current stage into a new start so a mid-flight
+            // reversal preserves exactly what is on screen.
+            root.contentStart = (progress - stage) / (1 - stage);
+        }
+        root.revealTarget = shouldBeActive;
+
         if (shouldBeActive)
             implicitHeight = Qt.binding(() => content.implicitHeight);
         else
             implicitHeight = implicitHeight; // Break binding during close anim
     }
 
+    Component.onCompleted: {
+        surfaceSpring.spring = shouldBeActive ? 2.2 : 5.4;
+        surfaceSpring.damping = shouldBeActive ? 0.22 : 0.50;
+        root.contentStart = shouldBeActive ? 0.22 : 0.45;
+        root.revealTarget = shouldBeActive;
+        Qt.callLater(() => Apps) // Load apps on init
+    }
+
     visible: revealProgress > 0
     anchors.bottomMargin: (-implicitHeight - 5) * offsetScale
     implicitHeight: content.implicitHeight
     implicitWidth: fullWidth * curtainWidthScale
-    opacity: 1 - offsetScale
+    opacity: Math.min(1, 1 - offsetScale)
     clip: true
 
-    Component.onCompleted: Qt.callLater(() => Apps) // Load apps on init
-
     Behavior on revealProgress {
-        Anim {
-            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
-            duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.85 : Tokens.anim.durations.expressiveDefaultSpatial * 0.85
-            easing.type: Easing.InOutCubic
+        // Respect the global "animation duration" setting: at 0 the sheet
+        // should open and close instantly instead of springing.
+        enabled: GlobalConfig.appearance.anim.durations.scale > 0
+
+        SpringAnimation {
+            id: surfaceSpring
+
+            spring: 2.2
+            damping: 0.22
+            mass: 1
+            epsilon: 0.002
         }
     }
 
@@ -65,21 +120,35 @@ Item {
         rotation: 180
     }
 
-    Loader {
-        id: content
+    Item {
+        id: curtain
 
-        anchors.top: parent.top
+        objectName: "launcherCurtain"
         anchors.horizontalCenter: parent.horizontalCenter
-        // Clip full-size rows/search through the curtain instead of squeezing
-        // their layout as the outer surface expands and contracts.
+        anchors.top: parent.top
+        // Full-sized content is clipped by the morphing sheet instead of being
+        // squeezed; only the staged transform scales it during the reveal.
         width: root.fullWidth
+        height: root.implicitHeight
+        transformOrigin: Item.Bottom
 
-        active: root.shouldBeActive || root.visible
+        opacity: root.contentStage
+        scale: 0.94 + 0.06 * root.contentStage
 
-        sourceComponent: LauncherContent {
-            screenState: root.screenState
-            panels: root.panels
-            maxHeight: root.maxHeight
+        Loader {
+            id: content
+
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            width: root.fullWidth
+
+            active: root.shouldBeActive || root.visible
+
+            sourceComponent: LauncherContent {
+                screenState: root.screenState
+                panels: root.panels
+                maxHeight: root.maxHeight
+            }
         }
     }
 }

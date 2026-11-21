@@ -51,6 +51,12 @@ Item {
     property real hideInset: 0
     property real topInset: 0
 
+    // Once the dashboard has been opened, keep its content instantiated. The
+    // full card tree (tabs, weather, performance, recorder) is expensive to
+    // build and destroying it on close made every hover pay that cost again
+    // before the reveal spring could even start.
+    property bool contentWarmed: false
+
     // One reversible spring is the only animated timeline. The target is kept
     // separate so direction-specific tuning can be applied before the spring
     // is retargeted; changing a SpringAnimation's tuning in the same binding
@@ -65,7 +71,7 @@ Item {
         SpringAnimation {
             id: surfaceSpring
 
-            spring: 3.4
+            spring: 3.8
             damping: 0.30
             mass: 1
             epsilon: 0.002
@@ -73,10 +79,11 @@ Item {
     }
 
     // Content is not animated separately. Its stage is a directional remap of
-    // the same progress value: 0.69 is ~100ms into the open spring, 0.25 is
-    // ~120ms into the close spring. A reversal keeps the current remap so the
-    // content never jumps while the surface keeps its velocity.
-    property real contentStart: shouldBeActive ? 0.69 : 0.25
+    // the same progress value: content starts almost immediately on open so
+    // hovering feels instant, while close still clears content first (~120ms
+    // into the spring) before the surface collapses. A reversal keeps the
+    // current remap so content never jumps while the surface keeps velocity.
+    property real contentStart: shouldBeActive ? 0.3 : 0.25
     readonly property real contentStage: Math.min(
         1,
         Math.max(0, (revealProgress - contentStart) / Math.max(0.001, 1 - contentStart)))
@@ -107,6 +114,9 @@ Item {
     }
 
     onShouldBeActiveChanged: {
+        if (shouldBeActive)
+            root.contentWarmed = true;
+
         const stage = root.contentStage;
         const hint = root.pullHint;
         const hintProgress = root.visualProgress;
@@ -117,10 +127,10 @@ Item {
         const nearOpen = hintProgress >= 0.999 && stage >= 0.999;
         const settled = nearClosed || nearOpen;
 
-        // Open: ~4.6% overshoot, settled by ~450ms. Close: a stiffer, gentler
-        // spring with no visible bounce; the surface is down by ~300ms while
-        // content has already finished leaving at ~120ms.
-        surfaceSpring.spring = shouldBeActive ? 3.4 : 4.0;
+        // Open: a touch quicker than the original, settled by ~420ms. Close:
+        // a stiffer, gentler spring with no visible bounce; the surface is
+        // down by ~300ms while content has already finished leaving at ~120ms.
+        surfaceSpring.spring = shouldBeActive ? 3.8 : 4.0;
         surfaceSpring.damping = shouldBeActive ? 0.30 : 0.40;
 
         // Only re-anchor at a settled endpoint. Retargeting mid-flight keeps the
@@ -130,7 +140,7 @@ Item {
         // hidden, while recomputing from a value that close to 0/1 is both
         // unnecessary and numerically unstable.
         if (settled) {
-            root.contentStart = shouldBeActive ? 0.69 : 0.25;
+            root.contentStart = shouldBeActive ? 0.3 : 0.25;
             root.liftAnchorValue = 0;
         } else {
             if (stage > 0.02 && stage < 0.98)
@@ -143,9 +153,9 @@ Item {
     }
 
     Component.onCompleted: {
-        surfaceSpring.spring = shouldBeActive ? 3.4 : 4.0;
+        surfaceSpring.spring = shouldBeActive ? 3.8 : 4.0;
         surfaceSpring.damping = shouldBeActive ? 0.30 : 0.40;
-        root.contentStart = shouldBeActive ? 0.69 : 0.25;
+        root.contentStart = shouldBeActive ? 0.3 : 0.25;
         root.liftAnchorProgress = root.visualProgress;
         root.liftAnchorValue = 0;
     }
@@ -213,7 +223,7 @@ Item {
             transformOrigin: Item.Top
             scale: root.dashboardScale
 
-            active: root.shouldBeActive || root.visible
+            active: root.contentWarmed || root.shouldBeActive || root.visible
 
             sourceComponent: DashboardContent {
                 screenState: root.screenState

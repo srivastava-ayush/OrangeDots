@@ -5,6 +5,7 @@ import Quickshell
 import Quickshell.Widgets
 import Caelestia.Config
 import qs.components
+import qs.components.controls
 import qs.services
 
 Item {
@@ -106,6 +107,8 @@ Item {
                     }
 
                     StyledText {
+                        objectName: "dashboardMediaEmptyTitle"
+
                         Layout.alignment: Qt.AlignHCenter
                         text: qsTr("Nothing playing")
                         font: Tokens.font.headline.medium
@@ -115,6 +118,18 @@ Item {
                         text: qsTr("Play something for it to show up here!")
                         color: Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.body.large
+                    }
+
+                    // Only part of the empty-state loader, so it disappears as
+                    // soon as a player becomes active.
+                    IconTextButton {
+                        objectName: "dashboardMediaOpenSpotify"
+
+                        Layout.topMargin: Tokens.spacing.medium
+                        Layout.alignment: Qt.AlignHCenter
+                        icon: "music_note"
+                        text: qsTr("Open Spotify")
+                        onClicked: root.toggleSpotifyScratchpad()
                     }
                 }
             }

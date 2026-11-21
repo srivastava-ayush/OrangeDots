@@ -22,7 +22,7 @@ Item {
     // timeline or a jump when the spring is retargeted mid-flight.
     required property real revealStage
 
-    readonly property real staggerSpan: 0.45
+    readonly property real staggerSpan: 0.6
     function nestedStage(order: int, steps: int): real {
         const last = Math.max(1, steps);
         const delay = Math.min(Math.max(order, 0), last) / last * staggerSpan;

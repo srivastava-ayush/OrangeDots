@@ -2245,7 +2245,12 @@ ShellRoot {
                         }
                         root.hoverAnchor = icon.mapToItem(interactions, icon.width / 2, icon.height / 2);
                         interactions.updatePopoutHover(root.hoverAnchor.x, root.hoverAnchor.y);
-                        root.check(popup.hasCurrent && popup.currentName === entry.name, `${entry.orientation}/${entry.name}: popout must be open after activation`);
+                        // Status hovers are throttled: the intent is queued here and
+                        // committed after the dwell. Clock/click paths open directly.
+                        root.check(popup.hasCurrent || popup.pendingHoverName === entry.name,
+                            `${entry.orientation}/${entry.name}: hover must queue a popout intent`);
+                    } else if (phase === 2) {
+                        root.check(popup.hasCurrent && popup.currentName === entry.name, `${entry.orientation}/${entry.name}: popout must be open after the hover dwell`);
                         // Walk every pixel from the icon through the bar padding.
                         // The old exact-icon hit test closed the popout here.
                         const start = realBar.horizontal ? root.hoverAnchor.y : root.hoverAnchor.x;
@@ -2253,7 +2258,6 @@ ShellRoot {
                             interactions.updatePopoutHover(realBar.horizontal ? root.hoverAnchor.x : distance, realBar.horizontal ? distance : root.hoverAnchor.y);
                             root.check(popup.hasCurrent && popup.anchorHovered, `${entry.orientation}/${entry.name}: padding must retain the icon's hover`);
                         }
-                    } else if (phase === 2) {
                         const point = panel.mapToItem(interactions, panel.hoverWidth / 2, panel.hoverHeight / 2);
                         interactions.updatePopoutHover(point.x, point.y);
                         root.check(popup.hasCurrent && !popup.anchorHovered && popup.pointerInHoverRegion, `${entry.orientation}/${entry.name}: hover should transfer into the panel`);

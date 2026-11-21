@@ -263,7 +263,9 @@ StyledWindow {
             id: launcherBg
 
             panel: panels.launcher
-            deformAmount: 0.1 + Math.sin(panel.curtainProgress * Math.PI) * 0.14
+            // The launcher owns the liquid curve so its background and content
+            // stay on the same reversible spring instead of separate timelines.
+            deformAmount: panel.liquidDeform
         }
 
         PanelBg {

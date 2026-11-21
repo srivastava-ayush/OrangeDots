@@ -30,226 +30,258 @@ FocusScope {
         else root.closeRequested();
     }
 
-    ColumnLayout {
+    // The panel can shrink at runtime when a banner or popout claims vertical
+    // space (see PanelLayout.topClearance). Keep the whole module scrollable so
+    // the composer buttons and filters are never clipped or squeezed to zero.
+    StyledFlickable {
+        id: flick
         anchors.fill: parent
-        anchors.margins: SidebarStyle.padding
-        spacing: SidebarStyle.gap
+        contentWidth: Math.max(width, content.implicitWidth + SidebarStyle.padding * 2)
+        contentHeight: Math.max(height, content.implicitHeight + SidebarStyle.padding * 2)
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
 
-        Sidebar.SidebarHeader {
-            moduleId: "notes"
-            StyledText {
-                text: qsTr("%1 to do").arg(QuickNotes.todoCount)
-                font: Tokens.font.label.small
-                color: Colours.palette.m3onSurfaceVariant
+        ColumnLayout {
+            id: content
+            x: SidebarStyle.padding
+            y: SidebarStyle.padding
+            width: Math.max(0, flick.width - SidebarStyle.padding * 2)
+            spacing: SidebarStyle.gap
+
+            Sidebar.SidebarHeader {
+                moduleId: "notes"
+                StyledText {
+                    text: qsTr("%1 to do").arg(QuickNotes.todoCount)
+                    font: Tokens.font.label.small
+                    color: Colours.palette.m3onSurfaceVariant
+                }
+                IconButton { icon: "close"; type: IconButton.Text; onClicked: root.closeRequested() }
             }
-            IconButton { icon: "close"; type: IconButton.Text; onClicked: root.closeRequested() }
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: SidebarStyle.smallGap
-            Repeater {
-                model: [ { id: "note", label: qsTr("Note") }, { id: "todo", label: qsTr("To-do") } ]
-                delegate: TextButton {
-                    required property var modelData
-                    text: modelData.label
-                    type: QuickNotes.draftKind === modelData.id ? TextButton.Tonal : TextButton.Text
-                    onClicked: QuickNotes.draftKind = modelData.id
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: SidebarStyle.smallGap
+                Repeater {
+                    model: [ { id: "note", label: qsTr("Note") }, { id: "todo", label: qsTr("To-do") } ]
+                    delegate: TextButton {
+                        required property var modelData
+                        Layout.minimumWidth: implicitWidth
+                        text: modelData.label
+                        type: QuickNotes.draftKind === modelData.id ? TextButton.Tonal : TextButton.Text
+                        onClicked: QuickNotes.draftKind = modelData.id
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                StyledText {
+                    visible: !!QuickNotes.editingId
+                    text: qsTr("Editing")
+                    font: Tokens.font.label.small
+                    color: Colours.palette.m3primary
                 }
             }
-            Item { Layout.fillWidth: true }
-            StyledText {
-                visible: !!QuickNotes.editingId
-                text: qsTr("Editing")
-                font: Tokens.font.label.small
-                color: Colours.palette.m3primary
-            }
-        }
-        StyledRect {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 128
-            color: Colours.palette.m3surfaceContainer
-            radius: SidebarStyle.cardRadius
-            clip: true
-            Controls.ScrollView {
-                anchors.fill: parent
-                anchors.margins: SidebarStyle.cardPadding
-                Controls.TextArea {
-                    id: composer
-                    text: QuickNotes.draftText
-                    placeholderText: QuickNotes.draftKind === "todo" ? qsTr("What needs doing?") : qsTr("Jot down notes or links…")
-                    color: Colours.palette.m3onSurface
-                    placeholderTextColor: Colours.palette.m3onSurfaceVariant
-                    selectionColor: Colours.palette.m3primary
-                    selectedTextColor: Colours.palette.m3onPrimary
-                    font: Tokens.font.body.small
-                    wrapMode: TextEdit.Wrap
-                    textFormat: TextEdit.PlainText
-                    background: null
-                    onTextChanged: if (activeFocus && QuickNotes.draftText !== text) QuickNotes.draftText = text
-                    Keys.onPressed: event => {
-                        if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
-                            QuickNotes.saveDraft();
-                            event.accepted = true;
+            StyledRect {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 128
+                Layout.minimumHeight: 96
+                color: Colours.palette.m3surfaceContainer
+                radius: SidebarStyle.cardRadius
+                clip: true
+                Controls.ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: SidebarStyle.cardPadding
+                    Controls.TextArea {
+                        id: composer
+                        text: QuickNotes.draftText
+                        placeholderText: QuickNotes.draftKind === "todo" ? qsTr("What needs doing?") : qsTr("Jot down notes or links…")
+                        color: Colours.palette.m3onSurface
+                        placeholderTextColor: Colours.palette.m3onSurfaceVariant
+                        selectionColor: Colours.palette.m3primary
+                        selectedTextColor: Colours.palette.m3onPrimary
+                        font: Tokens.font.body.small
+                        wrapMode: TextEdit.Wrap
+                        textFormat: TextEdit.PlainText
+                        background: null
+                        onTextChanged: if (activeFocus && QuickNotes.draftText !== text) QuickNotes.draftText = text
+                        Keys.onPressed: event => {
+                            if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+                                QuickNotes.saveDraft();
+                                event.accepted = true;
+                            }
                         }
                     }
                 }
             }
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            StyledText {
+            RowLayout {
                 Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                text: qsTr("Draft saved locally")
-                elide: Text.ElideRight
-                visible: !!QuickNotes.draftText
-                font: Tokens.font.label.small
-                color: Colours.palette.m3onSurfaceVariant
-            }
-            TextButton {
-                visible: !!QuickNotes.draftText || !!QuickNotes.editingId
-                text: qsTr("Discard")
-                type: TextButton.Text
-                onClicked: QuickNotes.discardDraft()
-            }
-            TextButton {
-                text: QuickNotes.draftKind === "todo" ? qsTr("Delete all todos") : qsTr("Delete all notes")
-                type: TextButton.Text
-                disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.entries.some(entry => entry.kind === QuickNotes.draftKind)
-                onClicked: root.pendingBulkDelete = QuickNotes.draftKind
-            }
-            TextButton {
-                text: QuickNotes.editingId ? qsTr("Save changes") : qsTr("Add")
-                disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.draftText.trim()
-                onClicked: QuickNotes.saveDraft()
-            }
-        }
-        StyledRect {
-            visible: !!root.pendingBulkDelete
-            Layout.fillWidth: true
-            implicitHeight: bulkConfirmation.implicitHeight + SidebarStyle.cardPadding * 2
-            radius: SidebarStyle.cardRadius
-            color: Colours.palette.m3surfaceContainerHigh
-            ColumnLayout {
-                id: bulkConfirmation
-                anchors.fill: parent
-                anchors.margins: SidebarStyle.cardPadding
                 spacing: SidebarStyle.smallGap
                 StyledText {
                     Layout.fillWidth: true
-                    text: root.pendingBulkDelete === "todo"
-                        ? qsTr("Delete all todos, including completed ones? Notes and your current draft will be kept.")
-                        : qsTr("Delete all notes? Todos and your current draft will be kept.")
-                    wrapMode: Text.WordWrap
-                    font: Tokens.font.body.small
+                    Layout.minimumWidth: 0
+                    text: qsTr("Draft saved locally")
+                    elide: Text.ElideRight
+                    visible: !!QuickNotes.draftText
+                    font: Tokens.font.label.small
+                    color: Colours.palette.m3onSurfaceVariant
                 }
-                RowLayout {
-                    TextButton {
-                        text: qsTr("Delete all")
-                        onClicked: { QuickNotes.removeKind(root.pendingBulkDelete); root.pendingBulkDelete = ""; }
-                    }
-                    TextButton { text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingBulkDelete = "" }
+                TextButton {
+                    visible: !!QuickNotes.draftText || !!QuickNotes.editingId
+                    Layout.minimumWidth: implicitWidth
+                    text: qsTr("Discard")
+                    type: TextButton.Text
+                    onClicked: QuickNotes.discardDraft()
                 }
-            }
-        }
-        StyledText {
-            Layout.fillWidth: true
-            visible: !!QuickNotes.error
-            text: QuickNotes.error
-            color: Colours.palette.m3error
-            font: Tokens.font.label.small
-            wrapMode: Text.WordWrap
-        }
-        StyledTextField {
-            id: search
-            Layout.fillWidth: true
-            placeholderText: qsTr("Search notes and todos")
-            leadingIcon: "search"
-            verticalPadding: SidebarStyle.cardPadding
-        }
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: SidebarStyle.smallGap
-            Repeater {
-                model: [ { id: "all", label: qsTr("All") }, { id: "note", label: qsTr("Notes") }, { id: "todo", label: qsTr("To-dos") } ]
-                delegate: TextButton {
-                    required property var modelData
-                    text: modelData.label
-                    type: root.filter === modelData.id ? TextButton.Tonal : TextButton.Text
-                    onClicked: root.filter = modelData.id
+                TextButton {
+                    Layout.minimumWidth: implicitWidth
+                    text: QuickNotes.draftKind === "todo" ? qsTr("Delete all todos") : qsTr("Delete all notes")
+                    type: TextButton.Text
+                    disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.entries.some(entry => entry.kind === QuickNotes.draftKind)
+                    onClicked: root.pendingBulkDelete = QuickNotes.draftKind
+                }
+                TextButton {
+                    Layout.minimumWidth: implicitWidth
+                    text: QuickNotes.editingId ? qsTr("Save changes") : qsTr("Add")
+                    disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.draftText.trim()
+                    onClicked: QuickNotes.saveDraft()
                 }
             }
-        }
-        StyledListView {
-            id: notes
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            spacing: SidebarStyle.smallGap
-            model: root.filtered
-            delegate: StyledRect {
-                id: card
-                required property var modelData
-                width: notes.width
-                implicitHeight: cardContent.implicitHeight + SidebarStyle.cardPadding * 2
+            StyledRect {
+                visible: !!root.pendingBulkDelete
+                Layout.fillWidth: true
+                implicitHeight: bulkConfirmation.implicitHeight + SidebarStyle.cardPadding * 2
                 radius: SidebarStyle.cardRadius
-                color: Colours.palette.m3surfaceContainer
+                color: Colours.palette.m3surfaceContainerHigh
                 ColumnLayout {
-                    id: cardContent
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
+                    id: bulkConfirmation
+                    anchors.fill: parent
                     anchors.margins: SidebarStyle.cardPadding
                     spacing: SidebarStyle.smallGap
-                    RowLayout {
+                    StyledText {
                         Layout.fillWidth: true
-                        IconButton {
-                            icon: card.modelData.kind === "todo" ? (card.modelData.done ? "check_circle" : "radio_button_unchecked") : "notes"
-                            type: IconButton.Text
-                            onClicked: {
-                                if (card.modelData.kind === "todo") QuickNotes.toggle(card.modelData.id);
-                                else if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus();
-                            }
-                        }
-                        StyledText {
-                            Layout.fillWidth: true
-                            text: card.modelData.text
-                            textFormat: Text.PlainText
-                            wrapMode: Text.WrapAnywhere
-                            maximumLineCount: 5
-                            elide: Text.ElideRight
-                            font: Tokens.font.body.small
-                            opacity: card.modelData.done ? 0.5 : 1
-                        }
+                        text: root.pendingBulkDelete === "todo"
+                            ? qsTr("Delete all todos, including completed ones? Notes and your current draft will be kept.")
+                            : qsTr("Delete all notes? Todos and your current draft will be kept.")
+                        wrapMode: Text.WordWrap
+                        font: Tokens.font.body.small
                     }
                     RowLayout {
-                        Layout.alignment: Qt.AlignRight
-                        IconButton { icon: "content_copy"; type: IconButton.Text; onClicked: Quickshell.clipboardText = card.modelData.text }
-                        IconButton {
-                            icon: "edit"
-                            type: IconButton.Text
-                            onClicked: if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus()
+                        spacing: SidebarStyle.smallGap
+                        TextButton {
+                            Layout.minimumWidth: implicitWidth
+                            text: qsTr("Delete all")
+                            onClicked: { QuickNotes.removeKind(root.pendingBulkDelete); root.pendingBulkDelete = ""; }
                         }
-                        IconButton { icon: "delete"; type: IconButton.Text; onClicked: root.pendingDelete = card.modelData.id }
-                    }
-                    RowLayout {
-                        visible: root.pendingDelete === card.modelData.id
-                        Layout.fillWidth: true
-                        StyledText { Layout.fillWidth: true; text: qsTr("Delete this item?"); font: Tokens.font.label.small }
-                        TextButton { text: qsTr("Delete"); onClicked: { QuickNotes.remove(card.modelData.id); root.pendingDelete = ""; } }
-                        TextButton { text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingDelete = "" }
+                        TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingBulkDelete = "" }
                     }
                 }
             }
-        }
-        StyledText {
-            Layout.fillWidth: true
-            visible: !root.filtered.length
-            text: search.text ? qsTr("No matches") : qsTr("A little space for your thoughts, tasks and links.")
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            font: Tokens.font.label.small
-            color: Colours.palette.m3onSurfaceVariant
+            StyledText {
+                Layout.fillWidth: true
+                visible: !!QuickNotes.error
+                text: QuickNotes.error
+                color: Colours.palette.m3error
+                font: Tokens.font.label.small
+                wrapMode: Text.WordWrap
+            }
+            StyledTextField {
+                id: search
+                Layout.fillWidth: true
+                placeholderText: qsTr("Search notes and todos")
+                leadingIcon: "search"
+                verticalPadding: SidebarStyle.cardPadding
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: SidebarStyle.smallGap
+                Repeater {
+                    model: [ { id: "all", label: qsTr("All") }, { id: "note", label: qsTr("Notes") }, { id: "todo", label: qsTr("To-dos") } ]
+                    delegate: TextButton {
+                        required property var modelData
+                        Layout.minimumWidth: implicitWidth
+                        text: modelData.label
+                        type: root.filter === modelData.id ? TextButton.Tonal : TextButton.Text
+                        onClicked: root.filter = modelData.id
+                    }
+                }
+            }
+            // Expand to the full list height so there is a single scroll area:
+            // the outer Flickable. Nested scrolling made lower buttons feel
+            // unresponsive when the panel was short.
+            StyledListView {
+                id: notes
+                Layout.fillWidth: true
+                Layout.fillHeight: false
+                implicitHeight: contentHeight
+                interactive: false
+                clip: false
+                spacing: SidebarStyle.smallGap
+                model: root.filtered
+                delegate: StyledRect {
+                    id: card
+                    required property var modelData
+                    width: notes.width
+                    implicitHeight: cardContent.implicitHeight + SidebarStyle.cardPadding * 2
+                    radius: SidebarStyle.cardRadius
+                    color: Colours.palette.m3surfaceContainer
+                    ColumnLayout {
+                        id: cardContent
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.margins: SidebarStyle.cardPadding
+                        spacing: SidebarStyle.smallGap
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: SidebarStyle.smallGap
+                            IconButton {
+                                icon: card.modelData.kind === "todo" ? (card.modelData.done ? "check_circle" : "radio_button_unchecked") : "notes"
+                                type: IconButton.Text
+                                onClicked: {
+                                    if (card.modelData.kind === "todo") QuickNotes.toggle(card.modelData.id);
+                                    else if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus();
+                                }
+                            }
+                            StyledText {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                text: card.modelData.text
+                                textFormat: Text.PlainText
+                                wrapMode: Text.WrapAnywhere
+                                maximumLineCount: 5
+                                elide: Text.ElideRight
+                                font: Tokens.font.body.small
+                                opacity: card.modelData.done ? 0.5 : 1
+                            }
+                        }
+                        RowLayout {
+                            Layout.alignment: Qt.AlignRight
+                            spacing: SidebarStyle.smallGap
+                            IconButton { icon: "content_copy"; type: IconButton.Text; onClicked: Quickshell.clipboardText = card.modelData.text }
+                            IconButton {
+                                icon: "edit"
+                                type: IconButton.Text
+                                onClicked: if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus()
+                            }
+                            IconButton { icon: "delete"; type: IconButton.Text; onClicked: root.pendingDelete = card.modelData.id }
+                        }
+                        RowLayout {
+                            visible: root.pendingDelete === card.modelData.id
+                            Layout.fillWidth: true
+                            spacing: SidebarStyle.smallGap
+                            StyledText { Layout.fillWidth: true; text: qsTr("Delete this item?"); font: Tokens.font.label.small }
+                            TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Delete"); onClicked: { QuickNotes.remove(card.modelData.id); root.pendingDelete = ""; } }
+                            TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingDelete = "" }
+                        }
+                    }
+                }
+            }
+            StyledText {
+                Layout.fillWidth: true
+                visible: !root.filtered.length
+                text: search.text ? qsTr("No matches") : qsTr("A little space for your thoughts, tasks and links.")
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                font: Tokens.font.label.small
+                color: Colours.palette.m3onSurfaceVariant
+            }
         }
     }
 }

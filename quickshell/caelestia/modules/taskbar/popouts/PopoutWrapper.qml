@@ -31,6 +31,13 @@ Item {
     property bool hovered
     property bool anchorHovered
     property bool pointerInHoverRegion
+
+    // Dwell required on a status icon before its popout opens or an already
+    // open popout shifts to it. A fast sweep across the row keeps resetting the
+    // intent, so nothing flashes and the menu stays put until the pointer
+    // actually settles on a different icon.
+    property int statusHoverDelay: 120
+
     property string pendingHoverName: ""
     property Item pendingHoverItem: null
     property var pendingHoverCenter: null
@@ -56,12 +63,14 @@ Item {
         pendingHoverName = name;
         pendingHoverItem = item;
         pendingHoverCenter = center;
-        hoverIntent.interval = hasCurrent ? 80 : 0;
         hoverIntent.restart();
     }
 
     Timer {
         id: hoverIntent
+
+        interval: root.statusHoverDelay
+
         onTriggered: {
             const item = root.pendingHoverItem;
             const name = root.pendingHoverName;
