@@ -196,7 +196,7 @@ GridLayout {
             // Let the magnetic pill fade out from its last cell.
             const statusIcons = root.statusIconsItem as StatusIcons;
             if (statusIcons)
-                statusIcons.highlightedEntry = null;
+                statusIcons.clearHighlight();
         }
         popouts.anchorHovered = false;
 
@@ -215,9 +215,9 @@ GridLayout {
             const pos = items.mapFromItem(root, px, py);
             const icon = items.childAt(pos.x, pos.y);
             // Move the pill immediately, independent of the popout's dwell. In
-            // the inter-icon gaps keep the last target so the pill never blinks.
-            if (icon)
-                statusIcons.highlightedEntry = icon;
+            // the inter-icon gaps a short timer lets go instead of leaving it
+            // stuck behind the last hovered cell.
+            statusIcons.setHoveredEntry(icon ?? null);
             if (icon?.name === "notifications") {
                 if (Config.notifs.shadeShowOnHover)
                     popouts.queueStatusHover("notifications", icon, () => root.centerFor(icon));

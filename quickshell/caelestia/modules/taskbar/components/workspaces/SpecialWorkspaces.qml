@@ -226,6 +226,7 @@ Item {
         property point start
         property bool firstClickWasActive
 
+        cursorShape: Qt.PointingHandCursor
         anchors.fill: view
 
         drag.target: view.contentItem

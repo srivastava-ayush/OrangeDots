@@ -345,8 +345,18 @@ StyledWindow {
         PanelBg {
             id: popoutBg
 
-            readonly property bool shellAttached: bar.notched && !panels.popouts.isDetached
-            readonly property bool rightAttached: bar.horizontal && panels.popouts.currentName === "notifications" && !panels.popouts.isDetached
+            // Every attached popout bridges to the screen edge, on both notched
+            // and unified bars. A partial overlap into the bar leaves the top
+            // corners of wide menus (network, audio) unjoined; carrying the
+            // surface all the way to the edge connects their whole width.
+            readonly property bool shellAttached: !panels.popouts.isDetached
+            // Status menus grow out of the top/right corner of the shell: carry
+            // their surface all the way to the right frame as well as the top,
+            // so the whole right edge is joined instead of only the top one.
+            // The clock and tray menus keep their own centred surface.
+            readonly property bool rightAttached: bar.horizontal && !panels.popouts.isDetached
+                && panels.popouts.currentName !== "clock"
+                && !panels.popouts.currentName.startsWith("traymenu")
             readonly property real contentX: panels.x + panels.popoutsWrapper.x + panels.popouts.x
             readonly property real contentY: panels.y + panels.popoutsWrapper.y + panels.popouts.y
             // Overlap the bar edge so movement deformation cannot detach the popout.

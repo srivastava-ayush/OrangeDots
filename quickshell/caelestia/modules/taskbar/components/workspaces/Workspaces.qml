@@ -73,6 +73,7 @@ StyledClippingRect {
         MouseArea {
             property bool firstClickWasActive
 
+            cursorShape: Qt.PointingHandCursor
             anchors.fill: layout
             onClicked: event => {
                 const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;

@@ -14,6 +14,7 @@ MouseArea {
     required property int index
 
     acceptedButtons: Qt.LeftButton | Qt.RightButton
+    cursorShape: Qt.PointingHandCursor
     // Top bars have a fixed cross-axis height. Keep tray images square and
     // inside that height instead of cropping a larger font-derived image.
     readonly property real iconSize: Taskbar.horizontal ? Math.min(Tokens.font.body.small.pointSize * 2, Tokens.sizes.bar.innerWidth) : Tokens.font.body.small.pointSize * 2

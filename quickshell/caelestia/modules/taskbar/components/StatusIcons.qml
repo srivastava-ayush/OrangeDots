@@ -28,6 +28,35 @@ StyledRect {
     property real hlTargetW: 0
     property real hlTargetH: 0
 
+    // The bar reports the cell under the pointer on every move. A short grace
+    // period covers the padding between icons; once the pointer is off the
+    // icons (or their menu) for good, the pill must let go.
+    function setHoveredEntry(item: Item): void {
+        if (item) {
+            clearHighlightTimer.stop();
+            root.highlightedEntry = item;
+        } else if (root.highlightedEntry)
+            clearHighlightTimer.restart();
+    }
+
+    function clearHighlight(): void {
+        clearHighlightTimer.stop();
+        root.highlightedEntry = null;
+    }
+
+    Timer {
+        id: clearHighlightTimer
+        interval: 90
+        onTriggered: {
+            const popouts = root.bar?.popouts;
+            // Moving from an icon into its menu passes through bar padding; do
+            // not drop the pill once the pointer has reached the open menu.
+            if (popouts && (popouts.hovered || popouts.anchorHovered))
+                return;
+            root.clearHighlight();
+        }
+    }
+
     function syncHighlight(): void {
         const item = root.highlightedEntry;
         if (!item)
@@ -139,15 +168,38 @@ StyledRect {
         }
     }
 
-    // Keep the pill attached while the pointer is inside the popout that opened
-    // from this icon. The bar's own hit-testing clears it when another bar entry
-    // takes over; this only handles leaving the status group entirely.
+    // The pill stays while the pointer is inside the menu it opened from, then
+    // clears as soon as that menu loses hover/closes. Without this, leaving a
+    // status icon into its popout would leave the highlight stuck forever.
     HoverHandler {
+        id: statusHover
+
+        // Every visible status cell opens a popout, so show the hand cursor
+        // over an icon but keep the normal arrow in the pill's padding.
+        cursorShape: iconColumn.childAt(point.position.x, point.position.y) ? Qt.PointingHandCursor : Qt.ArrowCursor
+
         onHoveredChanged: {
-            if (hovered || !root.highlightedEntry)
-                return;
-            if (!root.bar?.popouts?.hovered && !root.bar?.popouts?.anchorHovered)
-                root.highlightedEntry = null;
+            if (!hovered)
+                root.setHoveredEntry(null);
+        }
+    }
+
+    Connections {
+        target: root.bar?.popouts
+
+        function onHoveredChanged() {
+            if (!root.bar.popouts.hovered && !root.bar.popouts.anchorHovered)
+                root.setHoveredEntry(null);
+        }
+
+        function onHasCurrentChanged() {
+            if (!root.bar.popouts.hasCurrent)
+                root.setHoveredEntry(null);
+        }
+
+        function onAnchorHoveredChanged() {
+            if (!root.bar.popouts.anchorHovered && !root.bar.popouts.hovered)
+                root.setHoveredEntry(null);
         }
     }
 

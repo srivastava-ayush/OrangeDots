@@ -2275,10 +2275,6 @@ ShellRoot {
                             else
                                 root.check(panel.y >= -1 && panel.y + panel.height <= scene.height + 1, `${entry.orientation}/${entry.name}: left popout anchor must stay within the screen`);
                         }
-                        if (Taskbar.horizontal && entry.name !== "clock") {
-                            const cur = popup.current;
-                            console.log(`POPUPGEO ${entry.name}: anchor=${panel.width} wrapper=${popup.width} current=${cur ? `${cur.width}/${cur.implicitWidth}` : "none"}`);
-                        }
                         // Walk every pixel from the icon through the bar padding.
                         // The old exact-icon hit test closed the popout here.
                         const start = realBar.horizontal ? root.hoverAnchor.y : root.hoverAnchor.x;
@@ -2296,6 +2292,16 @@ ShellRoot {
                         root.check(popup.hasCurrent, `${entry.orientation}/${entry.name}: leaving should allow a short handoff grace period`);
                     } else {
                         root.check(!popup.hasCurrent, `${entry.orientation}/${entry.name}: popout should close after leaving both icon and panel`);
+                        if (entry.name !== "clock") {
+                            const status = root.find(scene.contentItem, "taskbarStatusIcons");
+                            // An auto-hidden bar unloads its content entirely,
+                            // which is also a valid way for the pill to vanish.
+                            if (status) {
+                                root.check(!status.highlightedEntry, `${entry.orientation}/${entry.name}: magnetic pill must clear once the pointer leaves the icon and menu`);
+                                const pill = root.find(status, "taskbarStatusHoverPill");
+                                root.check(!!pill && pill.opacity < 0.01, `${entry.orientation}/${entry.name}: magnetic pill must fade out after leaving`);
+                            }
+                        }
                         if (!GlobalConfig.bar.persistent)
                             root.check(!realBar.visible, "An auto-hidden bar should collapse after its popout closes");
                     }

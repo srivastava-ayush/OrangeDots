@@ -108,6 +108,10 @@ StyledRect {
             implicitWidth: expandIconInner.implicitWidth
             implicitHeight: expandIconInner.implicitHeight - (root.horizontal ? 0 : Tokens.padding.small)
 
+            HoverHandler {
+                cursorShape: Qt.PointingHandCursor
+            }
+
             MaterialIcon {
                 id: expandIconInner
 
