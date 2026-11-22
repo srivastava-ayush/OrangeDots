@@ -19,6 +19,49 @@ StyledRect {
     readonly property int spacing: Tokens.spacing.medium / 2
     readonly property bool horizontal: Taskbar.horizontal
 
+    // Magnetic hover pill. The bar's existing hit-testing tells us which status
+    // cell is under the pointer; the pill springs between cells instead of
+    // blinking on and off as the pointer crosses each icon.
+    property Item highlightedEntry: null
+    property real hlTargetX: 0
+    property real hlTargetY: 0
+    property real hlTargetW: 0
+    property real hlTargetH: 0
+
+    function syncHighlight(): void {
+        const item = root.highlightedEntry;
+        if (!item)
+            return;
+        root.hlTargetX = iconColumn.x + item.x;
+        root.hlTargetY = iconColumn.y + item.y;
+        root.hlTargetW = item.width;
+        root.hlTargetH = item.height;
+    }
+
+    onHighlightedEntryChanged: root.syncHighlight()
+
+    // Entries can resize when lock indicators appear/disappear. Keep the pill
+    // glued to the live cell instead of the position it had when hovered.
+    Connections {
+        target: root.highlightedEntry
+
+        function onXChanged() { root.syncHighlight() }
+        function onYChanged() { root.syncHighlight() }
+        function onWidthChanged() { root.syncHighlight() }
+        function onHeightChanged() { root.syncHighlight() }
+    }
+
+    component MagneticSpring: SpringAnimation {
+        // Qt's spring/damping scale is the same one the dashboard and island
+        // use; much larger values overshoot the per-frame integration and blow
+        // up. This is slightly stiffer than the dashboard close, so the pill
+        // snaps between cells and settles in a fraction of a second.
+        spring: 6
+        damping: 0.5
+        mass: 1
+        epsilon: 0.001
+    }
+
     // Index of the first/last entry that isn't collapsed, for edge margin gating
     readonly property int firstPresent: {
         const values = model.values;
@@ -52,6 +95,61 @@ StyledRect {
     clip: true
     implicitWidth: horizontal ? iconColumn.implicitWidth + Tokens.padding.medium * 2 : Tokens.sizes.bar.innerWidth
     implicitHeight: horizontal ? Math.max(Tokens.sizes.bar.innerWidth, iconColumn.implicitHeight) : iconColumn.implicitHeight + Tokens.padding.medium * 2
+
+    // Declared before the icon grid so it stays behind the glyphs.
+    StyledRect {
+        id: hoverPill
+        objectName: "taskbarStatusHoverPill"
+
+        x: root.hlTargetX
+        y: root.hlTargetY
+        width: root.hlTargetW
+        height: root.hlTargetH
+        radius: Tokens.rounding.full
+        color: Taskbar.centerOnly ? Qt.alpha(Colours.palette.m3onSurface, 0.12) : Colours.tPalette.m3secondaryContainer
+        opacity: root.highlightedEntry ? 1 : 0
+
+        // Snap to the first target while hidden so the pill is born on the icon,
+        // then spring between cells so a fast sweep never flashes through empty
+        // space. Each axis keeps its own velocity for a natural magnetic snap.
+        Behavior on x {
+            enabled: hoverPill.opacity > 0.01
+            MagneticSpring {}
+        }
+
+        Behavior on y {
+            enabled: hoverPill.opacity > 0.01
+            MagneticSpring {}
+        }
+
+        Behavior on width {
+            enabled: hoverPill.opacity > 0.01
+            MagneticSpring {}
+        }
+
+        Behavior on height {
+            enabled: hoverPill.opacity > 0.01
+            MagneticSpring {}
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.FastEffects
+            }
+        }
+    }
+
+    // Keep the pill attached while the pointer is inside the popout that opened
+    // from this icon. The bar's own hit-testing clears it when another bar entry
+    // takes over; this only handles leaving the status group entirely.
+    HoverHandler {
+        onHoveredChanged: {
+            if (hovered || !root.highlightedEntry)
+                return;
+            if (!root.bar?.popouts?.hovered && !root.bar?.popouts?.anchorHovered)
+                root.highlightedEntry = null;
+        }
+    }
 
     GridLayout {
         id: iconColumn

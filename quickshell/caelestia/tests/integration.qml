@@ -544,7 +544,7 @@ ShellRoot {
     }
 
     Timer {
-        interval: ["overview", "media-island"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 1200 : ["hover", "attachments", "clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
+        interval: ["overview", "media-island"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 1200 : ["hover", "attachments"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 450 : ["clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
         running: true
         repeat: true
 
@@ -2262,6 +2262,23 @@ ShellRoot {
                             `${entry.orientation}/${entry.name}: hover must queue a popout intent`);
                     } else if (phase === 2) {
                         root.check(popup.hasCurrent && popup.currentName === entry.name, `${entry.orientation}/${entry.name}: popout must be open after the hover dwell`);
+                        if (entry.name !== "clock") {
+                            const status = root.find(scene.contentItem, "taskbarStatusIcons");
+                            const pill = root.find(status, "taskbarStatusHoverPill");
+                            const highlighted = status.highlightedEntry;
+                            root.check(!!highlighted && highlighted.name === entry.name, `${entry.orientation}/${entry.name}: the magnetic pill must stay on the hovered status cell`);
+                            root.check(!!pill && pill.opacity > 0.99, `${entry.orientation}/${entry.name}: the hover pill must fade in behind the icon`);
+                            const pos = highlighted.mapToItem(status, 0, 0);
+                            root.check(!!pill && Math.abs(pill.x - pos.x) < 1 && Math.abs(pill.y - pos.y) < 1 && Math.abs(pill.width - highlighted.width) < 1 && Math.abs(pill.height - highlighted.height) < 1, `${entry.orientation}/${entry.name}: the pill must settle exactly on the hovered cell (pill=${pill ? `${pill.x},${pill.y} ${pill.width}x${pill.height}` : "none"}, cell=${pos.x},${pos.y} ${highlighted.width}x${highlighted.height})`);
+                            if (Taskbar.horizontal)
+                                root.check(panel.x >= -1 && panel.x + panel.width <= scene.width + 1, `${entry.orientation}/${entry.name}: top popout anchor must stay within the screen (${panel.x} + ${panel.width} of ${scene.width})`);
+                            else
+                                root.check(panel.y >= -1 && panel.y + panel.height <= scene.height + 1, `${entry.orientation}/${entry.name}: left popout anchor must stay within the screen`);
+                        }
+                        if (Taskbar.horizontal && entry.name !== "clock") {
+                            const cur = popup.current;
+                            console.log(`POPUPGEO ${entry.name}: anchor=${panel.width} wrapper=${popup.width} current=${cur ? `${cur.width}/${cur.implicitWidth}` : "none"}`);
+                        }
                         // Walk every pixel from the icon through the bar padding.
                         // The old exact-icon hit test closed the popout here.
                         const start = realBar.horizontal ? root.hoverAnchor.y : root.hoverAnchor.x;

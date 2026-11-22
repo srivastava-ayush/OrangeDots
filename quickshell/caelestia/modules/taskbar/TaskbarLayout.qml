@@ -24,6 +24,7 @@ GridLayout {
     readonly property int spacing: Tokens.spacing.medium
     readonly property int notchPadding: Tokens.padding.medium
     readonly property var entryItems: children.filter(child => child.entryId && child.item)
+    readonly property var statusIconsItem: entryItems.find(entry => entry.entryId === "statusIcons")?.item ?? null
 
     function entryGroup(id: string): int {
         if (id === "logo" || id === "workspaces" || (id === "activeWindow" && !Taskbar.notched))
@@ -189,8 +190,14 @@ GridLayout {
         const px = horizontal ? x : width / 2;
         const py = horizontal ? height / 2 : y;
         const ch = entryAt(px, py) as EntryWrapper;
-        if (ch?.entryId !== "statusIcons")
+        if (ch?.entryId !== "statusIcons") {
             popouts.cancelHoverIntent();
+            // Another bar entry (or the bar background) owns the pointer now.
+            // Let the magnetic pill fade out from its last cell.
+            const statusIcons = root.statusIconsItem as StatusIcons;
+            if (statusIcons)
+                statusIcons.highlightedEntry = null;
+        }
         popouts.anchorHovered = false;
 
         if (ch?.entryId !== "tray")
@@ -203,9 +210,14 @@ GridLayout {
 
         const id = ch.entryId;
         if (id === "statusIcons") {
-            const items = (ch.item as StatusIcons).items;
+            const statusIcons = ch.item as StatusIcons;
+            const items = statusIcons.items;
             const pos = items.mapFromItem(root, px, py);
             const icon = items.childAt(pos.x, pos.y);
+            // Move the pill immediately, independent of the popout's dwell. In
+            // the inter-icon gaps keep the last target so the pill never blinks.
+            if (icon)
+                statusIcons.highlightedEntry = icon;
             if (icon?.name === "notifications") {
                 if (Config.notifs.shadeShowOnHover)
                     popouts.queueStatusHover("notifications", icon, () => root.centerFor(icon));
