@@ -5,7 +5,6 @@ import QtQuick.Shapes
 import Quickshell
 import Caelestia.Config
 import qs.components
-import qs.components.effects
 import qs.components.images
 import qs.services
 
@@ -279,46 +278,21 @@ Item {
 
         readonly property real w: width
         readonly property real h: height
+        // Horizontal shear that turns the card into a parallelogram.
         readonly property real s: Math.min(h * 0.22, w * 0.28)
-        readonly property real side: Math.sqrt(s * s + h * h)
-        // Non-selected cards keep more pronounced rounding; selection eases it.
-        readonly property real cr: Math.max(0, Math.min(h * (0.2 - 0.06 * root.morph), s * 0.9, (w - s) * 0.35, side * 0.22))
-        readonly property real nx: side > 0 ? s / side : 0
-        readonly property real ny: side > 0 ? h / side : 0
-
-        // Rounded-parallelogram path points (clockwise from after the top-left corner).
-        readonly property real ax: s + cr
-        readonly property real ay: 0
-        readonly property real bx: w - cr
-        readonly property real by: 0
-        readonly property real cx: w - nx * cr
-        readonly property real cy: ny * cr
-        readonly property real dx: w - s + nx * cr
-        readonly property real dy: h - ny * cr
-        readonly property real ex: w - s - cr
-        readonly property real ey: h
-        readonly property real fx: cr
-        readonly property real fy: h
-        readonly property real gx: nx * cr
-        readonly property real gy: h - ny * cr
-        readonly property real hx: s - nx * cr
-        readonly property real hy: ny * cr
 
         // Non-selected cards stay compact; only the highlight expands to the
         // full card width. The strip compensates with a matching nudge so the
         // gaps between all cards remain equal. Every card keeps the same height
-        // and its parallelogram shape, so the strip stays one aligned row.
+        // so the strip stays one aligned row.
         width: root.compactTileWidth + (root.fullTileWidth - root.compactTileWidth) * root.morph
         height: root.fullHeight
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
-    // The thumbnail is clipped to a rounded rectangle and that rectangle is
-    // sheared into a parallelogram. The old approach used a white Shape as a
-    // MultiEffect alpha mask; because the mask source followed the morphing
-    // tile geometry, MultiEffect repeatedly sampled a stale/empty texture and
-    // blanked random tiles on each toggle. clip:true is plain geometry — no
-    // offscreen mask, no white fill, nothing that can go stale.
+    // The thumbnail is clipped by a plain rectangle that is then sheared into
+    // a parallelogram. No offscreen alpha mask is involved, so there is no
+    // stale texture to blank tiles and no white fill to spill over neighbours.
     Item {
         id: imageLayer
 
@@ -327,18 +301,16 @@ Item {
         Rectangle {
             id: clipper
 
-            // Unsized space: a plain rounded rect of width (w - s) and height h.
-            // Shearing x by -(s/h)*y + s maps its corners onto the tile's
-            // parallelogram: (0,0)->(s,0), (w-s,0)->(w,0),
-            // (0,h)->(0,h), (w-s,h)->(w-s,h).
+            // A plain rect of width (w - s) and height h. Shearing x by
+            // -(s/h)*y + s maps its corners exactly onto the tile outline:
+            // (0,0)->(s,0), (w-s,0)->(w,0), (0,h)->(0,h), (w-s,h)->(w-s,h).
             readonly property real w: Math.max(0, tile.w - tile.s)
             readonly property real h: tile.h
 
             width: w
             height: h
-            radius: tile.cr
-            clip: true
             color: "transparent"
+            clip: true
 
             transformOrigin: Item.TopLeft
             transform: Matrix4x4 {
@@ -352,7 +324,6 @@ Item {
 
             StyledRect {
                 anchors.fill: parent
-                radius: parent.radius
                 color: Colours.palette.m3surfaceContainerHigh
             }
 
@@ -374,8 +345,8 @@ Item {
         }
     }
 
-    // Draw the selection ring above the thumbnail; Rectangle borders are
-    // painted underneath child items, so the image would otherwise hide it.
+    // Selection outline, matching the clipped image's parallelogram exactly so
+    // no thumbnail pixels ever stick out past the border.
     Shape {
         anchors.fill: tile
         preferredRendererType: Shape.CurveRenderer
@@ -384,19 +355,15 @@ Item {
             fillColor: "transparent"
             strokeWidth: root.current ? 2 : 0
             strokeColor: Colours.palette.m3primary
-            joinStyle: ShapePath.RoundJoin
-            capStyle: ShapePath.RoundCap
+            joinStyle: ShapePath.MiterJoin
+            capStyle: ShapePath.FlatCap
 
-            startX: tile.ax
-            startY: tile.ay
-            PathLine { x: tile.bx; y: tile.by }
-            PathQuad { x: tile.cx; y: tile.cy; controlX: tile.w; controlY: 0 }
-            PathLine { x: tile.dx; y: tile.dy }
-            PathQuad { x: tile.ex; y: tile.ey; controlX: tile.w - tile.s; controlY: tile.h }
-            PathLine { x: tile.fx; y: tile.fy }
-            PathQuad { x: tile.gx; y: tile.gy; controlX: 0; controlY: tile.h }
-            PathLine { x: tile.hx; y: tile.hy }
-            PathQuad { x: tile.ax; y: tile.ay; controlX: tile.s; controlY: 0 }
+            startX: tile.s
+            startY: 0
+            PathLine { x: tile.w; y: 0 }
+            PathLine { x: tile.w - tile.s; y: tile.h }
+            PathLine { x: 0; y: tile.h }
+            PathLine { x: tile.s; y: 0 }
         }
     }
 
