@@ -79,21 +79,30 @@ GridLayout {
             starts[group] = Math.min(starts[group], start);
             ends[group] = Math.max(ends[group], start + length);
         }
+        // The clock yields the centre to the dashboard/media island and fades
+        // out. Keep the centre notch tied to that reveal instead of holding a
+        // full-size empty notch behind the overlay: otherwise closing the
+        // overlay uncovers the empty notch for a frame before the clock fades
+        // back in.
+        const clock = entryItems.find(entry => entry.entryId === "clock")?.item;
+        const clockReveal = clock ? 1 - (clock.hideProgress ?? 0) : 1;
         const limit = horizontal ? width : height;
         for (let i = 0; i < ranges.length; i++) {
             if (!Number.isFinite(starts[i]))
                 continue;
-            const start = Math.max(0, starts[i] - notchPadding);
-            ranges[i] = { start, length: Math.max(0, Math.min(limit, ends[i] + notchPadding) - start) };
+            const padding = i === 1 ? notchPadding * clockReveal : notchPadding;
+            const start = Math.max(0, starts[i] - padding);
+            ranges[i] = { start, length: Math.max(0, Math.min(limit, ends[i] + padding) - start) };
         }
-        if (ranges[1].length > 0 && Taskbar.centerNotchSize > ranges[1].length) {
+        const requestedCenter = Taskbar.centerNotchSize * clockReveal;
+        if (ranges[1].length > 0 && requestedCenter > ranges[1].length) {
             const center = (starts[1] + ends[1]) / 2;
             const left = ranges[0].length > 0 ? ranges[0].start + ranges[0].length + spacing : 0;
             const right = ranges[2].length > 0 ? ranges[2].start - spacing : limit;
             // Keep the clock centered and prevent a large preference from
             // merging its notch into the workspace/status groups.
             const available = Math.max(0, 2 * Math.min(center - left, right - center));
-            const length = Math.max(ranges[1].length, Math.min(Taskbar.centerNotchSize, available));
+            const length = Math.max(ranges[1].length, Math.min(requestedCenter, available));
             ranges[1] = { start: center - length / 2, length };
         }
         return ranges;

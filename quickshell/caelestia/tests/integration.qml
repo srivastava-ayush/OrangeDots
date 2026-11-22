@@ -177,6 +177,9 @@ ShellRoot {
             radius: panel.surfaceRadius,
             maxRadius: panel.maxSurfaceRadius,
             bgRadius: bg ? bg.radius : Number.NaN,
+            bgY: bg ? bg.y : Number.NaN,
+            bgH: bg ? bg.height : Number.NaN,
+            barThickness: scene.bar.thickness,
             clip: panel.clip,
             curtainW: curtain ? curtain.width : Number.NaN,
             curtainH: curtain ? curtain.height : Number.NaN,
@@ -311,6 +314,12 @@ ShellRoot {
             root.check(Math.abs(sample.lift) < 0.001, `${sample.phase}: opening must not lift the surface`);
         else
             root.check(sample.lift <= 0.001 && sample.lift >= -sample.liftLimit - 0.001, `${sample.phase}: close lift must stay within the offscreen distance (${sample.lift}, limit ${sample.liftLimit})`);
+
+        // A unified top bar is the inverted frame itself. A closing panel that
+        // lifts out through it must not pull the frame's inner wall above the
+        // bar band, which would leave an empty notch behind the returning clock.
+        if (sample.phase === "close" && Taskbar.horizontal && !Taskbar.notched && sample.bgH > 0)
+            root.check(sample.bgY + sample.bgH >= sample.barThickness - 0.5, `${sample.phase}: bridged surface must keep the unified bar band filled while the clock returns (bg=${sample.bgY}+${sample.bgH}, bar=${sample.barThickness})`);
     }
 
     function find(item: Item, name: string): Item {
@@ -1391,6 +1400,7 @@ ShellRoot {
                         root.check(!island.expanded, "Late artist metadata must not retrigger the island");
                         const dashboardClock = root.find(scene.contentItem, "taskbarClock");
                         root.check(!!dashboardClock && dashboardClock.hideProgress > 0.99 && dashboardClock.opacity < 0.01 && dashboardClock.implicitWidth < 1, "Opening the dashboard must hide the top clock/date just like the media island");
+                        root.check(scene.bar.notchRects[1].width < 1, "The centre notch must collapse with the clock instead of leaving an empty notch behind the dashboard");
                         root.islandPlayer.togglePlaying();
                         break;
                     case 6:
@@ -1410,6 +1420,7 @@ ShellRoot {
                         root.check(!island.expanded, "An unfocused screen must not reveal an island");
                         const afterDashboardClock = root.find(scene.contentItem, "taskbarClock");
                         root.check(!!afterDashboardClock && afterDashboardClock.hideProgress < 0.01 && afterDashboardClock.opacity > 0.99 && afterDashboardClock.implicitWidth > 0, "Closing the dashboard must restore the top clock/date");
+                        root.check(scene.bar.notchRects[1].width > 0, "The centre notch must return with the clock so closing never uncovers an empty notch");
                         island.activeScreen = true;
                         root.islandPlayer.previous();
                         break;

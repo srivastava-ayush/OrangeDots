@@ -232,7 +232,17 @@ StyledWindow {
                     return 0;
                 if (!bar.notched && !bar.horizontal)
                     return panel.height;
-                const bottom = panel.y + panels.y + panel.height;
+                let bottom = panel.y + panels.y + panel.height;
+                // A unified top bar is the inverted frame itself. While a panel
+                // closes and lifts out through it, the frame's inner wall follows
+                // the panel's bottom; once that bottom is inside the bar band the
+                // wall erases the bar behind the clock, leaving an empty notch
+                // until the panel is destroyed. Hold the bridge at the bar's inner
+                // wall while closing so the bar never yields its centre to a
+                // surface that has already left. The extra area is the same
+                // colour as the bar, so it is invisible.
+                if (!panel.revealTarget && bar.horizontal && !bar.notched)
+                    bottom = Math.max(bottom, panels.y);
                 return bottom > 0 ? bottom - y : 0;
             }
         }
@@ -254,7 +264,12 @@ StyledWindow {
                     return 0;
                 if (!bar.notched && !bar.horizontal)
                     return panel.height;
-                const bottom = panel.y + panels.y + panel.height;
+                let bottom = panel.y + panels.y + panel.height;
+                // Same close-time bridge as dashBg: a unified bar must not sink
+                // its centre away behind the returning clock while the island
+                // lifts out.
+                if (!panel.revealTarget && bar.horizontal && !bar.notched)
+                    bottom = Math.max(bottom, panels.y);
                 return bottom > 0 ? bottom - y : 0;
             }
         }
