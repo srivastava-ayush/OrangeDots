@@ -313,73 +313,63 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
     }
 
-    // Offscreen rounded parallelogram used as the alpha mask for the thumbnail.
-    Item {
-        id: tileMask
-
-        anchors.fill: tile
-        // Keep the mask rendered: an invisible layer is not guaranteed to be
-        // refreshed while its geometry changes, so MultiEffect can sample a
-        // stale/empty mask and hide the thumbnail. The opaque placeholder in
-        // imageLayer is painted above this, so it stays visually hidden.
-        layer.enabled: true
-        // Keep the mask texture at a fixed resolution while the card morphs.
-        // Letting it follow tile.width reallocates the layer texture every
-        // animation frame, and MultiEffect sometimes samples a stale/empty
-        // mask, leaving the thumbnail hidden behind the placeholder.
-        layer.textureSize: Qt.size(Math.round(root.fullTileWidth), Math.round(root.fullHeight))
-
-        Shape {
-            anchors.fill: parent
-            preferredRendererType: Shape.CurveRenderer
-
-            ShapePath {
-                strokeWidth: -1
-                fillColor: "white"
-
-                startX: tile.ax
-                startY: tile.ay
-                PathLine { x: tile.bx; y: tile.by }
-                PathQuad { x: tile.cx; y: tile.cy; controlX: tile.w; controlY: 0 }
-                PathLine { x: tile.dx; y: tile.dy }
-                PathQuad { x: tile.ex; y: tile.ey; controlX: tile.w - tile.s; controlY: tile.h }
-                PathLine { x: tile.fx; y: tile.fy }
-                PathQuad { x: tile.gx; y: tile.gy; controlX: 0; controlY: tile.h }
-                PathLine { x: tile.hx; y: tile.hy }
-                PathQuad { x: tile.ax; y: tile.ay; controlX: tile.s; controlY: 0 }
-            }
-        }
-    }
-
+    // The thumbnail is clipped to a rounded rectangle and that rectangle is
+    // sheared into a parallelogram. The old approach used a white Shape as a
+    // MultiEffect alpha mask; because the mask source followed the morphing
+    // tile geometry, MultiEffect repeatedly sampled a stale/empty texture and
+    // blanked random tiles on each toggle. clip:true is plain geometry — no
+    // offscreen mask, no white fill, nothing that can go stale.
     Item {
         id: imageLayer
 
         anchors.fill: tile
-        layer.enabled: true
-        layer.textureSize: Qt.size(Math.round(root.fullTileWidth), Math.round(root.fullHeight))
-        layer.effect: Mask {
-            maskSource: tileMask
-        }
 
-        StyledRect {
-            anchors.fill: parent
-            radius: Tokens.rounding.large
-            color: Colours.palette.m3surfaceContainerHigh
-        }
+        Rectangle {
+            id: clipper
 
-        CachingImage {
-            objectName: "wallpaperSwitcherImage"
-            anchors.fill: parent
-            path: root.modelData.path
-            smooth: !root.PathView.view.moving
-            // Keep the request size fixed while the card morphs. The launcher
-            // picker does the same; a size that follows the animated width
-            // creates a fresh cache entry (and a full image decode) on every
-            // animation frame, which blanks the thumbnail and starves the
-            // background wallpaper of image threads.
-            sourceSize: {
-                const dpr = (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1;
-                return Qt.size(Math.round(root.fullTileWidth * dpr), Math.round(root.fullHeight * dpr));
+            // Unsized space: a plain rounded rect of width (w - s) and height h.
+            // Shearing x by -(s/h)*y + s maps its corners onto the tile's
+            // parallelogram: (0,0)->(s,0), (w-s,0)->(w,0),
+            // (0,h)->(0,h), (w-s,h)->(w-s,h).
+            readonly property real w: Math.max(0, tile.w - tile.s)
+            readonly property real h: tile.h
+
+            width: w
+            height: h
+            radius: tile.cr
+            clip: true
+            color: "transparent"
+
+            transformOrigin: Item.TopLeft
+            transform: Matrix4x4 {
+                matrix: Qt.matrix4x4(
+                    1, tile.s > 0 ? -tile.s / tile.h : 0, 0, tile.s,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1
+                )
+            }
+
+            StyledRect {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Colours.palette.m3surfaceContainerHigh
+            }
+
+            CachingImage {
+                objectName: "wallpaperSwitcherImage"
+                anchors.fill: parent
+                path: root.modelData.path
+                smooth: !root.PathView.view.moving
+                // Keep the request size fixed while the card morphs. The launcher
+                // picker does the same; a size that follows the animated width
+                // creates a fresh cache entry (and a full image decode) on every
+                // animation frame, which blanks the thumbnail and starves the
+                // background wallpaper of image threads.
+                sourceSize: {
+                    const dpr = (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1;
+                    return Qt.size(Math.round(root.fullTileWidth * dpr), Math.round(root.fullHeight * dpr));
+                }
             }
         }
     }
