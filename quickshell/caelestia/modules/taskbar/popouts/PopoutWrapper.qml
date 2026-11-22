@@ -36,7 +36,7 @@ Item {
     // open popout shifts to it. A fast sweep across the row keeps resetting the
     // intent, so nothing flashes and the menu stays put until the pointer
     // actually settles on a different icon.
-    property int statusHoverDelay: 120
+    property int statusHoverDelay: 80
 
     property string pendingHoverName: ""
     property Item pendingHoverItem: null

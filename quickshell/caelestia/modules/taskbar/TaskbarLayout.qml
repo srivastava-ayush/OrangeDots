@@ -184,6 +184,33 @@ GridLayout {
         }
     }
 
+    // The status cells keep their visual padding, but hover must not fall into
+    // a dead zone between them. Inside the row, map the pointer to the nearest
+    // visible cell so the pill and popout transfer continuously.
+    function statusEntryAt(items: Item, pos: point): Item {
+        const entries = items.children.filter(child => child.visible && child.present);
+        if (!entries.length)
+            return null;
+        const first = entries[0];
+        const last = entries[entries.length - 1];
+        const lo = horizontal ? first.x : first.y;
+        const hi = horizontal ? last.x + last.width : last.y + last.height;
+        const along = horizontal ? pos.x : pos.y;
+        if (along < lo || along > hi)
+            return null;
+        let best = null;
+        let bestDistance = Infinity;
+        for (const entry of entries) {
+            const center = horizontal ? entry.x + entry.width / 2 : entry.y + entry.height / 2;
+            const distance = Math.abs(along - center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = entry;
+            }
+        }
+        return best;
+    }
+
     function checkPopout(x: real, y: real): void {
         // Hit-test along the bar's length, not just the painted icon. The
         // cross-axis padding is the path the pointer takes into its popout.
@@ -213,10 +240,9 @@ GridLayout {
             const statusIcons = ch.item as StatusIcons;
             const items = statusIcons.items;
             const pos = items.mapFromItem(root, px, py);
-            const icon = items.childAt(pos.x, pos.y);
-            // Move the pill immediately, independent of the popout's dwell. In
-            // the inter-icon gaps a short timer lets go instead of leaving it
-            // stuck behind the last hovered cell.
+            const icon = statusEntryAt(items, pos);
+            // Move the pill immediately with the pointer, including across the
+            // padding between cells; there is no hover dead zone there.
             statusIcons.setHoveredEntry(icon ?? null);
             if (icon?.name === "notifications") {
                 if (Config.notifs.shadeShowOnHover)

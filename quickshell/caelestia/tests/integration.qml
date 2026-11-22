@@ -2274,6 +2274,21 @@ ShellRoot {
                                 root.check(panel.x >= -1 && panel.x + panel.width <= scene.width + 1, `${entry.orientation}/${entry.name}: top popout anchor must stay within the screen (${panel.x} + ${panel.width} of ${scene.width})`);
                             else
                                 root.check(panel.y >= -1 && panel.y + panel.height <= scene.height + 1, `${entry.orientation}/${entry.name}: left popout anchor must stay within the screen`);
+
+                            // The visible padding between cells must not be a
+                            // hover dead zone: the neighbouring icon takes over.
+                            const siblings = status.items.children.filter(child => child.visible && child.present);
+                            const idx = siblings.indexOf(highlighted);
+                            const neighbour = siblings[idx + 1] ?? siblings[idx - 1];
+                            if (neighbour) {
+                                const mid = {
+                                    x: (highlighted.x + highlighted.width / 2 + neighbour.x + neighbour.width / 2) / 2,
+                                    y: (highlighted.y + highlighted.height / 2 + neighbour.y + neighbour.height / 2) / 2
+                                };
+                                const gapPoint = status.items.mapToItem(interactions, mid.x, mid.y);
+                                interactions.updatePopoutHover(gapPoint.x, gapPoint.y);
+                                root.check(popup.hasCurrent && !!status.highlightedEntry, `${entry.orientation}/${entry.name}: the gap between status icons must keep a hover target and the menu open`);
+                            }
                         }
                         // Walk every pixel from the icon through the bar padding.
                         // The old exact-icon hit test closed the popout here.

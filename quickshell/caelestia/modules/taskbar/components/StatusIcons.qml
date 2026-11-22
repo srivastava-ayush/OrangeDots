@@ -46,7 +46,7 @@ StyledRect {
 
     Timer {
         id: clearHighlightTimer
-        interval: 90
+        interval: 60
         onTriggered: {
             const popouts = root.bar?.popouts;
             // Moving from an icon into its menu passes through bar padding; do
