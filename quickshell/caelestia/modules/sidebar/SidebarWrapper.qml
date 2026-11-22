@@ -26,6 +26,36 @@ Item {
     function syncSelection(): void {
         if (!moduleIds.includes(selectedModule)) selectedModule = SidebarConfig.defaultFor(side);
     }
+
+    // Magnetic highlight for the module tabs: hover wins while the pointer is
+    // over a tab, otherwise it rests on the selected module.
+    property string hoveredModule: ""
+    readonly property string activeTab: root.hoveredModule || root.selectedModule
+    property real tabTargetX: 0
+    property real tabTargetY: 0
+    property real tabTargetW: 0
+    property real tabTargetH: 0
+
+    function syncTabHighlight(): void {
+        const tab = moduleTabs.children.find(child => child.objectName === "sidebarTab_" + root.activeTab);
+        if (!tab)
+            return;
+        root.tabTargetX = tab.x;
+        root.tabTargetY = tab.y;
+        root.tabTargetW = tab.width;
+        root.tabTargetH = tab.height;
+    }
+
+    onActiveTabChanged: Qt.callLater(root.syncTabHighlight)
+    onShouldBeActiveChanged: { if (!shouldBeActive) hoveredModule = ""; }
+
+    component MagneticSpring: SpringAnimation {
+        spring: 6
+        damping: 0.5
+        mass: 1
+        epsilon: 0.001
+    }
+
     property real topClearance: 0
     property real hideInset: 0
     property real preferredHeight: sideLayout.fullHeight && parent ? parent.height : sideLayout.panelHeight
@@ -87,18 +117,53 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             clip: true
 
-            Row {
-                id: moduleTabs
-                spacing: SidebarStyle.smallGap
-                Repeater {
-                    model: root.moduleIds
-                    delegate: TextButton {
-                        required property string modelData
-                        objectName: "sidebarTab_" + modelData
-                        text: SidebarConfig.moduleName(modelData)
-                        type: root.selectedModule === modelData ? TextButton.Tonal : TextButton.Text
-                        onHoveredChanged: if (hovered && root.shouldBeActive) root.selectedModule = modelData
-                        onClicked: root.selectedModule = modelData
+            Item {
+                implicitWidth: moduleTabs.implicitWidth
+                implicitHeight: moduleTabs.implicitHeight
+
+                // One moving pill instead of a background appearing on each
+                // tab. The buttons stay transparent so the highlight is the
+                // only Tonal surface in the row.
+                StyledRect {
+                    id: tabHighlight
+                    objectName: "sidebarTabHighlight"
+                    x: root.tabTargetX
+                    y: root.tabTargetY
+                    width: root.tabTargetW
+                    height: root.tabTargetH
+                    radius: Tokens.rounding.medium
+                    color: Colours.palette.m3secondaryContainer
+                    opacity: root.tabTargetW > 0 ? 1 : 0
+
+                    Behavior on x { MagneticSpring {} }
+                    Behavior on y { MagneticSpring {} }
+                    Behavior on width { MagneticSpring {} }
+                    Behavior on height { MagneticSpring {} }
+                    Behavior on opacity {
+                        Anim { type: Anim.FastEffects }
+                    }
+                }
+
+                Row {
+                    id: moduleTabs
+                    spacing: SidebarStyle.smallGap
+                    Repeater {
+                        model: root.moduleIds
+                        onItemAdded: root.syncTabHighlight()
+                        delegate: TextButton {
+                            required property string modelData
+                            objectName: "sidebarTab_" + modelData
+                            text: SidebarConfig.moduleName(modelData)
+                            type: TextButton.Text
+                            onHoveredChanged: {
+                                if (hovered && root.shouldBeActive) {
+                                    root.hoveredModule = modelData;
+                                    root.selectedModule = modelData;
+                                } else if (!hovered && root.hoveredModule === modelData)
+                                    root.hoveredModule = "";
+                            }
+                            onClicked: root.selectedModule = modelData
+                        }
                     }
                 }
             }

@@ -244,6 +244,14 @@ GridLayout {
             // Move the pill immediately with the pointer, including across the
             // padding between cells; there is no hover dead zone there.
             statusIcons.setHoveredEntry(icon ?? null);
+            // On a top bar the status icons claim the top-right corner and on
+            // a left bar the top-left corner: a sidebar would overlap them.
+            if (icon) {
+                if (horizontal && root.screenState.ai)
+                    root.screenState.ai = false;
+                else if (!horizontal && root.screenState.leftSidebar)
+                    root.screenState.leftSidebar = false;
+            }
             if (icon?.name === "notifications") {
                 if (Config.notifs.shadeShowOnHover)
                     popouts.queueStatusHover("notifications", icon, () => root.centerFor(icon));
@@ -272,6 +280,10 @@ GridLayout {
         } else if (id === "clock" && (!horizontal || (popouts.hasCurrent && popouts.currentName === "clock"))) {
             // Top calendars open only by click. Hover can retain an already
             // opened calendar while crossing the bar padding into its popout.
+            // A left-bar calendar shares the edge with the left sidebar, so
+            // dismiss the sidebar when the calendar takes over that corner.
+            if (!horizontal && root.screenState.leftSidebar)
+                root.screenState.leftSidebar = false;
             showPopout(id.toLowerCase(), ch.item);
         } else
             popouts.scheduleClose();

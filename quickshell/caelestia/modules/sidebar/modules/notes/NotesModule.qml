@@ -13,36 +13,37 @@ import qs.modules.sidebar as Sidebar
 
 FocusScope {
     id: root
+    objectName: "sidebarNotes"
     required property ScreenState screenState
     required property bool selected
     signal closeRequested
     focus: selected
-    property string filter: "all"
     property string pendingDelete: ""
-    property string pendingBulkDelete: ""
     readonly property var filtered: QuickNotes.entries.filter(entry =>
-        (filter === "all" || entry.kind === filter)
-        && (!search.text || entry.text.toLowerCase().includes(search.text.toLowerCase())))
+        !search.text || entry.text.toLowerCase().includes(search.text.toLowerCase()))
 
     Keys.onEscapePressed: {
-        if (pendingBulkDelete) pendingBulkDelete = "";
-        else if (pendingDelete) pendingDelete = "";
+        if (pendingDelete) pendingDelete = "";
         else root.closeRequested();
     }
 
     // The panel can shrink at runtime when a banner or popout claims vertical
     // space (see PanelLayout.topClearance). Keep the whole module scrollable so
-    // the composer buttons and filters are never clipped or squeezed to zero.
+    // the composer and its buttons are never clipped or squeezed to zero.
     StyledFlickable {
         id: flick
+        objectName: "notesFlick"
         anchors.fill: parent
-        contentWidth: Math.max(width, content.implicitWidth + SidebarStyle.padding * 2)
+        // Never scroll sideways: the rows flex and the status label yields its
+        // width first, so nothing gets cut at the 360px minimum sidebar width.
+        contentWidth: width
         contentHeight: Math.max(height, content.implicitHeight + SidebarStyle.padding * 2)
         boundsBehavior: Flickable.StopAtBounds
         clip: true
 
         ColumnLayout {
             id: content
+            objectName: "notesContent"
             x: SidebarStyle.padding
             y: SidebarStyle.padding
             width: Math.max(0, flick.width - SidebarStyle.padding * 2)
@@ -51,37 +52,21 @@ FocusScope {
             Sidebar.SidebarHeader {
                 moduleId: "notes"
                 StyledText {
-                    text: qsTr("%1 to do").arg(QuickNotes.todoCount)
+                    text: qsTr("%1 notes").arg(QuickNotes.entries.length)
                     font: Tokens.font.label.small
                     color: Colours.palette.m3onSurfaceVariant
                 }
                 IconButton { icon: "close"; type: IconButton.Text; onClicked: root.closeRequested() }
             }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: SidebarStyle.smallGap
-                Repeater {
-                    model: [ { id: "note", label: qsTr("Note") }, { id: "todo", label: qsTr("To-do") } ]
-                    delegate: TextButton {
-                        required property var modelData
-                        Layout.minimumWidth: implicitWidth
-                        text: modelData.label
-                        type: QuickNotes.draftKind === modelData.id ? TextButton.Tonal : TextButton.Text
-                        onClicked: QuickNotes.draftKind = modelData.id
-                    }
-                }
-                Item { Layout.fillWidth: true }
-                StyledText {
-                    visible: !!QuickNotes.editingId
-                    text: qsTr("Editing")
-                    font: Tokens.font.label.small
-                    color: Colours.palette.m3primary
-                }
-            }
+
             StyledRect {
+                id: composerArea
+                objectName: "notesComposerArea"
                 Layout.fillWidth: true
-                Layout.preferredHeight: 128
-                Layout.minimumHeight: 96
+                // Give the writing area almost half the panel. The rest of the
+                // module scrolls vertically in the single outer Flickable.
+                Layout.preferredHeight: Math.max(200, Math.round(flick.height * 0.45))
+                Layout.minimumHeight: 160
                 color: Colours.palette.m3surfaceContainer
                 radius: SidebarStyle.cardRadius
                 clip: true
@@ -91,7 +76,7 @@ FocusScope {
                     Controls.TextArea {
                         id: composer
                         text: QuickNotes.draftText
-                        placeholderText: QuickNotes.draftKind === "todo" ? qsTr("What needs doing?") : qsTr("Jot down notes or links…")
+                        placeholderText: qsTr("Jot down notes or links…")
                         color: Colours.palette.m3onSurface
                         placeholderTextColor: Colours.palette.m3onSurfaceVariant
                         selectionColor: Colours.palette.m3primary
@@ -110,6 +95,7 @@ FocusScope {
                     }
                 }
             }
+
             RowLayout {
                 Layout.fillWidth: true
                 spacing: SidebarStyle.smallGap
@@ -131,10 +117,10 @@ FocusScope {
                 }
                 TextButton {
                     Layout.minimumWidth: implicitWidth
-                    text: QuickNotes.draftKind === "todo" ? qsTr("Delete all todos") : qsTr("Delete all notes")
+                    text: qsTr("Delete all")
                     type: TextButton.Text
-                    disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.entries.some(entry => entry.kind === QuickNotes.draftKind)
-                    onClicked: root.pendingBulkDelete = QuickNotes.draftKind
+                    disabled: !QuickNotes.loaded || !QuickNotes.writable || !QuickNotes.entries.length
+                    onClicked: root.pendingDelete = "__all__"
                 }
                 TextButton {
                     Layout.minimumWidth: implicitWidth
@@ -143,8 +129,9 @@ FocusScope {
                     onClicked: QuickNotes.saveDraft()
                 }
             }
+
             StyledRect {
-                visible: !!root.pendingBulkDelete
+                visible: root.pendingDelete === "__all__"
                 Layout.fillWidth: true
                 implicitHeight: bulkConfirmation.implicitHeight + SidebarStyle.cardPadding * 2
                 radius: SidebarStyle.cardRadius
@@ -156,9 +143,7 @@ FocusScope {
                     spacing: SidebarStyle.smallGap
                     StyledText {
                         Layout.fillWidth: true
-                        text: root.pendingBulkDelete === "todo"
-                            ? qsTr("Delete all todos, including completed ones? Notes and your current draft will be kept.")
-                            : qsTr("Delete all notes? Todos and your current draft will be kept.")
+                        text: qsTr("Delete all notes? Your current draft will be kept.")
                         wrapMode: Text.WordWrap
                         font: Tokens.font.body.small
                     }
@@ -167,12 +152,13 @@ FocusScope {
                         TextButton {
                             Layout.minimumWidth: implicitWidth
                             text: qsTr("Delete all")
-                            onClicked: { QuickNotes.removeKind(root.pendingBulkDelete); root.pendingBulkDelete = ""; }
+                            onClicked: { QuickNotes.removeAll(); root.pendingDelete = ""; }
                         }
-                        TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingBulkDelete = "" }
+                        TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingDelete = "" }
                     }
                 }
             }
+
             StyledText {
                 Layout.fillWidth: true
                 visible: !!QuickNotes.error
@@ -181,27 +167,15 @@ FocusScope {
                 font: Tokens.font.label.small
                 wrapMode: Text.WordWrap
             }
+
             StyledTextField {
                 id: search
                 Layout.fillWidth: true
-                placeholderText: qsTr("Search notes and todos")
+                placeholderText: qsTr("Search notes")
                 leadingIcon: "search"
                 verticalPadding: SidebarStyle.cardPadding
             }
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: SidebarStyle.smallGap
-                Repeater {
-                    model: [ { id: "all", label: qsTr("All") }, { id: "note", label: qsTr("Notes") }, { id: "todo", label: qsTr("To-dos") } ]
-                    delegate: TextButton {
-                        required property var modelData
-                        Layout.minimumWidth: implicitWidth
-                        text: modelData.label
-                        type: root.filter === modelData.id ? TextButton.Tonal : TextButton.Text
-                        onClicked: root.filter = modelData.id
-                    }
-                }
-            }
+
             // Expand to the full list height so there is a single scroll area:
             // the outer Flickable. Nested scrolling made lower buttons feel
             // unresponsive when the panel was short.
@@ -232,12 +206,9 @@ FocusScope {
                             Layout.fillWidth: true
                             spacing: SidebarStyle.smallGap
                             IconButton {
-                                icon: card.modelData.kind === "todo" ? (card.modelData.done ? "check_circle" : "radio_button_unchecked") : "notes"
+                                icon: "notes"
                                 type: IconButton.Text
-                                onClicked: {
-                                    if (card.modelData.kind === "todo") QuickNotes.toggle(card.modelData.id);
-                                    else if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus();
-                                }
+                                onClicked: if (QuickNotes.edit(card.modelData.id)) composer.forceActiveFocus()
                             }
                             StyledText {
                                 Layout.fillWidth: true
@@ -248,7 +219,6 @@ FocusScope {
                                 maximumLineCount: 5
                                 elide: Text.ElideRight
                                 font: Tokens.font.body.small
-                                opacity: card.modelData.done ? 0.5 : 1
                             }
                         }
                         RowLayout {
@@ -266,17 +236,18 @@ FocusScope {
                             visible: root.pendingDelete === card.modelData.id
                             Layout.fillWidth: true
                             spacing: SidebarStyle.smallGap
-                            StyledText { Layout.fillWidth: true; text: qsTr("Delete this item?"); font: Tokens.font.label.small }
+                            StyledText { Layout.fillWidth: true; text: qsTr("Delete this note?"); font: Tokens.font.label.small }
                             TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Delete"); onClicked: { QuickNotes.remove(card.modelData.id); root.pendingDelete = ""; } }
                             TextButton { Layout.minimumWidth: implicitWidth; text: qsTr("Cancel"); type: TextButton.Text; onClicked: root.pendingDelete = "" }
                         }
                     }
                 }
             }
+
             StyledText {
                 Layout.fillWidth: true
                 visible: !root.filtered.length
-                text: search.text ? qsTr("No matches") : qsTr("A little space for your thoughts, tasks and links.")
+                text: search.text ? qsTr("No matches") : qsTr("A little space for your thoughts and links.")
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 font: Tokens.font.label.small

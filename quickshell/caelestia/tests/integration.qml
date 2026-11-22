@@ -350,7 +350,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar", "notes"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -2218,6 +2218,18 @@ ShellRoot {
                             root.check(scene.screenState.dashboardTab === 1, "Paused or absent media must default to Overview");
                             GlobalConfig.dashboard.showMedia = false;
                         }
+                        if (entry.name !== "clock") {
+                            if (Taskbar.horizontal) {
+                                scene.screenState.ai = true;
+                                root.check(scene.screenState.ai, "Right sidebar must be open before the status hover");
+                            } else {
+                                scene.screenState.leftSidebar = true;
+                                root.check(scene.screenState.leftSidebar, "Left sidebar must be open before the status hover");
+                            }
+                        } else if (!Taskbar.horizontal) {
+                            scene.screenState.leftSidebar = true;
+                            root.check(scene.screenState.leftSidebar, "Left sidebar must be open before the calendar hover");
+                        }
                         let icon;
                         if (entry.name === "clock" || entry.name === "notifications") {
                             icon = root.find(scene.contentItem, entry.name === "clock" ? "taskbarClock" : "taskbarNotifications");
@@ -2256,6 +2268,14 @@ ShellRoot {
                         }
                         root.hoverAnchor = icon.mapToItem(interactions, icon.width / 2, icon.height / 2);
                         interactions.updatePopoutHover(root.hoverAnchor.x, root.hoverAnchor.y);
+                        if (entry.name !== "clock") {
+                            if (Taskbar.horizontal)
+                                root.check(!scene.screenState.ai, `${entry.orientation}/${entry.name}: hovering a top status icon must close the right sidebar`);
+                            else
+                                root.check(!scene.screenState.leftSidebar, `${entry.orientation}/${entry.name}: hovering a left-bar status icon must close the left sidebar`);
+                        } else if (!Taskbar.horizontal) {
+                            root.check(!scene.screenState.leftSidebar, "Hovering the left-bar calendar must close the left sidebar");
+                        }
                         // Status hovers are throttled: the intent is queued here and
                         // committed after the dwell. Clock/click paths open directly.
                         root.check(popup.hasCurrent || popup.pendingHoverName === entry.name,
@@ -2321,6 +2341,43 @@ ShellRoot {
                             root.check(!realBar.visible, "An auto-hidden bar should collapse after its popout closes");
                     }
                     root.step++;
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "notes") {
+                    const scene = fullSceneLoader.item;
+                    const panel = scene.interactionWrapper.panels.ai;
+                    switch (root.step++) {
+                    case 0:
+                        GlobalConfig.dashboard.showOnHover = false;
+                        SidebarConfig.setModuleEnabled("notes", true);
+                        SidebarConfig.setDefault("right", "notes");
+                        AiConfig.panelWidth = 360;
+                        scene.screenState.ai = true;
+                        break;
+                    case 1:
+                        const notes = root.find(panel, "sidebarNotes");
+                        root.check(!!notes, "Notes must load in the minimum-width sidebar");
+                        const flick = root.find(notes, "notesFlick");
+                        const content = root.find(notes, "notesContent");
+                        root.check(!!flick && !!content, "Notes must expose its single scroll area");
+                        root.check(flick.contentWidth <= flick.width + 1, `Notes must not need horizontal scrolling at 360px (content=${flick.contentWidth}, view=${flick.width})`);
+                        for (const child of content.children) {
+                            root.check(child.x >= -0.5 && child.x + child.width <= content.width + 0.5, `Notes child must stay inside the 360px sidebar (${child.x}+${child.width} of ${content.width})`);
+                        }
+                        const composerArea = root.find(notes, "notesComposerArea");
+                        root.check(!!composerArea && composerArea.height >= flick.height * 0.4, `Notes composer must take almost half the panel height (${composerArea ? composerArea.height : "none"} of ${flick.height})`);
+                        const tabHighlight = root.find(panel, "sidebarTabHighlight");
+                        const notesTab = root.find(panel, "sidebarTab_notes");
+                        root.check(!!tabHighlight && !!notesTab, "Sidebar module tabs must have a magnetic highlight");
+                        root.check(Math.abs(tabHighlight.x - notesTab.x) < 1 && Math.abs(tabHighlight.width - notesTab.width) < 1, `The magnetic highlight must rest on the selected module tab (pill=${tabHighlight ? `${tabHighlight.x}+${tabHighlight.width}` : "none"}, tab=${notesTab ? `${notesTab.x}+${notesTab.width}` : "none"})`);
+                        QuickNotes.draftText = "A plain note";
+                        root.check(QuickNotes.saveDraft(), "Notes must save without a kind selector");
+                        root.check(QuickNotes.entries.length === 1 && QuickNotes.entries[0].kind === "note", "Saved entries must be plain notes");
+                        console.log("TASKBAR TEST PASS");
+                        Qt.quit();
+                        break;
+                    }
                     return;
                 }
 
