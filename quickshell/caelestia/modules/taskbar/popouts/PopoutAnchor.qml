@@ -50,14 +50,25 @@ Item {
         return horizontal ? 0 : clampedPosition(parent.height, content.nonAnimHeight);
     }
 
+    // The same spring as the surface bounds: the anchor slides between icons
+    // and retracts behind the bar, so it must retarget continuously instead of
+    // restarting a tween on every switch.
     Behavior on offsetScale {
-        Anim {}
+        SpringAnimation {
+            spring: 3.2
+            damping: 0.5
+            mass: 1
+            // Normalized 0..1, so a proportionally tight epsilon.
+            epsilon: 0.005
+        }
     }
 
     Behavior on x {
-        Anim {
-            duration: content.animLength
-            easing: content.animCurve
+        SpringAnimation {
+            spring: 3.2
+            damping: 0.5
+            mass: 1
+            epsilon: 1
         }
     }
 
@@ -66,9 +77,11 @@ Item {
         // shell bottom throughout opening and notification-list updates.
         enabled: root.offsetScale < 1 && !root.bottomAligned
 
-        Anim {
-            duration: content.animLength
-            easing: content.animCurve
+        SpringAnimation {
+            spring: 3.2
+            damping: 0.5
+            mass: 1
+            epsilon: 1
         }
     }
 

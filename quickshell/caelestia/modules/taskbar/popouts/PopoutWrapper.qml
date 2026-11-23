@@ -148,23 +148,9 @@ Item {
     property string queuedMode
     property var queuedSubPages: []
 
-    // Dummy object so Tokens attached prop resolves to global config
-    // Anim configs are not per-monitor
-    readonly property QtObject dummy: QtObject {}
-    property int animLength: dummy.Tokens.anim.durations.expressiveDefaultSpatial
-    property var animCurve: dummy.Tokens.anim.expressiveDefaultSpatial // The easingCurve type is Qt 6.11+ so we gotta use var for now
-
-    function setAnims(detach: bool): void {
-        const type = `expressive${detach ? "Slow" : "Default"}Spatial`;
-        animLength = dummy.Tokens.anim.durations[type];
-        animCurve = dummy.Tokens.anim[type];
-    }
-
     function detach(mode: string): void {
         if (mode === "winfo") {
-            setAnims(true);
             detachedMode = mode;
-            setAnims(false);
             focus = true;
         } else {
             openNexus(mode, []);
@@ -174,13 +160,11 @@ Item {
     function openNexus(page: string, subPages: var): void {
         cancelHoverIntent();
         const alreadyOpen = detachedMode === "any" && !!nexus.item;
-        setAnims(true);
         queuedMode = PageRegistry.pages.some(entry => entry.id === page) ? page : "appearance";
         queuedSubPages = Array.isArray(subPages) ? subPages.slice() : [];
         cancelClose();
         detachedMode = "any";
         if (alreadyOpen) nexus.item.navigateTo(queuedMode, queuedSubPages);
-        setAnims(false);
         focus = true;
     }
 
@@ -292,19 +276,29 @@ Item {
         }
     }
 
+    // The panel is one continuous surface: its bounds follow a critically
+    // damped spring instead of a fixed-duration tween. A sweep across status
+    // icons retargets the spring mid-flight, so the surface flows from one
+    // menu size to the next without restarting (which is what made it stutter).
     Behavior on implicitWidth {
-        Anim {
-            duration: root.animLength
-            easing: root.animCurve
+        SpringAnimation {
+            spring: 3.2
+            damping: 0.48
+            mass: 1
+            // Stop once the surface is visually at rest (<1px, <1px/s) instead
+            // of waking the render loop with sub-pixel updates for another second.
+            epsilon: 1
         }
     }
 
     Behavior on implicitHeight {
         enabled: root.offsetScale < 1
 
-        Anim {
-            duration: root.animLength
-            easing: root.animCurve
+        SpringAnimation {
+            spring: 3.2
+            damping: 0.48
+            mass: 1
+            epsilon: 1
         }
     }
 

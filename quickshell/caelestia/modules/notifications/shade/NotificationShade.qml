@@ -26,7 +26,9 @@ StyledRect {
     readonly property int emptyMinHeight: 180
 
     implicitWidth: Tokens.sizes.notifs.width
-    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight + Tokens.padding.medium * 2)
+    // The layout carries the breathing room on its children, so its implicit
+    // height already includes it. Adding it here as well inset the panel twice.
+    implicitHeight: Math.min(root.maxShadeHeight, layout.implicitHeight)
 
     radius: Tokens.rounding.extraLarge
     color: Colours.tPalette.m3surfaceContainer
@@ -36,14 +38,14 @@ StyledRect {
 
         objectName: "notificationShadeLayout"
         anchors.fill: parent
-        // Match the audio/status menus' vertical breathing room. The shared
-        // popout supplies the horizontal inset; don't pad the sides twice.
-        anchors.topMargin: root.Tokens.padding.medium
-        anchors.bottomMargin: root.Tokens.padding.medium
+        // The shared popout supplies the outer inset. Keep the layout itself
+        // flush with the shade and put the vertical breathing room on the
+        // header/list so nothing is padded twice.
         spacing: root.Tokens.spacing.medium
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.topMargin: root.Tokens.padding.medium
             spacing: root.Tokens.spacing.small
 
             StyledText {
@@ -108,8 +110,9 @@ StyledRect {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            // Size to the list itself; outer breathing room belongs to the
-            // layout, not a blank tail inside the scrolling area.
+            Layout.bottomMargin: root.Tokens.padding.medium
+            // Size to the list itself; breathing room belongs to the layout,
+            // not a blank tail inside the scrolling area.
             implicitHeight: Math.min(root.listMaxHeight, Math.max(view.contentHeight, root.emptyMinHeight))
             clip: true
 

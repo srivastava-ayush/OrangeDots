@@ -180,51 +180,43 @@ Item {
 
         required property string name
         readonly property bool shouldBeActive: root.popouts.currentName === name
+        // Every status menu is built from scratch the first time it is shown.
+        // Building the whole tree (network list, sliders, toggles) inside the
+        // frame a switch lands is the main source of the hitch while sweeping
+        // across icons. Keep stateless menus instantiated once revealed so a
+        // second visit only runs the crossfade. Dialog-backed popouts are
+        // rebuilt, and tray menus already reload their own source.
+        readonly property bool warmable: name !== "wirelesspassword" && !name.startsWith("traymenu")
+        property bool warmed: false
 
-        anchors.centerIn: parent
+        // The menu hangs from the bar edge. Pinning content to the top/left of
+        // the morphing container means a size change reveals the menu instead
+        // of sliding an already final-sized menu towards the centre every frame.
+        // At rest the content exactly fills this box, so this matches the old
+        // centred placement (only the bar-bottom shade grows upwards).
+        readonly property bool hangsFromBottom: !Taskbar.horizontal && root.popouts.currentName === "notifications"
 
-        opacity: 0
-        active: false
+        anchors.top: popout.hangsFromBottom ? undefined : parent.top
+        anchors.bottom: popout.hangsFromBottom ? parent.bottom : undefined
+        anchors.left: parent.left
 
-        states: State {
-            name: "active"
-            when: popout.shouldBeActive
+        active: popout.warmed || popout.shouldBeActive || popout.opacity > 0
+        visible: popout.shouldBeActive || popout.opacity > 0
+        opacity: popout.shouldBeActive ? 1 : 0
 
-            PropertyChanges {
-                popout.active: true
-                popout.opacity: 1
-            }
+        onShouldBeActiveChanged: {
+            if (popout.shouldBeActive && popout.warmable)
+                popout.warmed = true;
         }
 
-        transitions: [
-            Transition {
-                from: "active"
-                to: ""
-
-                SequentialAnimation {
-                    Anim {
-                        property: "opacity"
-                        type: Anim.DefaultEffects
-                    }
-                    PropertyAction {
-                        property: "active"
-                    }
-                }
-            },
-            Transition {
-                from: ""
-                to: "active"
-
-                SequentialAnimation {
-                    PropertyAction {
-                        property: "active"
-                    }
-                    Anim {
-                        property: "opacity"
-                        type: Anim.SlowEffects
-                    }
-                }
+        Behavior on opacity {
+            // Incoming menus fade in softly, outgoing ones leave faster so two
+            // differently sized menus never sit on top of each other for long.
+            // A Behavior (not a transition) keeps retargeting continuous when a
+            // fast sweep flips the target back and forth.
+            Anim {
+                type: popout.shouldBeActive ? Anim.DefaultEffects : Anim.FastEffects
             }
-        ]
+        }
     }
 }
