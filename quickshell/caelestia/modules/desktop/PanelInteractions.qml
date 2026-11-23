@@ -271,17 +271,20 @@ CustomMouseArea {
         updatePopoutHover(x, y);
     }
 
+    // A Connections object is not a QQuickItem, so an attached Config lookup
+    // here has no screen. These settings are global; read them from GlobalConfig
+    // explicitly instead of warning about a screen-less lookup.
     Connections {
-        target: Config.bar
+        target: GlobalConfig.bar
 
         function onPersistentChanged() {
             root.bar.isHovered = false;
-            if (!Config.bar.persistent)
+            if (!GlobalConfig.bar.persistent)
                 root.screenState.bar = false;
         }
 
         function onShowOnHoverChanged() {
-            if (Config.bar.showOnHover)
+            if (GlobalConfig.bar.showOnHover)
                 root.screenState.bar = false;
             else
                 root.bar.isHovered = false;
@@ -289,10 +292,10 @@ CustomMouseArea {
     }
 
     Connections {
-        target: Config.notifs
+        target: GlobalConfig.notifs
 
         function onShadeEnabledChanged() {
-            if (!Config.notifs.shadeEnabled)
+            if (!GlobalConfig.notifs.shadeEnabled)
                 root.screenState.notifShade = false;
         }
     }

@@ -133,8 +133,18 @@ Item {
         Translate {
             x: root.morphShift
 
+            // The gap compensation follows the same critically damped spring as
+            // the card morph. FastSpatial's overshoot made the row wobble every
+            // time the highlight moved; a spring also retargets cleanly when a
+            // wallpaper is cycled again before the previous move has settled.
             Behavior on x {
-                Anim { type: Anim.FastSpatial }
+                SpringAnimation {
+                    spring: 14
+                    damping: 1.1
+                    mass: 1
+                    // Sub-pixel rest: the equal-gap check measures to 1px.
+                    epsilon: 0.25
+                }
             }
         },
         Translate {
@@ -189,9 +199,18 @@ Item {
         }
     }
 
+    // A smooth, non-bouncy morph: the selected card expands and its neighbours
+    // contract together, with no overshoot and no restart hitch on rapid cycles.
+    // Stiffer than the panel surfaces so the card change reads as an immediate
+    // response to the selection, without overshooting the resting width.
     Behavior on morph {
-        Anim {
-            type: Anim.FastSpatial
+        SpringAnimation {
+            spring: 14
+            damping: 1.1
+            mass: 1
+            // Snappy but visible: the card reaches full width in ~335ms
+            // while still retargeting cleanly when the selection changes fast.
+            epsilon: 0.001
         }
     }
 
@@ -331,7 +350,10 @@ Item {
                 objectName: "wallpaperSwitcherImage"
                 anchors.fill: parent
                 path: root.modelData.path
-                smooth: !root.PathView.view.moving
+                // Keep filtering on while the strip moves. Toggling it off at
+                // the start of a PathView scroll makes the thumbnails shimmer
+                // and reads as a stutter between otherwise smooth frames.
+                smooth: true
                 // Keep the request size fixed while the card morphs. The launcher
                 // picker does the same; a size that follows the animated width
                 // creates a fresh cache entry (and a full image decode) on every

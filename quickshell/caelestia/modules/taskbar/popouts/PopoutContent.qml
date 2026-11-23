@@ -200,23 +200,52 @@ Item {
         anchors.bottom: popout.hangsFromBottom ? parent.bottom : undefined
         anchors.left: parent.left
 
-        active: popout.warmed || popout.shouldBeActive || popout.opacity > 0
-        visible: popout.shouldBeActive || popout.opacity > 0
-        opacity: popout.shouldBeActive ? 1 : 0
+        // The menu's inner content is staged from one reversible spring: the
+        // card fades, lifts into place and settles while the shell morphs around
+        // it. The outgoing card uses a stiffer tuning so it clears before the
+        // incoming one arrives, and a fast sweep just retargets the same spring
+        // instead of restarting separate timelines.
+        property real revealStage: 0
+        property int slideDirection: 1
 
-        onShouldBeActiveChanged: {
-            if (popout.shouldBeActive && popout.warmable)
-                popout.warmed = true;
-        }
-
-        Behavior on opacity {
-            // Incoming menus fade in softly, outgoing ones leave faster so two
-            // differently sized menus never sit on top of each other for long.
-            // A Behavior (not a transition) keeps retargeting continuous when a
-            // fast sweep flips the target back and forth.
-            Anim {
-                type: popout.shouldBeActive ? Anim.DefaultEffects : Anim.FastEffects
+        Behavior on revealStage {
+            SpringAnimation {
+                id: stageSpring
+                spring: 4.5
+                damping: 0.55
+                mass: 1
+                epsilon: 0.005
             }
         }
+
+        onShouldBeActiveChanged: {
+            // Set the tuning before retargeting so the first frame keeps its
+            // velocity instead of snapping (same pattern as the other panels).
+            stageSpring.spring = popout.shouldBeActive ? 4.5 : 7;
+            stageSpring.damping = popout.shouldBeActive ? 0.55 : 0.7;
+            popout.slideDirection = popout.shouldBeActive ? 1 : -1;
+            if (popout.shouldBeActive && popout.warmable)
+                popout.warmed = true;
+            popout.revealStage = popout.shouldBeActive ? 1 : 0;
+        }
+
+        // A loader can also be born active (e.g. the popout is reopened with
+        // the previous name still current). Start such a card already shown.
+        Component.onCompleted: {
+            if (popout.shouldBeActive) {
+                if (popout.warmable)
+                    popout.warmed = true;
+                popout.revealStage = 1;
+            }
+        }
+
+        active: popout.warmed || popout.shouldBeActive || popout.opacity > 0
+        visible: popout.shouldBeActive || popout.opacity > 0
+        opacity: popout.revealStage
+        transform: Translate {
+            y: (1 - popout.revealStage) * popout.slideDirection * (popout.hangsFromBottom ? -12 : 12)
+        }
+        transformOrigin: popout.hangsFromBottom ? Item.BottomLeft : Item.TopLeft
+        scale: 0.97 + 0.03 * popout.revealStage
     }
 }

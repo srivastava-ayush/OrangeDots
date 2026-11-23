@@ -11,6 +11,7 @@ import qs.services
 
 // Centred horizontal wallpaper strip, independent of the launcher's PathView
 // picker. The surface is transparent and only mirrors input while it is open.
+// Tile motion is staged in WallpaperSwitcherItem with critically damped springs.
 PanelWindow {
     id: root
 
@@ -35,10 +36,13 @@ PanelWindow {
     // wider shape, and every delegate nudges itself so all visible gaps stay
     // the same size.
     readonly property int pathItemCount: 7
-    readonly property real padding: Tokens.padding.largeIncreased
-    readonly property real stageWidth: Math.min(1800, Math.max(640, screenWidth - Tokens.padding.extraLarge * 2))
+    // Read tokens through the window's content item: it is a QQuickItem and
+    // inherits the window's screen, while the PanelWindow itself is not an Item
+    // and would warn about screen-less token lookups during construction.
+    readonly property real padding: contentItem.Tokens.padding.largeIncreased
+    readonly property real stageWidth: Math.min(1800, Math.max(640, screenWidth - contentItem.Tokens.padding.extraLarge * 2))
     readonly property real stripWidth: stageWidth - padding * 2
-    readonly property real tileGap: Tokens.spacing.large
+    readonly property real tileGap: contentItem.Tokens.spacing.large
     // Slimmer neighbours without shrinking the highlight: compactWidth is the
     // non-selected tile width, while compactRatio maps it back to the same
     // full-sized card width used by the selected tile.
@@ -59,12 +63,13 @@ PanelWindow {
     readonly property real cardHeight: cardWidth / 16 * 9
     readonly property real labelHeight: 20
     readonly property real headerHeight: 44
-    readonly property real stripHeight: cardHeight + Tokens.spacing.extraSmall + labelHeight
-    readonly property real stageHeight: padding * 2 + headerHeight + Tokens.spacing.medium + stripHeight
+    readonly property real stripHeight: cardHeight + contentItem.Tokens.spacing.extraSmall + labelHeight
+    readonly property real stageHeight: padding * 2 + headerHeight + contentItem.Tokens.spacing.medium + stripHeight
 
     visible: progress > 0 || shouldBeActive
     color: "transparent"
     contentItem.Config.screen: screen.name
+    contentItem.Tokens.screen: screen.name
     anchors {
         top: true
         bottom: true

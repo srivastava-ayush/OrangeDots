@@ -123,6 +123,14 @@ ShellRoot {
                         root.step--;
                         return;
                     }
+                    // The card morph rides a spring, so it can still settle a
+                    // frame after the entrance and slide have finished. Measure
+                    // resting widths only once every card has reached its end.
+                    if (tiles.some(tile => Math.abs(tile.morph - (tile.current ? 1 : 0)) > 0.0015)) {
+                        root.check(root.imageWait++ < 40, "Wallpaper cards must finish morphing");
+                        root.step--;
+                        return;
+                    }
                     // Only the highlighted card expands to the full tile width;
                     // every other card stays compact, and the strip nudges them
                     // so the gap on each side matches the gap between the rest.
