@@ -29,8 +29,14 @@ StyledClippingRect {
     readonly property bool horizontal: Taskbar.horizontal
     readonly property int length: (horizontal ? layout.implicitWidth : layout.implicitHeight) + Tokens.padding.small * 2
 
-    implicitWidth: horizontal ? length : Tokens.sizes.bar.innerWidth
-    implicitHeight: horizontal ? Tokens.sizes.bar.innerWidth : length
+    // The dots are only 14px, but their interactive strip should cover the
+    // whole bar band. TaskbarLayout.handleWheel hit-tests the entry rect and
+    // falls through to volume when it misses, so the padding above/below the
+    // dots must belong to this entry rather than to the bar background.
+    readonly property int band: Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness) * 2
+
+    implicitWidth: horizontal ? length : band
+    implicitHeight: horizontal ? band : length
 
     color: "transparent"
     radius: Tokens.rounding.full
@@ -71,12 +77,35 @@ StyledClippingRect {
         }
 
         MouseArea {
+            id: hitArea
+
             property bool firstClickWasActive
 
+            // Hit-test along the bar's length only, so the padding above and
+            // below the dots still maps to the closest workspace.
+            function dotAt(x: real, y: real): Workspace {
+                const pos = layout.mapFromItem(hitArea, x, y);
+                const along = root.horizontal ? pos.x : pos.y;
+                let best = null;
+                let bestDistance = Infinity;
+                for (let i = 0; i < layout.children.length; i++) {
+                    const dot = layout.children[i] as Workspace;
+                    if (!dot)
+                        continue;
+                    const center = root.horizontal ? dot.x + dot.width / 2 : dot.y + dot.height / 2;
+                    const distance = Math.abs(along - center);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = dot;
+                    }
+                }
+                return best;
+            }
+
             cursorShape: Qt.PointingHandCursor
-            anchors.fill: layout
+            anchors.fill: parent
             onClicked: event => {
-                const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;
+                const ws = dotAt(event.x, event.y)?.ws;
                 if (!ws) {
                     firstClickWasActive = false;
                     return;
@@ -86,7 +115,7 @@ StyledClippingRect {
                     Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${ws}" })` : `workspace ${ws}`);
             }
             onDoubleClicked: event => {
-                const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;
+                const ws = dotAt(event.x, event.y)?.ws;
                 if (firstClickWasActive && ws === root.activeWsId)
                     Hypr.openSpecialOrMisc();
             }
