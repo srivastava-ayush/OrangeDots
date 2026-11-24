@@ -17,7 +17,8 @@ SpringAnimation {
         Island,        // Media island opening
         Dismiss,       // Stiff, no visible bounce: island and dashboard closing
         Reveal,        // Dashboard surface opening
-        Card           // Wallpaper strip card morph: stiff, deliberately no overshoot
+        Card,          // Wallpaper strip card morph: stiff, deliberately no overshoot
+        Content        // Inner glyphs/labels settling inside an already-moving surface
     }
 
     property int role: SpringAnim.Surface
@@ -56,6 +57,11 @@ SpringAnimation {
             // Qt clamps damping above 1.0; 1.0 is the stiffest setting that
             // still settles without overshoot, which is the point of this role.
             return { spring: 14.0, damping: 1.00 };
+        case SpringAnim.Content:
+            // A glyph or label settling inside a panel that is already moving.
+            // Nearly critical, so it eases with the surface instead of adding
+            // a second bounce on top of the pill/panel spring.
+            return { spring: 4.5, damping: 0.80 };
         default:
             return { spring: 3.2, damping: 0.48 };
         }

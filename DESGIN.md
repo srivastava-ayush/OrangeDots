@@ -167,7 +167,7 @@ All under `quickshell/caelestia/components/`.
 | `Anim.qml` | `NumberAnimation` | Token-driven presets selected by `type`. `Standard*`/`Emphasized*` map to graded durations (`type % 4` → small/normal/large/extraLarge); emphasized types use the `emphasized` curve, standard types use `standard`. Expressive types map to their own duration+curve pair. Defaults to `Anim.DefaultSpatial`. |
 | `AnchorAnim.qml` | `AnchorAnimation` | Same preset list as `Anim`, including the effects types, for properties that are positions rather than sizes. Defaults to `DefaultSpatial`. |
 | `CAnim.qml` | `ColorAnimation` | Colour transitions with `FastEffects` / `DefaultEffects` / `SlowEffects` (150/200/300 ms, non-bouncy). Defaults to `SlowEffects`. |
-| `SpringAnim.qml` | `SpringAnimation` | Named spring roles (`Surface`, `Anchor`, `Panel`, `PanelClose`, `Snap`, `Launcher`, `LauncherClose`, `Island`, `Dismiss`, `Reveal`, `Card`) instead of per-site `spring`/`damping` numbers. `epsilon` stays at the call site because it is in the animated property's units. Time constant follows `anim.durations.scale`. |
+| `SpringAnim.qml` | `SpringAnimation` | Named spring roles (`Surface`, `Anchor`, `Panel`, `PanelClose`, `Snap`, `Launcher`, `LauncherClose`, `Island`, `Dismiss`, `Reveal`, `Card`, `Content`) instead of per-site `spring`/`damping` numbers. `epsilon` stays at the call site because it is in the animated property's units. Time constant follows `anim.durations.scale`. |
 | `AnimLoader.qml` | `Loader` | Cross-fade lifecycle: fade out with `FastEffects`, swap `sourceComponent`, fade in with `DefaultEffects`. Loading is asynchronous. |
 
 A typical usage is a `Behavior` on a property — e.g. `Behavior on
@@ -309,7 +309,7 @@ numbers.
 |---|---|
 | Curves | `Tokens.anim.*` (`AnimCurves` in `plugin/src/Caelestia/Config/tokens.hpp`) |
 | Tween durations | `Tokens.anim.durations.*`, all multiplied by `anim.durations.scale` |
-| Springs | `components/SpringAnim.qml` roles: `Surface`, `Anchor`, `Panel`, `PanelClose`, `Snap`, `Launcher`, `LauncherClose`, `Island`, `Dismiss`, `Reveal`, `Card` |
+| Springs | `components/SpringAnim.qml` roles: `Surface`, `Anchor`, `Panel`, `PanelClose`, `Snap`, `Launcher`, `LauncherClose`, `Island`, `Dismiss`, `Reveal`, `Card`, `Content` |
 | Colour transitions | `CAnim` with `FastEffects` / `DefaultEffects` / `SlowEffects` |
 | Compositor curves and leaves | `hypr/modules/animations.lua` |
 
