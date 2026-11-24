@@ -281,10 +281,8 @@ Item {
     // icons retargets the spring mid-flight, so the surface flows from one
     // menu size to the next without restarting (which is what made it stutter).
     Behavior on implicitWidth {
-        SpringAnimation {
-            spring: 3.2
-            damping: 0.48
-            mass: 1
+        SpringAnim {
+            role: SpringAnim.Surface
             // Stop once the surface is visually at rest (<1px, <1px/s) instead
             // of waking the render loop with sub-pixel updates for another second.
             epsilon: 1
@@ -294,10 +292,8 @@ Item {
     Behavior on implicitHeight {
         enabled: root.offsetScale < 1
 
-        SpringAnimation {
-            spring: 3.2
-            damping: 0.48
-            mass: 1
+        SpringAnim {
+            role: SpringAnim.Surface
             epsilon: 1
         }
     }

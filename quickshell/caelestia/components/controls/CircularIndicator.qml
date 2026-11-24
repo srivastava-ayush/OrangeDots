@@ -63,9 +63,9 @@ BusyIndicator {
 
     transitions: Transition {
         Anim {
-            type: Anim.DefaultEffects
             properties: "opacity,internalStrokeWidth"
             duration: manager.completeEndDuration * Tokens.anim.durations.scale
+            easing: Tokens.anim.expressiveDefaultEffects
         }
     }
 

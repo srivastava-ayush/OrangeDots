@@ -43,12 +43,10 @@ Item {
     readonly property real reveal: visualProgress
 
     Behavior on revealProgress {
-        SpringAnimation {
+        SpringAnim {
             id: surfaceSpring
 
-            spring: 3.4
-            damping: 0.30
-            mass: 1
+            role: SpringAnim.Island
             epsilon: 0.002
         }
     }
@@ -112,8 +110,7 @@ Item {
         // Open: ~4.6% overshoot, settled by ~450ms. Close: a stiffer, gentler
         // spring with no visible bounce; the surface is down by ~300ms while
         // content has already finished leaving at ~120ms.
-        surfaceSpring.spring = expanded ? 3.4 : 4.0;
-        surfaceSpring.damping = expanded ? 0.30 : 0.40;
+        surfaceSpring.role = expanded ? SpringAnim.Island : SpringAnim.Dismiss;
 
         // Only re-anchor at a settled endpoint. Retargeting mid-flight keeps the
         // existing content stage and lift at this instant, so reversing cannot
@@ -133,8 +130,7 @@ Item {
     }
 
     Component.onCompleted: {
-        surfaceSpring.spring = expanded ? 3.4 : 4.0;
-        surfaceSpring.damping = expanded ? 0.30 : 0.40;
+        surfaceSpring.role = expanded ? SpringAnim.Island : SpringAnim.Dismiss;
         root.contentStart = expanded ? 0.69 : 0.25;
         root.revealTarget = expanded;
         root.liftAnchorProgress = root.visualProgress;

@@ -80,14 +80,12 @@ StyledRect {
         function onHeightChanged() { root.syncHighlight() }
     }
 
-    component MagneticSpring: SpringAnimation {
+    component MagneticSpring: SpringAnim {
         // Qt's spring/damping scale is the same one the dashboard and island
         // use; much larger values overshoot the per-frame integration and blow
         // up. This is slightly stiffer than the dashboard close, so the pill
         // snaps between cells and settles in a fraction of a second.
-        spring: 6
-        damping: 0.5
-        mass: 1
+        role: SpringAnim.Snap
         epsilon: 0.001
     }
 

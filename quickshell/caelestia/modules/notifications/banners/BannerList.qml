@@ -212,9 +212,4 @@ Item {
             }
         }
     }
-
-    component Anim: NumberAnimation {
-        duration: Tokens.anim.durations.expressiveDefaultSpatial
-        easing: Tokens.anim.expressiveDefaultSpatial
-    }
 }

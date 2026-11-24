@@ -138,10 +138,8 @@ Item {
             // time the highlight moved; a spring also retargets cleanly when a
             // wallpaper is cycled again before the previous move has settled.
             Behavior on x {
-                SpringAnimation {
-                    spring: 14
-                    damping: 1.1
-                    mass: 1
+                SpringAnim {
+                    role: SpringAnim.Card
                     // Sub-pixel rest: the equal-gap check measures to 1px.
                     epsilon: 0.25
                 }
@@ -204,10 +202,8 @@ Item {
     // Stiffer than the panel surfaces so the card change reads as an immediate
     // response to the selection, without overshooting the resting width.
     Behavior on morph {
-        SpringAnimation {
-            spring: 14
-            damping: 1.1
-            mass: 1
+        SpringAnim {
+            role: SpringAnim.Card
             // Snappy but visible: the card reaches full width in ~335ms
             // while still retargeting cleanly when the selection changes fast.
             epsilon: 0.001
@@ -274,7 +270,6 @@ Item {
         property: "entrance"
         from: 0
         to: 1
-        type: Anim.FastSpatial
         duration: Tokens.anim.durations.expressiveSlowSpatial * 0.55
         easing.type: Easing.OutCubic
     }
@@ -285,7 +280,6 @@ Item {
         target: root
         property: "entrance"
         to: 0
-        type: Anim.FastEffects
         duration: Tokens.anim.durations.expressiveSlowSpatial * 0.45
         easing.type: Easing.InCubic
     }

@@ -209,11 +209,9 @@ Item {
         property int slideDirection: 1
 
         Behavior on revealStage {
-            SpringAnimation {
+            SpringAnim {
                 id: stageSpring
-                spring: 4.5
-                damping: 0.55
-                mass: 1
+                role: SpringAnim.Panel
                 epsilon: 0.005
             }
         }
@@ -221,8 +219,7 @@ Item {
         onShouldBeActiveChanged: {
             // Set the tuning before retargeting so the first frame keeps its
             // velocity instead of snapping (same pattern as the other panels).
-            stageSpring.spring = popout.shouldBeActive ? 4.5 : 7;
-            stageSpring.damping = popout.shouldBeActive ? 0.55 : 0.7;
+            stageSpring.role = popout.shouldBeActive ? SpringAnim.Panel : SpringAnim.PanelClose;
             popout.slideDirection = popout.shouldBeActive ? 1 : -1;
             if (popout.shouldBeActive && popout.warmable)
                 popout.warmed = true;

@@ -31,7 +31,7 @@ return function(settings)
 
     -- Workspaces
 hl.animation({ leaf = "workspacesIn",  enabled = true, speed = 3.5, bezier = "ayuOpen", style = "slidefadevert" })
-hl.animation({ leaf = "workspacesOut", enabled = true, speed = 3.5, bezier = "ayuOpen", style = "slidefadevert" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 3.5, bezier = "ayuClose", style = "slidefadevert" })
 
     -- Windows
     hl.animation({

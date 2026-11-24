@@ -230,7 +230,6 @@ Item {
                 property: "entrance"
                 from: 0
                 to: 1
-                type: Anim.FastSpatial
                 duration: Tokens.anim.durations.expressiveFastSpatial * 0.8
                 easing.type: Easing.OutBack
                 easing.overshoot: 0.65
@@ -241,7 +240,7 @@ Item {
             target: button
             property: "entrance"
             to: 0
-            type: Anim.FastEffects
+            duration: Tokens.anim.durations.expressiveFastEffects
             easing.type: Easing.InCubic
         }
 

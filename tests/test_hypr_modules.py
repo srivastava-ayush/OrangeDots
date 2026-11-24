@@ -90,8 +90,9 @@ assert(curves.ayuMove.points[1][1] == 0.25 and curves.ayuMove.points[1][2] == 0.
 assert(curves.ayuMove.points[2][1] == 0.25 and curves.ayuMove.points[2][2] == 1)
 assert(curves.ayuLinear.points[1][1] == 0 and curves.ayuLinear.points[1][2] == 0)
 assert(curves.ayuLinear.points[2][1] == 1 and curves.ayuLinear.points[2][2] == 1)
+assert(animations.workspacesIn.bezier == "ayuOpen" and animations.workspacesIn.speed == 3.5)
+assert(animations.workspacesOut.bezier == "ayuClose" and animations.workspacesOut.speed == 3.5)
 for _, leaf in ipairs({"workspacesIn", "workspacesOut"}) do
-    assert(animations[leaf].bezier == "ayuOpen" and animations[leaf].speed == 3.5)
     assert(animations[leaf].style == "slidefadevert")
 end
 assert(animations.windowsIn.bezier == "ayuOpen" and animations.windowsIn.speed == 3.2)
@@ -148,6 +149,13 @@ hl = {
 local function dispatcher(spec) return spec end
 local namespace = setmetatable({}, {__index = function() return dispatcher end})
 hl.dsp = setmetatable({window = namespace, workspace = namespace}, {__index = function() return dispatcher end})
+-- keybindings.lua resolves plugin dispatchers while it loads; stub them so this
+-- harness does not need the real scrolloverview plugin installed.
+hl.plugin = {
+    scrolloverview = {
+        overview = function(arg) return {dispatcher = "scrolloverview:overview", arg = arg} end,
+    },
+}
 local settings = {
     configHome = "/config", terminal = "kitty", fileManager = "yazi",
     ide = "zed", browser = "browser", hyprScript = function(name) return name end,

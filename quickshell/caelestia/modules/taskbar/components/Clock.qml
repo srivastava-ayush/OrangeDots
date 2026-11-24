@@ -36,9 +36,9 @@ StyledRect {
 
     Behavior on hideProgress {
         Anim {
-            type: Anim.FastSpatial
-            // Match the media island's timing exactly, including its
-            // smooth InOut reverse on close.
+            duration: Tokens.anim.durations.expressiveFastSpatial
+            // Mirror the media island's smooth reverse on close without
+            // binding this control to the island's spring.
             easing.type: Easing.InOutCubic
         }
     }

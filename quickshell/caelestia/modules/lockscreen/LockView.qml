@@ -66,7 +66,7 @@ FocusScope {
 
         target: root
         property: "progress"
-        type: root.unlocking ? Anim.FastSpatial : Anim.SlowSpatial
+        duration: root.unlocking ? Tokens.anim.durations.expressiveFastSpatial : Tokens.anim.durations.expressiveSlowSpatial
         easing.type: Easing.OutCubic
         onFinished: {
             if (root.unlocking)

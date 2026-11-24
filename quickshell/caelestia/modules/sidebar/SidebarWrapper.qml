@@ -49,10 +49,8 @@ Item {
     onActiveTabChanged: Qt.callLater(root.syncTabHighlight)
     onShouldBeActiveChanged: { if (!shouldBeActive) hoveredModule = ""; }
 
-    component MagneticSpring: SpringAnimation {
-        spring: 6
-        damping: 0.5
-        mass: 1
+    component MagneticSpring: SpringAnim {
+        role: SpringAnim.Snap
         epsilon: 0.001
     }
 
@@ -85,10 +83,10 @@ Item {
     }
 
     Behavior on offsetScale {
-        Anim { type: Anim.FastSpatial; easing.type: Easing.OutCubic }
+        Anim { duration: Tokens.anim.durations.expressiveFastSpatial; easing.type: Easing.OutCubic }
     }
     Behavior on preferredHeight {
-        Anim { type: Anim.FastSpatial; easing.type: Easing.OutCubic }
+        Anim { duration: Tokens.anim.durations.expressiveFastSpatial; easing.type: Easing.OutCubic }
     }
 
     SidebarModules {
@@ -223,7 +221,7 @@ Item {
 
                     Behavior on transitionProgress {
                         Anim {
-                            type: Anim.FastEffects
+                            duration: Tokens.anim.durations.expressiveFastEffects
                             easing.type: Easing.InOutCubic
                         }
                     }

@@ -38,8 +38,10 @@ StyledRect {
 
     Behavior on opacity {
         Anim {
-            type: Anim.DefaultEffects
+            // Opacity is an effects change, but it is timed with the scale
+            // behaviour below so the badge fades and pops at the same speed.
             duration: Tokens.anim.durations.expressiveFastSpatial
+            easing: Tokens.anim.expressiveDefaultEffects
         }
     }
 

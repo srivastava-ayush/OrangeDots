@@ -59,8 +59,7 @@ Item {
     readonly property real liquidDeform: 0.1 + Math.sin(curtainProgress * Math.PI) * 0.17
 
     onShouldBeActiveChanged: {
-        surfaceSpring.spring = shouldBeActive ? 2.2 : 5.4;
-        surfaceSpring.damping = shouldBeActive ? 0.22 : 0.50;
+        surfaceSpring.role = shouldBeActive ? SpringAnim.Launcher : SpringAnim.LauncherClose;
 
         const stage = root.contentStage;
         const progress = root.revealProgress;
@@ -83,8 +82,7 @@ Item {
     }
 
     Component.onCompleted: {
-        surfaceSpring.spring = shouldBeActive ? 2.2 : 5.4;
-        surfaceSpring.damping = shouldBeActive ? 0.22 : 0.50;
+        surfaceSpring.role = shouldBeActive ? SpringAnim.Launcher : SpringAnim.LauncherClose;
         root.contentStart = shouldBeActive ? 0.22 : 0.45;
         root.revealTarget = shouldBeActive;
         Qt.callLater(() => Apps) // Load apps on init
@@ -102,12 +100,10 @@ Item {
         // should open and close instantly instead of springing.
         enabled: GlobalConfig.appearance.anim.durations.scale > 0
 
-        SpringAnimation {
+        SpringAnim {
             id: surfaceSpring
 
-            spring: 2.2
-            damping: 0.22
-            mass: 1
+            role: SpringAnim.Launcher
             epsilon: 0.002
         }
     }

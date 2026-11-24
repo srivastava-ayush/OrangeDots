@@ -65,7 +65,6 @@ Item {
 
     Behavior on offsetScale {
         Anim {
-            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
             // Aim for roughly a 300 ms summon while keeping the expressive
             // curve; the exit stays slightly shorter so dismissal feels crisp.
             duration: root.shouldBeActive ? Tokens.anim.durations.expressiveSlowSpatial * 0.46 : Tokens.anim.durations.expressiveDefaultSpatial * 0.55

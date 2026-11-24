@@ -10,7 +10,7 @@
 | Alt+Tab overlay / MRU selection / keyboard handling | `quickshell/caelestia/modules/switcher/` |
 | Super+Tab wallpaper strip / preview / selection | `quickshell/caelestia/modules/wallpaperswitcher/` |
 | Keybinds / input and gestures / window rules | `hypr/modules/keybindings.lua`, `input.lua`, `rules.lua` |
-| Appearance / animations / workspace layouts | `hypr/modules/appearance.lua`, `animations.lua`, `layouts.lua` |
+| Appearance / animations / workspace layouts | `hypr/modules/appearance.lua`, `animations.lua`, `layouts.lua`; motion rationale in `DESGIN.md` |
 | Monitor / startup / environment / plugins | `hypr/modules/monitors.lua`, `autostart.lua`, `environment.lua`, `plugins.lua` |
 | Scratchpad / shell / refresh helpers | `hypr/scripts/` |
 | First-run preferences | `caelestia/*.json` — committed presets, not private live state |

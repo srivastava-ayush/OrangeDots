@@ -87,7 +87,6 @@ PanelWindow {
     // together: ~360 ms in, ~290 ms out.
     Behavior on progress {
         Anim {
-            type: root.shouldBeActive ? Anim.SlowSpatial : Anim.DefaultSpatial
             duration: Tokens.anim.durations.expressiveSlowSpatial * (root.shouldBeActive ? 0.55 : 0.45)
             easing.type: root.shouldBeActive ? Easing.OutQuint : Easing.InCubic
         }
