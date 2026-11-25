@@ -23,6 +23,11 @@ return function(settings)
     hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle rightSidebar"))
     hl.bind(mainMod .. " + U",       hl.dsp.exec_cmd("caelestia shell drawers toggle leftSidebar"))
     hl.bind(mainMod .. " + space",   hl.dsp.exec_cmd("caelestia shell drawers toggle session"))
+    -- Blackout: SUPER+ALT+B turns the panels off (music/network keep running
+    -- with the lid closed). Any key press or mouse move wakes them again, and
+    -- this chord is the explicit fallback that also clears the blackout state.
+    hl.bind(mainMod .. " + ALT + B", hl.dsp.global("caelestia:blackout"))
+
     -- Dashboard: tap SUPER+ALT to toggle it (either Alt key; release-triggered,
     -- same trick as the SUPER+SUPER_L launcher bind so it won't fire after a
     -- chord like SUPER+ALT+2). Held down, ALT acts as a chord mod, so

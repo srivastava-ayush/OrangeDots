@@ -113,6 +113,17 @@ Scope {
         onPressed: root.launcherInterrupted = true
     }
 
+    // Escape hatch for Blackout: while the panels are in DPMS off, this global
+    // shortcut still fires (HYPRLAND processes input with the display off) and
+    // restores the display state.
+    // qmllint disable unresolved-type
+    CustomShortcut {
+        // qmllint enable unresolved-type
+        name: "blackout"
+        description: "Toggle blackout"
+        onPressed: Blackout.enabled = !Blackout.enabled
+    }
+
     IpcHandler {
         id: drawers
 

@@ -88,7 +88,7 @@ The current tab order is **Media → Dashboard → Performance → Phone**. Medi
   | Card | Behaviour |
   |---|---|
   | **Caffeine** | Toggles the Wayland idle inhibitor and shows when it was enabled. Its visibility follows `utilities.cards.keepAwake`. |
-  | **Blackout** | Turns the display off and inhibits the lid switch so audio/network activity can continue with the lid closed. Shell idle actions pause while active; disabling it restores the display and releases the inhibitor. |
+  | **Blackout** | Turns the display off and inhibits the lid switch so audio/network activity can continue with the lid closed. Shell idle actions pause while active; disabling it restores the display and releases the inhibitor. A key press or mouse move wakes the display and clears Blackout automatically; `SUPER+ALT+B` (global shortcut `caelestia:blackout`) toggles it explicitly. |
   | **Game mode** | Disables Hyprland animations, shadows, blur, gaps, and rounding, sets a one-pixel border, and enables tearing. Disabling it reloads Hyprland's configured settings. This is a compositor-effects mode, not Feral GameMode or a CPU-governor switch. |
 
 - Screen-recorder card with full-screen/region and with/without-audio choices, pause/resume, stop, elapsed time, and recording history. Its visibility follows `utilities.cards.recorder`.
@@ -250,7 +250,7 @@ saves changes.
 - Brightness via `brightnessctl`, DDC/CI via `ddcutil`, and optional Apple Studio Display support via `asdbctl`; monitor selection supports active output, name, ID, model, or serial.
 - Idle dimming and brightness restoration, with animated transitions and respect for manual brightness adjustments made while dimmed.
 - Configurable idle locking/sleep, audio-playback and charging exemptions, and Wayland idle inhibition through Caffeine.
-- Blackout pauses the shell's idle actions in addition to inhibiting the lid switch; it is distinct from Caffeine and normal idle dimming.
+- Blackout pauses the shell's idle actions in addition to inhibiting the lid switch; it is distinct from Caffeine and normal idle dimming. Hyprland's `misc:key_press_enables_dpms` and `misc:mouse_move_enables_dpms` are enabled, so the first key press or mouse move wakes the panels and the shell then clears Blackout (releasing the inhibitor and restoring idle handling).
 - Battery threshold warnings, charging-change notifications, and a five-second delayed hibernation request at the configured critical level.
 - Session menu for logout, shutdown, hibernate, and reboot, with configurable commands/icons, keyboard navigation, and a configurable animated image. Suspend is also available from the dashboard and idle controls.
 - Native systemd/logind session integration, including suspend-then-hibernate and sleep/resume signals.
@@ -273,6 +273,7 @@ Bindings are defined in [`hypr/hyprland.lua`](hypr/hyprland.lua), not inside a c
 | `SUPER+SUPER_L` on release | Toggle launcher. |
 | `SUPER+D` on release | Toggle dashboard. |
 | Tap `SUPER+ALT` | Toggle dashboard. |
+| `SUPER+ALT+B` | Toggle Blackout (display off/lid inhibitor). Any key or mouse move also wakes it. |
 | `SUPER+ALT+1..4` | Select Media / Dashboard / Performance / Phone by name. Disabled dashboard tabs are omitted from the visible strip. |
 | `SUPER+P` | Float the focused window (if it is tiled) and pin/unpin it. |
 | Tap `SUPER+SHIFT` | Toggle taskbar persistence. |
