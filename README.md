@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🟠 OrangeDots · Orange OS
+# 🍊 OrangeDots · Orange OS
 
 **A polished Arch Linux + Hyprland desktop, powered by a custom Quickshell shell.**
 
