@@ -12,7 +12,7 @@ files=(lib/libcaelestia-core.so libcaelestia-coreplugin.so qmldir caelestia-core
 
 [[ $EUID != 0 ]] || die 'Run this script as your normal desktop user, not with sudo.'
 [[ $# == 0 || ( $# == 1 && $1 == --check ) ]] || die "Usage: $0 [--check]"
-for command in cmake caelestia qs python3 sudo pkg-config install; do
+for command in cmake orangeos qs python3 sudo pkg-config install; do
     command -v "$command" >/dev/null || die "Missing command: $command"
 done
 [[ -n ${WAYLAND_DISPLAY:-} ]] || die 'Run inside your Wayland desktop session.'
@@ -24,7 +24,7 @@ home_dir="$(sed -n 's/^CMAKE_HOME_DIRECTORY:INTERNAL=//p' "$build/CMakeCache.txt
 
 unlocked() {
     local state
-    state="$(caelestia shell lock isLocked 2>/dev/null)" || return 1
+    state="$(orangeos shell lock isLocked 2>/dev/null)" || return 1
     [[ $state == false ]]
 }
 instance_count() {
@@ -41,13 +41,13 @@ stop_unlocked_shell() {
     count="$(instance_count)" || return 1
     if [[ $count != 0 ]]; then
         [[ $count == 1 ]] && unlocked || return 1
-        caelestia shell -k || return 1
+        orangeos shell -k || return 1
     fi
     [[ $(instance_count) == 0 ]]
 }
 unlocked || die 'The shell must be running and confirmed unlocked. Do not install while locked.'
 count="$(instance_count)"
-[[ $count == 1 ]] || die 'Expected exactly one running Caelestia instance on this display.'
+[[ $count == 1 ]] || die 'Expected exactly one running Orange OS instance on this display.'
 for file in "${files[@]}"; do
     [[ -f "$system_module/$file" && ! -L "$system_module/$file" ]] || die "Expected a regular installed module file: $system_module/$file"
     if command -v pacman >/dev/null && pacman -Qqo "$system_module/$file" >/dev/null 2>&1; then
@@ -111,7 +111,7 @@ cleanup() {
                 }
             done
         fi
-        caelestia shell -d || printf 'Could not relaunch the shell; run: caelestia shell -d\n' >&2
+        orangeos shell -d || printf 'Could not relaunch the shell; run: orangeos shell -d\n' >&2
     fi
     exit "$status"
 }
@@ -127,11 +127,11 @@ install_started=true
 for file in "${files[@]}"; do
     sudo -n install -m "$(stat -c %a "$backup/$file")" -- "$stage$system_module/$file" "$system_module/$file"
 done
-caelestia shell -d
+orangeos shell -d
 
 status=""
 for ((attempt = 0; attempt < 50; attempt++)); do
-    if status="$(caelestia shell lock renderRecoveryStatus 2>/dev/null)"; then
+    if status="$(orangeos shell lock renderRecoveryStatus 2>/dev/null)"; then
         break
     fi
     sleep 0.2
@@ -140,8 +140,8 @@ python3 -c 'import json,sys; s=json.loads(sys.argv[1]); sys.exit(0 if s.get("sup
 restart_needed=false
 install_started=false
 printf 'Native recovery loaded: %s\n' "$status"
-if caelestia shell lock traceWake; then
+if orangeos shell lock traceWake; then
     printf 'Wake tracing is armed. The next real sleep/wake test is still required.\n'
 else
-    printf 'Could not arm tracing. Before the next sleep test, run: caelestia shell lock traceWake\n' >&2
+    printf 'Could not arm tracing. Before the next sleep test, run: orangeos shell lock traceWake\n' >&2
 fi

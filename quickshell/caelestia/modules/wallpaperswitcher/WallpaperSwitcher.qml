@@ -7,7 +7,7 @@ import Caelestia
 import qs.services
 
 // Standalone wallpaper switcher. The launcher-based picker
-// (`caelestia shell wallpapers pick`, SUPER+SHIFT+W) stays untouched; this
+// (`orangeos shell wallpapers pick`, SUPER+SHIFT+W) stays untouched; this
 // scope only owns the dedicated centred strip opened by SUPER+TAB.
 Scope {
     id: root

@@ -9,10 +9,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    caelestia-cli = {
-      url = "github:caelestia-dots/cli";
+    # Vendored CLI — no external caelestia-cli package is required.
+    orangeos-cli = {
+      url = "path:../../orangeos-cli";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.caelestia-shell.follows = "";
     };
 
     m3shapes = {
@@ -42,9 +42,7 @@
           withX11 = false;
           withI3 = false;
         };
-        caelestia-cli = inputs.caelestia-cli.packages.${pkgs.stdenv.hostPlatform.system}.default;
       };
-      with-cli = caelestia-shell.override {withCli = true;};
       debug = caelestia-shell.override {debug = true;};
       default = caelestia-shell;
     });

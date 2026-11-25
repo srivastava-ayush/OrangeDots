@@ -1,7 +1,7 @@
 # Wallpaper switcher
 
 The dedicated `SUPER+TAB` wallpaper strip. It is intentionally separate from
-the launcher's wallpaper browser (`caelestia shell wallpapers pick`,
+the launcher's wallpaper browser (`orangeos shell wallpapers pick`,
 `SUPER+SHIFT+W`), which keeps its search, category and preview behaviour.
 
 `WallpaperSwitcher.qml` is a `Scope` that chooses the active screen, closes the
@@ -54,14 +54,14 @@ brighter card with the primary-colour ring is the preview under the cursor.
 IPC, useful for debugging:
 
 ```sh
-caelestia shell wallpaperswitcher toggle
-caelestia shell wallpaperswitcher open
-caelestia shell wallpaperswitcher close
-caelestia shell wallpaperswitcher next
-caelestia shell wallpaperswitcher previous
-caelestia shell wallpaperswitcher select 3
-caelestia shell wallpaperswitcher isOpen
-caelestia shell wallpaperswitcher status
+orangeos shell wallpaperswitcher toggle
+orangeos shell wallpaperswitcher open
+orangeos shell wallpaperswitcher close
+orangeos shell wallpaperswitcher next
+orangeos shell wallpaperswitcher previous
+orangeos shell wallpaperswitcher select 3
+orangeos shell wallpaperswitcher isOpen
+orangeos shell wallpaperswitcher status
 ```
 
 Run the isolated layout/state/keyboard test inside Wayland:

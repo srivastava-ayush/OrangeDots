@@ -152,7 +152,7 @@ The current tab order is **Media → Dashboard → Performance → Phone**. Medi
 
 ### Calendar and notes sidebar module
 
-- Assign Calendar to the left or right sidebar in Nexus → Panels → Sidebar → Modules. Select it through the sidebar tabs, or use the compatible `caelestia shell drawers toggle utilitySidebar` alias. There is no Calendar dashboard tab or Super+Alt+5 binding.
+- Assign Calendar to the left or right sidebar in Nexus → Panels → Sidebar → Modules. Select it through the sidebar tabs, or use the compatible `orangeos shell drawers toggle utilitySidebar` alias. There is no Calendar dashboard tab or Super+Alt+5 binding.
 - A seven-day Google Calendar agenda read from a private iCalendar URL, without an OAuth login flow.
 - Masked secret-URL entry in the module's Nexus settings, explicit save/replace,
   and confirmed removal. Existing saved secrets are never shown. The compatible
@@ -216,7 +216,7 @@ saves changes.
 
 - Wallpaper rendering and transitions are handled by OrangeShell, not hyprpaper.
 - Recursive wallpaper discovery, directory-based categories, search, random selection, cached image loading, and a bundled fallback wallpaper.
-- Wallpaper selection from Nexus, the launcher, IPC, or the external `caelestia wallpaper` command.
+- Wallpaper selection from Nexus, the launcher, IPC, or the external `orangeos wallpaper` command.
 - A dedicated `SUPER+TAB` centred horizontal wallpaper strip with an auto-focused name search, live previews, a frosted liquid-blob card matching the drawer glass, a snappy top-centre open/close reveal, and a staggered tile slide that fans out from the highlighted card while the fade stays synchronised; only the highlighted card expands and shows its filename, separate from the launcher's search/category picker (`SUPER+SHIFT+W`).
 - Preview wallpaper/theme colours before applying them; optional smart scheme selection based on the wallpaper.
 - Material 3 palette loading from runtime `scheme.json`, light/dark modes, transparent palette layers, wallpaper-luminance-aware surfaces, and Hyprland blur-rule updates.
@@ -240,7 +240,7 @@ saves changes.
 - Per-screen screenshot overlays with pointer-based window highlighting or a freely dragged selection rectangle.
 - Live capture or freeze-before-select modes, with Escape cancellation.
 - Capture to the external Swappy editor or directly to the clipboard through `wl-copy`; clipboard captures also produce a desktop notification.
-- Screen recording through `caelestia record` and `gpu-screen-recorder`, exposed by the dashboard recorder card and external keybinds.
+- Screen recording through `orangeos record` and `gpu-screen-recorder`, exposed by the dashboard recorder card and external keybinds.
 - Custom shared file dialogs for profile images, wallpapers, and phone-file sharing, with directory navigation, filtered selection, and accept/cancel handling.
 
 ### Power, idle, and hardware controls
@@ -290,7 +290,7 @@ The top-left hot corner and `SUPER+Escape` use the separately installed ScrollOv
 
 ### IPC targets
 
-Use **`caelestia shell <target> <function> [arguments…]`**. `caelestia shell -s` lists the targets available in the running instance; lazily loaded services may only register their handlers after loading.
+Use **`orangeos shell <target> <function> [arguments…]`**. `orangeos shell -s` lists the targets available in the running instance; lazily loaded services may only register their handlers after loading.
 
 | Target | Functions implemented in QML |
 |---|---|
@@ -315,14 +315,14 @@ Use **`caelestia shell <target> <function> [arguments…]`**. `caelestia shell -
 Examples:
 
 ```bash
-caelestia shell drawers toggle notifShade
-caelestia shell drawers setTab calendar
-caelestia shell drawers setTab phone
-caelestia shell gameMode toggle
-caelestia shell idleInhibitor toggle
-caelestia shell brightness setFor active '+10%'
-caelestia shell mpris getActive trackTitle
-caelestia shell nexus open
+orangeos shell drawers toggle notifShade
+orangeos shell drawers setTab calendar
+orangeos shell drawers setTab phone
+orangeos shell gameMode toggle
+orangeos shell idleInhibitor toggle
+orangeos shell brightness setFor active '+10%'
+orangeos shell mpris getActive trackTitle
+orangeos shell nexus open
 ```
 
 The shared `ScreenState` exposes these drawer names: `bar`, `osd`, `session`, `launcher`, `dashboard`, `ai` (right sidebar), `leftSidebar`, and `notifShade`; `rightSidebar` aliases `ai`. The legacy `drawers toggle utilitySidebar` and `isOpen utilitySidebar` commands select Calendar on its assigned sidebar. Opening a disabled panel does not override its configuration; fullscreen guards also apply to several drawer actions.

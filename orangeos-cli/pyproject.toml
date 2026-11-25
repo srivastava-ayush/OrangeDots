@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "orangeos-cli"
+version = "1.0.0"
+requires-python = ">=3.13"
+description = "Main control script for Orange OS (vendored Caelestia CLI)"
+dependencies = [
+    "pillow",
+    "materialyoucolor"
+]
+
+[project.scripts]
+orangeos = "caelestia:main"
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src",
+    "completions",
+    "README.md"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/caelestia"]
+
+[tool.ruff]
+line-length = 120

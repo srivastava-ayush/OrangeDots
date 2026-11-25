@@ -16,13 +16,13 @@ return function(settings)
     hl.bind(mainMod .. " + Escape", hl.plugin.scrolloverview.overview("toggle all"))
     hl.bind(mainMod .. " + Delete", hl.dsp.exec_cmd(hyprScript("toggle-shell.sh")))
     -- Use the shell's registered global shortcut instead of spawning the
-    -- caelestia CLI; Python startup would add ~200ms before the lock animates.
+    -- orangeos CLI; Python startup would add ~200ms before the lock animates.
     hl.bind(mainMod .. " + L",       hl.dsp.global("caelestia:lock"))
-    hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
-    hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"), { release = true })
-    hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("caelestia shell drawers toggle rightSidebar"))
-    hl.bind(mainMod .. " + U",       hl.dsp.exec_cmd("caelestia shell drawers toggle leftSidebar"))
-    hl.bind(mainMod .. " + space",   hl.dsp.exec_cmd("caelestia shell drawers toggle session"))
+    hl.bind(mainMod .. " + SUPER_L", hl.dsp.exec_cmd("orangeos shell drawers toggle launcher"), { release = true })
+    hl.bind(mainMod .. " + D",       hl.dsp.exec_cmd("orangeos shell drawers toggle dashboard"), { release = true })
+    hl.bind(mainMod .. " + I",       hl.dsp.exec_cmd("orangeos shell drawers toggle rightSidebar"))
+    hl.bind(mainMod .. " + U",       hl.dsp.exec_cmd("orangeos shell drawers toggle leftSidebar"))
+    hl.bind(mainMod .. " + space",   hl.dsp.exec_cmd("orangeos shell drawers toggle session"))
     -- Blackout: SUPER+ALT+B turns the panels off (music/network keep running
     -- with the lid closed). Any key press or mouse move wakes them again, and
     -- this chord is the explicit fallback that also clears the blackout state.
@@ -34,22 +34,22 @@ return function(settings)
     -- SUPER+ALT+[1-4] jumps straight to a tab (opens the dashboard if closed).
     -- Tab order follows modules/dashboard/DashboardContent.qml, skipping disabled tabs:
     -- 1=Media 2=Dashboard 3=Performance 4=Phone
-    local dashToggle = hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard")
+    local dashToggle = hl.dsp.exec_cmd("orangeos shell drawers toggle dashboard")
     hl.bind(mainMod .. " + ALT_L", dashToggle, { release = true })
     hl.bind(mainMod .. " + ALT_R", dashToggle, { release = true })
 
     -- Tap SUPER+SHIFT to toggle the left-side taskbar's Always visible setting.
-    local barToggle = hl.dsp.exec_cmd("caelestia shell drawers toggleBarPersistent")
+    local barToggle = hl.dsp.exec_cmd("orangeos shell drawers toggleBarPersistent")
     -- Cycle taskbar styles: Unified -> Three notches -> Center notch (saved by the shell).
-    hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("caelestia shell drawers cycleBarStyle"), { release = true })
+    hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("orangeos shell drawers cycleBarStyle"), { release = true })
     -- Hold SUPER+SHIFT+T, then press O to switch Left <-> Top without cycling style.
-    hl.bind(mainMod .. " + SHIFT + T + O", hl.dsp.exec_cmd("caelestia shell drawers toggleBarOrientation"))
+    hl.bind(mainMod .. " + SHIFT + T + O", hl.dsp.exec_cmd("orangeos shell drawers toggleBarOrientation"))
     hl.bind(mainMod .. " + SHIFT_L", barToggle, { release = true })
     hl.bind(mainMod .. " + SHIFT_R", barToggle, { release = true })
 
     local dashTabs = { "media", "dashboard", "performance", "phone" }
     for i, tab in ipairs(dashTabs) do
-        hl.bind(mainMod .. " + TAB + " .. i, hl.dsp.exec_cmd("caelestia shell drawers setTab " .. tab), { release = true })
+        hl.bind(mainMod .. " + TAB + " .. i, hl.dsp.exec_cmd("orangeos shell drawers setTab " .. tab), { release = true })
     end
 
     -- Apps / window management
@@ -185,34 +185,34 @@ return function(settings)
 
     -- Save to ~/Pictures/Screenshots and copy the focused screen to the clipboard.
     hl.bind(mainMod .. " + H",         hl.dsp.exec_cmd(hyprScript("screenshot.sh")))
-    hl.bind(mainMod .. " + SHIFT + H", hl.dsp.exec_cmd("caelestia shell picker openClip"))
+    hl.bind(mainMod .. " + SHIFT + H", hl.dsp.exec_cmd("orangeos shell picker openClip"))
 
     -- Screen recording alternative (same action as SUPER+ALT+CAPS_LOCK).
-    hl.bind(mainMod .. " + R",               hl.dsp.exec_cmd("caelestia record -r -s"))
+    hl.bind(mainMod .. " + R",               hl.dsp.exec_cmd("orangeos record -r -s"))
 
     -- Bluetooth / network / settings
     hl.bind(mainMod .. " + B",   hl.dsp.exec_cmd("blueman-manager"))
     hl.bind(mainMod .. " + M",   hl.dsp.exec_cmd("pavucontrol"))
     hl.bind(mainMod .. " + N",   hl.dsp.exec_cmd(terminal .. " --title nmtui -e nmtui"))
-    hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("caelestia shell nexus toggle"))
+    hl.bind(mainMod .. " + X",   hl.dsp.exec_cmd("orangeos shell nexus toggle"))
     hl.bind(mainMod .. " + O",   hl.dsp.exec_cmd("obsidian"))
     -- Standalone centred wallpaper strip (separate from the launcher picker).
     -- Non-repeating so holding Tab cannot rapidly toggle it open and closed.
-    hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("caelestia shell wallpaperswitcher toggle"), { repeating = false })
+    hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("orangeos shell wallpaperswitcher toggle"), { repeating = false })
 
     -- media-audio-pipewire-restart script
     hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd(hyprScript("restart-pipewire.sh")))
 
 
     -- Launcher-based wallpaper picker (search, categories, live previews).
-    hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("caelestia shell wallpapers pick"))
+    hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("orangeos shell wallpapers pick"))
 
     -- Clipboard / emoji
-    hl.bind("CTRL + ALT + V",         hl.dsp.exec_cmd("caelestia clipboard"))
+    hl.bind("CTRL + ALT + V",         hl.dsp.exec_cmd("orangeos clipboard"))
     hl.bind("CTRL + ALT + SHIFT + V", hl.dsp.exec_cmd("cliphist wipe"))
     -- In-shell Material emoji picker; selecting an emoji copies it to the
     -- clipboard and types it into the previously focused window.
-    hl.bind(mainMod .. " + period",   hl.dsp.exec_cmd("caelestia shell drawers toggle emoji"))
+    hl.bind(mainMod .. " + period",   hl.dsp.exec_cmd("orangeos shell drawers toggle emoji"))
 
     -- Media keys (requires playerctl)
     hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })

@@ -100,7 +100,7 @@ Singleton {
     }
 
     function setMode(mode: string): void {
-        Quickshell.execDetached(["caelestia", "scheme", "set", "--notify", "-m", mode]);
+        Quickshell.execDetached(["orangeos", "scheme", "set", "--notify", "-m", mode]);
     }
 
     function reloadHyprRules(): void {

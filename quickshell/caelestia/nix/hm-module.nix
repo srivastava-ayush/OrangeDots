@@ -6,8 +6,8 @@ self: {
 }: let
   inherit (pkgs.stdenv.hostPlatform) system;
 
-  cli-default = self.inputs.caelestia-cli.packages.${system}.default;
-  shell-default = self.packages.${system}.with-cli;
+  cli-default = self.inputs.orangeos-cli.packages.${system}.default;
+  shell-default = self.packages.${system}.caelestia-shell;
 
   cfg = config.programs.caelestia;
 in {
@@ -55,11 +55,11 @@ in {
         description = "Caelestia shell extra configs written to shell.json";
       };
       cli = {
-        enable = mkEnableOption "Enable Caelestia CLI";
+        enable = mkEnableOption "Enable Orange OS CLI";
         package = mkOption {
           type = types.package;
           default = cli-default;
-          description = "The package of Caelestia CLI"; # Doesn't override the shell's CLI, only change from home.packages
+          description = "The package of Orange OS CLI (vendored)"; # Doesn't override the shell's CLI, only change from home.packages
         };
         settings = mkOption {
           type = types.attrsOf types.anything;

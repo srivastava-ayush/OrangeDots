@@ -185,24 +185,46 @@ GridLayout {
     }
 
     // The status cells keep their visual padding, but hover must not fall into
-    // a dead zone between them. Inside the row, map the pointer to the nearest
-    // visible cell so the pill and popout transfer continuously.
+    // a dead zone between them. A cell that contains the pointer always wins;
+    // only the padding between cells maps to the nearest one. Comparing centres
+    // alone lets a narrow neighbour steal the edges of a wide cell (Bluetooth
+    // with several connected devices), so edge distance decides the gaps.
     function statusEntryAt(items: Item, pos: point): Item {
         const entries = items.children.filter(child => child.visible && child.present);
         if (!entries.length)
             return null;
-        const first = entries[0];
-        const last = entries[entries.length - 1];
-        const lo = horizontal ? first.x : first.y;
-        const hi = horizontal ? last.x + last.width : last.y + last.height;
+
         const along = horizontal ? pos.x : pos.y;
+        const cross = horizontal ? pos.y : pos.x;
+        const startOf = entry => horizontal ? entry.x : entry.y;
+        const lengthOf = entry => horizontal ? entry.width : entry.height;
+        const endOf = entry => startOf(entry) + lengthOf(entry);
+        const crossStartOf = entry => horizontal ? entry.y : entry.x;
+        const crossLengthOf = entry => horizontal ? entry.height : entry.width;
+
+        // Every device glyph inside a multi-icon cell must keep that cell's
+        // hover target, including the leftmost and rightmost glyph.
+        for (const entry of entries) {
+            const start = startOf(entry);
+            const crossStart = crossStartOf(entry);
+            if (along >= start && along <= endOf(entry) && cross >= crossStart && cross <= crossStart + crossLengthOf(entry))
+                return entry;
+        }
+
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (const entry of entries) {
+            lo = Math.min(lo, startOf(entry));
+            hi = Math.max(hi, endOf(entry));
+        }
         if (along < lo || along > hi)
             return null;
+
         let best = null;
         let bestDistance = Infinity;
         for (const entry of entries) {
-            const center = horizontal ? entry.x + entry.width / 2 : entry.y + entry.height / 2;
-            const distance = Math.abs(along - center);
+            const start = startOf(entry);
+            const distance = along < start ? start - along : along > endOf(entry) ? along - endOf(entry) : 0;
             if (distance < bestDistance) {
                 bestDistance = distance;
                 best = entry;

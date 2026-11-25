@@ -27,10 +27,8 @@
   cmake,
   ninja,
   pkg-config,
-  caelestia-cli,
   m3shapes,
   debug ? false,
-  withCli ? false,
   extraRuntimeDeps ? [],
 }: let
   version = "1.0.0";
@@ -50,8 +48,7 @@
       bash
       hyprland
     ]
-    ++ extraRuntimeDeps
-    ++ lib.optional withCli caelestia-cli;
+    ++ extraRuntimeDeps;
 
   fontconfig = makeFontsConf {
     fontDirectories = [material-symbols rubik nerd-fonts.caskaydia-cove];

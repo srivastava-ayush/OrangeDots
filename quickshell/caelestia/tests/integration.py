@@ -34,7 +34,7 @@ def run(config, env, expected, mode="load"):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "ai-memory", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "notes", "recorder", "recorder-load", "lock-input", "lock-focus", "switcher", "wallpaper-switcher"))
+    parser.add_argument("--mode", choices=("layout", "clock-center", "calendar", "calendar-notes", "background", "wallpaper-transition", "notifications", "hover", "status-wide-hover", "media-island", "media-dashboard", "overview", "phone", "ai", "ai-memory", "launcher-gloss", "recorder-card", "recorder-delete", "nexus", "tint", "tint-load", "styles", "attachments", "center", "notes", "recorder", "recorder-load", "lock-input", "lock-focus", "switcher", "wallpaper-switcher"))
     parser.add_argument("--style", choices=("unified", "notches", "center"), help="Initial style for a focused --mode run")
     parser.add_argument("--shell-root", type=Path, default=SHELL, help="Load QML modules from a staged/installed shell tree")
     args = parser.parse_args()
@@ -154,6 +154,8 @@ def main():
         print("PASS: taskbar notification shade, hover settings, drawer IPC, auto-hide, and unchanged banners")
         run(config, env, "top", mode="hover")
         print("PASS: click-only Top calendar, dashboard hover, and icon-to-popout handoff, padding, persistence, and dismissal for Top and Left bars")
+        run(config, env, "top", mode="status-wide-hover")
+        print("PASS: hover across every glyph of a wide, multi-device status cell")
         run(config, env, "top", mode="switcher")
         print("PASS: window switcher MRU, native keyboard handling, closed windows, lock gating, and many-window layout")
         run(config, env, "left", mode="nexus")

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Toggle the Caelestia shell without affecting other Quickshell instances.
+# Toggle the Orange OS shell without affecting other Quickshell instances.
 
 if pgrep -f '(^|/)qs -c caelestia -n( -d)?$' >/dev/null; then
-    caelestia shell -k
+    orangeos shell -k
 else
-    caelestia shell -d
+    orangeos shell -d
 fi
 
 

@@ -255,6 +255,13 @@ final frame for repeat visits.
 - Thumbnail `sourceSize` is held constant while a card morphs, and smoothing
   stays on during `PathView` motion — both choices prevent re-decoding or
   shimmer that would look like a stutter.
+- The taskbar notification shade opens in the toast column's top-right slot.
+  Hiding a live toast the moment `notifShade` flips made the hand-off a hard
+  cut, so `BannerWrapper.shadeProgress` follows the shade's own reveal spring
+  and cross-fades the toast (and its shared blob background) out over the
+  incoming menu. The wrapper sits above the shade only while that fade runs,
+  so the card is visibly exchanged instead of being clipped away — one smooth
+  transition in either direction.
 
 ## Design philosophy
 
@@ -489,7 +496,7 @@ not a reason to scatter literals.
 | Change timing of a generic QML transition | `components/Anim.qml`, `AnchorAnim.qml`, `CAnim.qml`, `AnimLoader.qml` |
 | Change how stiff/bouncy a surface spring is | `components/SpringAnim.qml` (the role table) |
 | Change a specific panel's motion | The panel wrapper/content or `Behavior` in `modules/<area>/`, choosing an `Anim` type or a `SpringAnim` role |
-| Disable compositor effects for games | `quickshell/caelestia/services/GameMode.qml` (driven by the dashboard Game mode card and `caelestia shell gameMode toggle`) |
+| Disable compositor effects for games | `quickshell/caelestia/services/GameMode.qml` (driven by the dashboard Game mode card and `orangeos shell gameMode toggle`) |
 | Adjust theme palette that colours animated surfaces | `hypr/scheme/current.lua` plus the runtime Material 3 scheme consumed by `services/Colours.qml` |
 
 Remember the compatibility boundary from `docs/STRUCTURE.md`: native

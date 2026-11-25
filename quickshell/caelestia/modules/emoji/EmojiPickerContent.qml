@@ -52,7 +52,7 @@ Item {
             const trimmed = line.trim();
             if (!trimmed)
                 continue;
-            // Each line is "<glyph> [keywords…]" (see `caelestia emoji`).
+            // Each line is "<glyph> [keywords…]" (see `orangeos emoji`).
             const space = trimmed.indexOf(" ");
             parsed.push({
                 glyph: space === -1 ? trimmed : trimmed.slice(0, space),
@@ -63,12 +63,12 @@ Item {
         root.loading = false;
     }
 
-    // Same dataset as the CLI picker, so `caelestia emoji -f` refreshes both.
+    // Same dataset as the CLI picker, so `orangeos emoji -f` refreshes both.
     Process {
         id: data
 
         running: root.screenState.emoji && root.entries.length === 0
-        command: ["sh", "-c", "caelestia emoji 2>/dev/null"]
+        command: ["sh", "-c", "orangeos emoji 2>/dev/null"]
         stdout: StdioCollector {
             onStreamFinished: root.parseEmoji(text)
         }
@@ -181,7 +181,7 @@ Item {
         wrapMode: Text.Wrap
 
         visible: !root.loading && root.results.length === 0
-        text: root.query ? qsTr("No emoji match \"%1\"").arg(root.query) : qsTr("No emoji data. Run \"caelestia emoji -f\".")
+        text: root.query ? qsTr("No emoji match \"%1\"").arg(root.query) : qsTr("No emoji data. Run \"orangeos emoji -f\".")
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.small
     }

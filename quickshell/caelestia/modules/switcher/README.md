@@ -26,11 +26,11 @@ the old focus over the selected window. Locking cancels and blocks the switcher.
 IPC, useful for debugging:
 
 ```sh
-caelestia shell switcher next
-caelestia shell switcher previous
-caelestia shell switcher accept
-caelestia shell switcher cancel
-caelestia shell switcher status
+orangeos shell switcher next
+orangeos shell switcher previous
+orangeos shell switcher accept
+orangeos shell switcher cancel
+orangeos shell switcher status
 ```
 
 Run isolated layout/state/native-key-event tests inside Wayland:

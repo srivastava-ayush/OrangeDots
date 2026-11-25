@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local sidebar adapter for the same cliphist/wl-copy backend as caelestia clipboard.
+"""Local sidebar adapter for the same cliphist/wl-copy backend as orangeos clipboard.
 
 Only JSON summaries go to stdout. Decoded clipboard contents never enter shell
 commands, logs or process arguments. Pins/previews are private local files.

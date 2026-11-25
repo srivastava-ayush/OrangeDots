@@ -52,7 +52,7 @@ cmake -S quickshell/caelestia -B quickshell/caelestia/build -G Ninja \
 cmake --build quickshell/caelestia/build --parallel 2
 sudo cmake --install quickshell/caelestia/build
 
-qs -c caelestia -n            # test run (Ctrl+C to stop), then: caelestia shell -d
+qs -c caelestia -n            # test run (Ctrl+C to stop), then: orangeos shell -d
 ```
 
 > [!IMPORTANT]
@@ -148,10 +148,19 @@ Or log out and back in after installing.
 With an AUR helper such as `yay`:
 
 ```bash
-yay -S --needed quickshell-git caelestia-cli libcava ttf-material-symbols-variable-git
+yay -S --needed quickshell-git libcava ttf-material-symbols-variable-git
 ```
 
 Review the build files and dependency prompts. `libcava` is required by the native audio visualizer; the `cava` executable alone doesn't guarantee its development library. CMake accepts either a `libcava` or `cava` pkg-config module.
+
+**No external `caelestia-cli` package is needed.** The shell's command-line companion is vendored in this repo as `orangeos-cli`. Install it from the repo root after cloning (Step 3):
+
+```bash
+python3 -m pip install --user ./orangeos-cli
+# or, without installing, symlink bin/orangeos into ~/.local/bin
+```
+
+The vendored CLI provides the `orangeos` command used for wallpaper, schemes, recording, emoji, clipboard and shell control. Its Python module, config/state directories and the shell IPC config name stay `caelestia` internally for compatibility.
 
 ### Step 3 · Clone, back up, and link the shell
 
@@ -207,7 +216,7 @@ If the repo is already cloned, skip `git clone` and set `repo` to its location. 
 </details>
 
 > [!NOTE]
-> The display name is **Orange OS**, but the runtime config name, CLI command, native imports, and data directories stay **`caelestia`** for compatibility. Don't rename them.
+> The display name is **Orange OS** and the command is **`orangeos`** (vendored CLI), but the runtime config name `qs -c caelestia`, native QML imports, layer namespaces and data directories stay **`caelestia`** for compatibility. Don't rename those.
 
 > [!WARNING]
 > Don't install upstream `caelestia-shell` / `caelestia-shell-git` as a substitute for building this fork. Upstream can supply incompatible native modules or a different shell config. Review any already-installed package and the files it owns before replacing it.
@@ -308,14 +317,14 @@ qs -c caelestia -n          # foreground; shows loading errors. -n avoids a seco
 If an instance is already running, read its log instead of launching another:
 
 ```bash
-caelestia shell -l
+orangeos shell -l
 ```
 
 When the foreground launch works, stop it with `Ctrl+C` **while unlocked**, then launch normally:
 
 ```bash
-caelestia shell -d
-caelestia shell nexus open
+orangeos shell -d
+orangeos shell nexus open
 ```
 
 > [!TIP]
@@ -330,15 +339,15 @@ A fallback wallpaper is included; your personal collection is not.
 ```bash
 mkdir -p "$HOME/Pictures/Wallpapers"
 # add your images, then point at a real file:
-caelestia wallpaper -f "$HOME/Pictures/Wallpapers/your-wallpaper.jpg"
+orangeos wallpaper -f "$HOME/Pictures/Wallpapers/your-wallpaper.jpg"
 ```
 
 Or pick in Nexus, or:
 
 ```bash
-caelestia shell wallpapers pick
-caelestia shell wallpaperswitcher toggle
-caelestia scheme set -n dynamic -m dark
+orangeos shell wallpapers pick
+orangeos shell wallpaperswitcher toggle
+orangeos scheme set -n dynamic -m dark
 ```
 
 The generated scheme lives at `${XDG_STATE_HOME:-$HOME/.local/state}/caelestia/scheme.json`. If you use the bundled Hyprland palette too, keep `hypr/scheme/current.lua` consistent with it. Shell tint is only an overlay and does not rewrite that Lua palette.
@@ -349,13 +358,13 @@ If keeping your existing **Lua-based** Hyprland config, merge this into your sta
 
 ```lua
 hl.on("hyprland.start", function()
-    hl.exec_cmd("caelestia shell -d")
+    hl.exec_cmd("orangeos shell -d")
 end)
 
-hl.bind("SUPER + X", hl.dsp.exec_cmd("caelestia shell nexus open"))
-hl.bind("SUPER + D", hl.dsp.exec_cmd("caelestia shell drawers toggle dashboard"))
-hl.bind("SUPER + L", hl.dsp.exec_cmd("caelestia shell lock lock"))
-hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("caelestia shell drawers toggle launcher"), { release = true })
+hl.bind("SUPER + X", hl.dsp.exec_cmd("orangeos shell nexus open"))
+hl.bind("SUPER + D", hl.dsp.exec_cmd("orangeos shell drawers toggle dashboard"))
+hl.bind("SUPER + L", hl.dsp.exec_cmd("orangeos shell lock lock"))
+hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd("orangeos shell drawers toggle launcher"), { release = true })
 ```
 
 For other Hyprland config formats, use your version's own startup/bind mechanism to run the same commands; don't mix syntaxes.
@@ -364,7 +373,7 @@ For other Hyprland config formats, use your version's own startup/bind mechanism
 hyprctl reload
 ```
 
-A startup handler only runs on the **next session start**; use `caelestia shell -d` to start now. The shell-only steps install **no** keybinds automatically.
+A startup handler only runs on the **next session start**; use `orangeos shell -d` to start now. The shell-only steps install **no** keybinds automatically.
 
 ---
 
@@ -417,7 +426,7 @@ fi
 ln -s "$repo/hypr" "$config_home/hypr"
 ```
 
-Or use `bash install.sh --full`. Activate in a controlled session. The config **already autostarts** `caelestia shell -d`; don't add a second autostart from the shell-only steps. The main file is **`hyprland.lua`**, not classic `.conf` syntax.
+Or use `bash install.sh --full`. Activate in a controlled session. The config **already autostarts** `orangeos shell -d`; don't add a second autostart from the shell-only steps. The main file is **`hyprland.lua`**, not classic `.conf` syntax.
 
 > [!WARNING]
 > `~/bin/power-watcher.sh`, `~/bin/refresh-rate.sh`, and `power-watcher.service` from the original machine are **not included**. Automatic AC/battery refresh-rate switching must be recreated separately.
@@ -426,7 +435,7 @@ Or use `bash install.sh --full`. Activate in a controlled session. The config **
 
 ## 🎛 First-run customization
 
-Open **Nexus** with `caelestia shell nexus open` (or `SUPER+X` with the bundled binds). Every entry point opens the same animated **in-shell overlay**; there is no standalone floating window. Dismiss with `Esc` or the close button.
+Open **Nexus** with `orangeos shell nexus open` (or `SUPER+X` with the bundled binds). Every entry point opens the same animated **in-shell overlay**; there is no standalone floating window. Dismiss with `Esc` or the close button.
 
 | I want to change… | Go to |
 |---|---|
@@ -479,7 +488,7 @@ Configure under **Nexus → Panels → Sidebar**.
 - **Modules → Module labels** renames tabs/headers (blank restores the default).
 - Top-attached sidebars share the taskbar's liquid shell background; panels overlay windows without resizing them.
 
-**Toggle shortcuts:** `Super+I` (right sidebar, bundled binds) · `caelestia shell drawers toggle ai` · `... rightSidebar` · `... leftSidebar`. The old right-edge power-menu gesture is replaced; power buttons and other session-menu entry points remain.
+**Toggle shortcuts:** `Super+I` (right sidebar, bundled binds) · `orangeos shell drawers toggle ai` · `... rightSidebar` · `... leftSidebar`. The old right-edge power-menu gesture is replaced; power buttons and other session-menu entry points remain.
 
 <details>
 <summary><b>Memory and unloading behavior</b></summary>
@@ -495,7 +504,7 @@ Configure under **Nexus → Panels → Sidebar**.
 | Module | What it does | Storage |
 |---|---|---|
 | **Calendar** | Google Calendar (iCal) + notes. Settings button opens **Calendar & notes** directly. Masked **Secret iCal URL** field with Save/Replace and confirmed Remove; the URL is never prefilled or displayed. Passed to helper/curl via stdin, not arguments. | `calendar-url` (`0600`), not ordinary settings JSON |
-| **Clipboard** | Same `cliphist` + `wl-copy` backend as `caelestia clipboard`. Search recent text/images, preview, copy, paste, pin snippets, delete items. Clearing asks to confirm: **History** keeps pins, **Everything** removes them. Shows the latest 200 items and previews up to 24 recent images. | Pins: `$XDG_STATE_HOME/caelestia/clipboard-sidebar` (fallback `~/.local/state`), private permissions. Previews: private XDG cache. |
+| **Clipboard** | Same `cliphist` + `wl-copy` backend as `orangeos clipboard`. Search recent text/images, preview, copy, paste, pin snippets, delete items. Clearing asks to confirm: **History** keeps pins, **Everything** removes them. Shows the latest 200 items and previews up to 24 recent images. | Pins: `$XDG_STATE_HOME/caelestia/clipboard-sidebar` (fallback `~/.local/state`), private permissions. Previews: private XDG cache. |
 | **Focus** | Work / short-break / long-break durations, task field, start/pause/reset/skip, long break every 4 work intervals. Optional auto-start and focus-only DND (pre-enabled DND is left alone). Optional countdown before the tray. Runs while the sidebar is closed; uses wall-clock deadlines across sleep. | `$XDG_STATE_HOME/caelestia/focus-timer.json` |
 | **Notes** | Quick capture for plain-text notes (including links) and checkable todos. Search/filter, edit, copy, delete with confirmation. **Delete all notes/todos** clears only the current category and keeps your draft. `Ctrl+Enter` saves. Old Link entries become ordinary notes. Doesn't touch the calendar scratchpad. | `$XDG_STATE_HOME/caelestia/sidebar-notes.json` |
 | **AI** | See below. | `ai-panel.json`, `sidebar-panel.json` |
@@ -503,7 +512,7 @@ Configure under **Nexus → Panels → Sidebar**.
 > [!WARNING]
 > Pins hold the full copied data as plaintext. Don't pin passwords or other secrets.
 
-**Direct paste** needs `wtype` and compositor support; otherwise copy and press `Ctrl+V`. Clipboard history collection must already be running, as with `caelestia clipboard`.
+**Direct paste** needs `wtype` and compositor support; otherwise copy and press `Ctrl+V`. Clipboard history collection must already be running, as with `orangeos clipboard`.
 
 ### AI sidebar
 
@@ -541,16 +550,16 @@ npm ci --prefix quickshell/caelestia/utils/opencode --ignore-scripts --no-audit 
 ### CLI (works with or without the bundled keybinds)
 
 ```bash
-caelestia shell -d                       # start detached
-caelestia shell -r                       # restart
-caelestia shell -k                       # stop
-caelestia shell -l                       # show logs
-caelestia shell -s                       # list IPC commands
-caelestia shell nexus open               # open Nexus
-caelestia shell drawers toggle dashboard
-caelestia shell drawers toggle launcher
-caelestia shell drawers toggle notifShade
-caelestia shell drawers toggle utilitySidebar   # Calendar on its assigned sidebar
+orangeos shell -d                       # start detached
+orangeos shell -r                       # restart
+orangeos shell -k                       # stop
+orangeos shell -l                       # show logs
+orangeos shell -s                       # list IPC commands
+orangeos shell nexus open               # open Nexus
+orangeos shell drawers toggle dashboard
+orangeos shell drawers toggle launcher
+orangeos shell drawers toggle notifShade
+orangeos shell drawers toggle utilitySidebar   # Calendar on its assigned sidebar
 ```
 
 ### Bundled `hyprland.lua` shortcuts
@@ -616,7 +625,7 @@ git -C "$repo" pull --ff-only
 - Back up live settings and inspect local edits first.
 - With conflicting local edits, commit or back them up and resolve; **don't hard-reset**.
 - Don't reseed live JSON over your preferences on every update.
-- QML-only changes usually hot-reload. For a clean restart: `caelestia shell -r`
+- QML-only changes usually hot-reload. For a clean restart: `orangeos shell -r`
 - After native-source, Qt, or Quickshell ABI changes, repeat [Step 4](#step-4--build-and-install-the-native-modules), then restart. A Qt upgrade may also require rebuilding `quickshell-git`.
 - Update Hyprland plugins separately when Hyprland changes.
 
@@ -627,7 +636,7 @@ git -C "$repo" pull --ff-only
 ### Diagnostics first
 
 ```bash
-caelestia shell -l
+orangeos shell -l
 qs list --all
 hyprctl monitors
 hyprctl configerrors
@@ -650,7 +659,7 @@ Before sharing logs, strip credentials, private calendar URLs, notification text
 | Icons are squares or literal names | Check Material Symbols Rounded and Nerd Font resolution; refresh font cache; restart. |
 | Wallpaper/scheme errors | Choose an existing wallpaper via CLI. Regenerate state; don't copy another user's absolute path. |
 | Login/config parse errors with full dotfiles | Confirm Lua-compatible Hyprland, adapt monitor/app paths, check ScrollOverview references. Return to your backup if needed. |
-| Password feedback missing after wake until you click | A pending Wayland frame callback can strand lock rendering across sleep. Run `caelestia shell lock renderRecoveryStatus`, then see [lock-screen recovery](#-advanced-lock-screen-recovery-after-sleep). A restart alone isn't a confirmed fix. **Don't kill/restart the shell while locked.** |
+| Password feedback missing after wake until you click | A pending Wayland frame callback can strand lock rendering across sleep. Run `orangeos shell lock renderRecoveryStatus`, then see [lock-screen recovery](#-advanced-lock-screen-recovery-after-sleep). A restart alone isn't a confirmed fix. **Don't kill/restart the shell while locked.** |
 | Recording doesn't start | Check `gpu-screen-recorder`, GPU support, audio devices, and the CLI recording command. |
 | Recording is downscaled / low quality | **Services → Screen recorder → Reset to highest quality**, or ensure `~/.config/caelestia/cli.json` has `"record": {"extraArgs": ["-s", "0x0", "-q", "ultra", "-tune", "quality"]}`, then restart recording. |
 | Calendar is empty | Check the private iCal URL file and network. The parser doesn't expand all recurring-event rules. |
@@ -681,7 +690,7 @@ Run from a terminal in your **unlocked Wayland desktop** as your normal user:
 repo="$HOME/OrangeDots"
 bash "$repo/quickshell/caelestia/scripts/install-lock-render-recovery.sh" --check
 bash "$repo/quickshell/caelestia/scripts/install-lock-render-recovery.sh"
-caelestia shell lock renderRecoveryStatus
+orangeos shell lock renderRecoveryStatus
 ```
 
 What the installer does:
@@ -709,7 +718,7 @@ What the installer does:
 
 ## 🧹 Uninstall
 
-1. Stop the shell: `caelestia shell -k`
+1. Stop the shell: `orangeos shell -k`
 2. Remove its autostart and binds.
 3. Restore saved config entries from `~/.local/share/orangedots-backups/` (manual install) or `${XDG_STATE_HOME:-$HOME/.local/state}/orangedots/backups/` (installer).
 4. Remove **only the symlinks you created**, not a whole config directory or the clone they point to.
@@ -768,10 +777,10 @@ Native checks need supported, identical Qt build/runtime versions and verify rec
 **Wake tracing** (opt-in) compares Qt focus, app state, masked-input presence, frame notifications, and native `framePending` / `callbackTimedOut` / exposure metadata before and after a click. It never records password text or length and never requests focus or repaints. Recovery runs independently of tracing. After replacing a native library, restart **while unlocked**, since live QML reloads don't replace a loaded native plugin.
 
 ```bash
-caelestia shell lock traceWake          # arm before the manual sleep/wake test
-caelestia shell lock wakeTrace          # after reproducing and unlocking
+orangeos shell lock traceWake          # arm before the manual sleep/wake test
+orangeos shell lock wakeTrace          # after reproducing and unlocking
 qs --no-color log -c caelestia -t 150
-caelestia shell lock stopWakeTrace
+orangeos shell lock stopWakeTrace
 ```
 
 `render-recovery` trace records include before/after native state; native messages use the `caelestia.lock.render` log category. Re-arm `traceWake` before each new sleep test.

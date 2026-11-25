@@ -53,12 +53,12 @@ PageBase {
     ]
 
     function applyScheme(name: string, flavour: string): void {
-        Quickshell.execDetached(["caelestia", "scheme", "set", "-n", name, "-f", flavour]);
+        Quickshell.execDetached(["orangeos", "scheme", "set", "-n", name, "-f", flavour]);
     }
 
     function applyVariant(value: string): void {
         root.variant = value;
-        Quickshell.execDetached(["caelestia", "scheme", "set", "-v", value]);
+        Quickshell.execDetached(["orangeos", "scheme", "set", "-v", value]);
     }
 
     function loadSchemes(text: string): void {
@@ -88,7 +88,7 @@ PageBase {
             id: schemesProcess
 
             running: true
-            command: ["caelestia", "scheme", "list"]
+            command: ["orangeos", "scheme", "list"]
             stdout: StdioCollector {
                 onStreamFinished: root.loadSchemes(text)
             }
@@ -97,7 +97,7 @@ PageBase {
         Process {
             id: getVariant
 
-            command: ["caelestia", "scheme", "get", "-v"]
+            command: ["orangeos", "scheme", "get", "-v"]
             stdout: StdioCollector {
                 onStreamFinished: root.variant = text.trim()
             }
@@ -232,7 +232,7 @@ PageBase {
             Layout.fillWidth: true
             visible: root.schemeEntries.length === 0
             Layout.margins: Tokens.padding.medium
-            text: root.loading ? qsTr("Loading available schemes…") : qsTr("No schemes found. Make sure the caelestia CLI is installed.")
+            text: root.loading ? qsTr("Loading available schemes…") : qsTr("No schemes found. Make sure the orangeos CLI is installed.")
             color: Colours.palette.m3outline
             font: Tokens.font.body.small
             wrapMode: Text.WordWrap
@@ -253,7 +253,7 @@ PageBase {
             icon: "shuffle"
             text: qsTr("Surprise me")
             subtext: qsTr("Switch to a random available scheme")
-            onClicked: Quickshell.execDetached(["caelestia", "scheme", "set", "--random"])
+            onClicked: Quickshell.execDetached(["orangeos", "scheme", "set", "--random"])
         }
     }
 }

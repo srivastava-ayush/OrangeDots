@@ -350,7 +350,7 @@ ShellRoot {
 
     Loader {
         id: fullSceneLoader
-        active: ["background", "notifications", "hover", "media-island", "media-dashboard", "overview", "phone", "ai", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar", "notes"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
+        active: ["background", "notifications", "hover", "status-wide-hover", "media-island", "media-dashboard", "overview", "phone", "ai", "launcher-gloss", "recorder-card", "recorder-delete", "styles", "attachments", "center", "calendar", "notes"].includes(Quickshell.env("TASKBAR_TEST_MODE"))
         sourceComponent: DesktopWindow {
             readonly property alias testEvents: sceneEvents
 
@@ -544,7 +544,7 @@ ShellRoot {
     }
 
     Timer {
-        interval: ["overview", "media-island"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 1200 : ["hover", "attachments"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 450 : ["clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
+        interval: ["overview", "media-island"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 1200 : ["hover", "status-wide-hover", "attachments"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 450 : ["clock-center"].includes(Quickshell.env("TASKBAR_TEST_MODE")) ? 300 : 700
         running: true
         repeat: true
 
@@ -2341,6 +2341,55 @@ ShellRoot {
                             root.check(!realBar.visible, "An auto-hidden bar should collapse after its popout closes");
                     }
                     root.step++;
+                    return;
+                }
+
+                if (Quickshell.env("TASKBAR_TEST_MODE") === "status-wide-hover") {
+                    const scene = fullSceneLoader.item;
+                    const interactions = scene.interactionWrapper;
+                    const popup = interactions.panels.popoutsWrapper.content;
+                    if (root.step === 0) {
+                        Taskbar.orientation = "top";
+                        GlobalConfig.bar.persistent = true;
+                        scene.screenState.bar = true;
+                        popup.close();
+                        const status0 = root.find(scene.contentItem, "taskbarStatusIcons");
+                        // A previous test may have left the bar auto-hidden;
+                        // wait for its content to reload before injecting.
+                        if (!status0)
+                            return;
+                        root.step++;
+                        const layout0 = status0.items.children.find(c => c.name === "bluetooth").item.layout;
+                        // Never depend on how many devices happen to be paired
+                        // on the test machine: widen the Bluetooth cell with
+                        // synthetic device glyphs to mimic several connected
+                        // headphones/mice.
+                        layout0.columns = 40;
+                        const glyph = 'import QtQuick; import qs.components; MaterialIcon { fill: 1; text: "headphones"; color: "white" }';
+                        for (let i = 0; i < 8; i++)
+                            root.check(!!Qt.createQmlObject(glyph, layout0, `wideStatusGlyph${i}`), "The wide-status fixture must create device glyphs");
+                        return;
+                    }
+                    if (root.step++ === 1)
+                        return; // Let the layout settle with the new glyphs.
+
+                    const status = root.find(scene.contentItem, "taskbarStatusIcons");
+                    const bluetooth = status.items.children.find(child => child.name === "bluetooth");
+                    root.check(!!bluetooth, "The wide-status fixture needs a Bluetooth cell");
+                    const glyphs = bluetooth.item.layout.children.filter(child => child.fill === 1 && child.visible);
+                    root.check(glyphs.length >= 8, "The Bluetooth cell must contain the synthetic device glyphs");
+                    root.check(bluetooth.width > glyphs[0].width * 3, "The Bluetooth cell must be wider than a single status icon");
+
+                    for (const device of glyphs) {
+                        const point = device.mapToItem(interactions, device.width / 2, device.height / 2);
+                        popup.close();
+                        interactions.updatePopoutHover(point.x, point.y);
+                        root.check(status.highlightedEntry === bluetooth, `Hovering any device glyph must target the Bluetooth cell (glyph x=${device.x})`);
+                        root.check(popup.pendingHoverName === "bluetooth" || popup.currentName === "bluetooth", `Hovering any device glyph must queue the Bluetooth menu (glyph x=${device.x})`);
+                    }
+
+                    console.log("TASKBAR TEST PASS");
+                    Qt.quit();
                     return;
                 }
 

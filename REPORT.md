@@ -39,7 +39,7 @@ The required findings format, severity counts, file/line references, verified ev
 
 ### Boot and execution model
 
-1. `hypr/hyprland.lua:6-31` invalidates/reloads explicit Lua modules. `hypr/modules/autostart.lua:6-11` launches `caelestia shell -d` from the compositor startup event, alongside optional desktop helpers.
+1. `hypr/hyprland.lua:6-31` invalidates/reloads explicit Lua modules. `hypr/modules/autostart.lua:6-11` launches `orangeos shell -d` from the compositor startup event, alongside optional desktop helpers.
 2. `quickshell/caelestia/shell.qml:17-55` is the Quickshell entry point: font/service loading, background, per-screen desktop, screenshot tools, session lock, shortcuts, switcher, battery/idle handling. It is not an HTTP server.
 3. `modules/ServiceLoader.qml:7-21` eagerly initializes selected service singletons; `modules/launcher/LauncherWrapper.qml:41` preloads app metadata. Most panel content uses loaders.
 4. `modules/desktop/` composes the taskbar, drawer geometry/backgrounds, input regions, focus, and hover/gesture routing. QML stays interpreted; native plugins are CMake-built.

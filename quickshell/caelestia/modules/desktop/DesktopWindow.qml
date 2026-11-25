@@ -336,8 +336,10 @@ StyledWindow {
             // Continue the shared liquid surface up to the shell edge, just as
             // the sidebar does, even when a popout pushes the toast downward.
             y: -root.borderRounding
-            // The taskbar shade hides banners without deleting their popup state.
-            // Hide their separate surface too, rather than leaving a ghost panel.
+            // The taskbar shade hides banners without deleting their popup
+            // state. Fade their separate surface out with the cards instead of
+            // leaving a ghost panel behind the shade's own blob mid-transition.
+            opacity: panels.notifications.surfaceOpacity
             implicitWidth: panels.notifications.visible ? panels.notifications.width : 0
             implicitHeight: panel.visible ? Math.max(0, panel.y + panels.y + panel.height - y) : 0
         }

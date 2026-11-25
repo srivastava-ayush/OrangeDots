@@ -74,7 +74,7 @@ For home-manager, you can also use the Caelestia's home manager module (explaine
 
 Dependencies:
 
--   [`caelestia-cli`](https://github.com/caelestia-dots/cli)
+-   `orangeos-cli` — vendored in this repo at `orangeos-cli/` (no external package needed)
 -   [`quickshell-git`](https://quickshell.outfoxxed.me) - this has to be the git version, not the latest tagged version
 -   [`ddcutil`](https://github.com/rockowitz/ddcutil)
 -   [`brightnessctl`](https://github.com/Hummer12007/brightnessctl)
@@ -131,7 +131,7 @@ sudo cmake --install build
 
 ## Usage
 
-The shell can be started via the `caelestia shell -d` command or `qs -c caelestia`.
+The shell can be started via the `orangeos shell -d` command or `qs -c caelestia`.
 If the entire caelestia dots are installed, the shell will be autostarted on login
 via an `exec-once` in the hyprland config.
 
@@ -142,16 +142,16 @@ If using the entire caelestia dots, the keybinds are already configured for you.
 Otherwise, [this file](https://github.com/caelestia-dots/caelestia/blob/main/hypr/hyprland/keybinds.conf#L1-L39)
 contains an example on how to use global shortcuts.
 
-All IPC commands can be accessed via `caelestia shell ...`. For example
+All IPC commands can be accessed via `orangeos shell ...`. For example
 
 ```sh
-caelestia shell mpris getActive trackTitle
+orangeos shell mpris getActive trackTitle
 ```
 
-The list of IPC commands can be shown via `caelestia shell -s`:
+The list of IPC commands can be shown via `orangeos shell -s`:
 
 ```
-$ caelestia shell -s
+$ orangeos shell -s
 target drawers
   function toggle(drawer: string): void
   function list(): string
@@ -187,7 +187,7 @@ it you can copy your image to there or set it via the dashboard.
 The wallpapers for the wallpaper switcher are read from `~/Pictures/Wallpapers`
 by default. To change it, change the wallpapers path in `~/.config/caelestia/shell.json`.
 
-To set the wallpaper, you can use the command `caelestia wallpaper`. Use `caelestia wallpaper -h` for more info about
+To set the wallpaper, you can use the command `orangeos wallpaper`. Use `orangeos wallpaper -h` for more info about
 the command.
 
 ## Updating
@@ -621,7 +621,7 @@ For example, to disable the bar on DP-1:
                 "name": "Random",
                 "icon": "casino",
                 "description": "Switch to a random wallpaper",
-                "command": ["caelestia", "wallpaper", "-r"],
+                "command": ["orangeos", "wallpaper", "-r"],
                 "enabled": true,
                 "dangerous": false
             },
@@ -685,7 +685,7 @@ For example, to disable the bar on DP-1:
                 "name": "Settings",
                 "icon": "settings",
                 "description": "Configure the shell",
-                "command": ["caelestia", "shell", "nexus", "open"],
+                "command": ["orangeos", "shell", "nexus", "open"],
                 "enabled": true,
                 "dangerous": false
             }
@@ -874,7 +874,7 @@ programs.caelestia = {
     paths.wallpaperDir = "~/Images";
   };
   cli = {
-    enable = true; # Also add caelestia-cli to path
+    enable = true; # Also add the vendored orangeos-cli to PATH
     settings = {
       theme.enableGtk = false;
     };
@@ -919,12 +919,12 @@ If there is no corresponding option, make feature request.
 
 ### How do I make my colour scheme change with my wallpaper?
 
-Set a wallpaper via the launcher or `caelestia wallpaper` and set the scheme to the dynamic scheme via the launcher
-or `caelestia scheme set`. e.g.
+Set a wallpaper via the launcher or `orangeos wallpaper` and set the scheme to the dynamic scheme via the launcher
+or `orangeos scheme set`. e.g.
 
 ```sh
-caelestia wallpaper -f <path/to/file>
-caelestia scheme set -n dynamic
+orangeos wallpaper -f <path/to/file>
+orangeos scheme set -n dynamic
 ```
 
 ### My wallpapers aren't showing up in the launcher!

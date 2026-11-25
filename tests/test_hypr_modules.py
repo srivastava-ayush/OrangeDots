@@ -62,7 +62,7 @@ class HyprModuleTests(unittest.TestCase):
         first, second = self.run_config(REPO / "hypr", reload=True).split("--RELOAD--\n")
         self.assertEqual(first, second)
         for expected in (
-            "caelestia shell -d", "toggle-shell.sh", "toggle-spotify.sh",
+            "orangeos shell -d", "toggle-shell.sh", "toggle-spotify.sh",
             "layout=scrolling,workspace=1",
             "caelestia:switcherNext", "caelestia:switcherPrevious", "caelestia:switcherAccept",
             "keybinds-locked", "hyprglass", "spotify-special",

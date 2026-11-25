@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+# Utility script for running the vendored Orange OS CLI from a checkout.
+# Resolve symlinks so a link placed on PATH still finds ../src.
+
+self=$(readlink -f "$0") || exit 1
+cd "$(dirname "$self")/../src" || exit 1
+
+python -m caelestia "$@"
